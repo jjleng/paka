@@ -303,7 +303,7 @@ class CloudConfig(BaseModel):
 
     cluster: ClusterConfig
     blobStore: Optional[BlobStore] = None
-    InferenceGroups: Optional[List[CloudInferenceGroup]] = None
+    inferenceGroups: Optional[List[CloudInferenceGroup]] = None
     serve: Optional[CloudServeConfig] = None
     job: Optional[CloudJobConfig] = None
 
@@ -331,7 +331,7 @@ class LocalConfig(BaseModel):
     """
 
     cluster: LocalClusterConfig
-    InferenceGroups: Optional[List[LocalInferenceGroup]] = None
+    inferenceGroups: Optional[List[LocalInferenceGroup]] = None
     serve: Optional[LocalServeConfig] = None
     job: Optional[LocalJobConfig] = None
 

@@ -1,0 +1,21 @@
+aws:
+  cluster:
+    name: test-cluster
+    defaultRegion: us-east-1
+  blobStore:
+    skip: false
+  inferenceGroups:
+    - nodeType: t2.micro
+      name: test-model-group
+      replica: 1
+  serve:
+    serverless:
+      region: us-east-1
+      minInstances: 1
+      maxInstances: 1
+  job:
+    queue: test-queue
+    lazyCreate: true
+    workers:
+      nodeType: t2.micro
+      instances: 2

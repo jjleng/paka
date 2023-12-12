@@ -1,4 +1,5 @@
 import pytest
+from typing import Any
 from light.cluster.manager.config import (
     Serve,
     CloudServeConfig,
@@ -27,7 +28,7 @@ server_config = CloudServer(maxInstances=1, minInstances=1, nodeType="t2.micro")
 cloud_config = CloudConfig(
     cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
     blobStore=BlobStore(),
-    InferenceGroups=[
+    inferenceGroups=[
         CloudInferenceGroup(name="test-model-group", replica=1, nodeType="t2.micro")
     ],
     serve=CloudServeConfig(serverless=serverless_config),
@@ -38,7 +39,7 @@ cloud_config = CloudConfig(
 )
 local_config = LocalConfig(
     cluster=LocalClusterConfig(name="mycluster"),
-    InferenceGroups=[LocalInferenceGroup(name="llama2", replica=1)],
+    inferenceGroups=[LocalInferenceGroup(name="llama2", replica=1)],
     serve=LocalServeConfig(server=LocalServer(minInstances=1, maxInstances=2)),
     job=LocalJobConfig(queue="redis", workers=LocalWorkerConfig(instances=2)),
 )
@@ -142,3 +143,9 @@ def test_round_trip() -> None:
     yaml_str = generate_yaml(original_config)
     parsed_config = parse_yaml(yaml_str)
     assert original_config == parsed_config
+
+
+def test_aws_yaml(snapshot: Any) -> None:
+    original_config = Config(aws=cloud_config)
+    yaml_str = generate_yaml(original_config)
+    snapshot.assert_match(yaml_str, "aws_yaml.txt")
