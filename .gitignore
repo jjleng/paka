@@ -103,7 +103,6 @@ venv/
 ENV/
 env/
 bin/
-Scripts/
 pyvenv.cfg
 Pipfile.lock
 
