@@ -1,6 +1,5 @@
-from typing import Any, Dict
-from light.cluster.manager.config import Config, CloudConfig
-from light.cluster.iac.aws.iam import iam_user
+from light.cluster.config import Config, CloudConfig
+from light.cluster.iac.aws import iam_user
 from pulumi import automation as auto
 from functools import partial
 

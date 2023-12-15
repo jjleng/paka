@@ -1,6 +1,6 @@
 import typer
 from light.cluster.manager.aws import AWSClusterManager
-from light.cluster.manager.config import CloudConfig, ClusterConfig, Config
+from light.cluster.config import CloudConfig, ClusterConfig, Config
 
 cli = typer.Typer()
 
