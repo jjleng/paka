@@ -20,6 +20,9 @@ ruamel-yaml = "^0.18.5"
 pulumi = "^3.96.2"
 pulumi-aws = "^6.13.3"
 typer = "^0.9.0"
+pulumi-eks = "^2.0.0"
+pulumi-awsx = "^2.3.0"
+pulumi-kubernetes = "^4.6.1"
 
 [tool.poetry.group.dev.dependencies]
 codespell = "^2.2.6"

@@ -1,7 +1,6 @@
 from light.cluster.config import Config, CloudConfig
-from light.cluster.iac.aws import iam_user
 from pulumi import automation as auto
-from functools import partial
+from light.cluster.iac.aws_eks import provision_k8s
 
 
 class AWSClusterManager:
@@ -12,16 +11,12 @@ class AWSClusterManager:
             raise ValueError("AWS config is required")
         self.config = config.aws
 
-    def provision_iam_user(self) -> None:
-        iam_user(self.config.cluster.name)
-
     def create(self) -> None:
         project_name = self.config.cluster.name
         stack_name = "prod"
-        pulumi_program = partial(self.provision_iam_user)
 
         stack = auto.create_or_select_stack(
-            stack_name=stack_name, project_name=project_name, program=pulumi_program
+            stack_name=stack_name, project_name=project_name, program=provision_k8s
         )
 
         # Set AWS region
@@ -37,13 +32,24 @@ class AWSClusterManager:
         project_name = self.config.cluster.name
         stack_name = "prod"
 
-        pulumi_program = partial(self.provision_iam_user)
-
         # Select the stack
         stack = auto.select_stack(
-            stack_name=stack_name, project_name=project_name, program=pulumi_program
+            stack_name=stack_name, project_name=project_name, program=provision_k8s
         )
 
         # Destroy the stack resources
         print("Destroying resources...")
         stack.destroy(on_output=print)
+
+    def refresh(self) -> None:
+        project_name = self.config.cluster.name
+        stack_name = "prod"
+
+        # Select the stack
+        stack = auto.select_stack(
+            stack_name=stack_name, project_name=project_name, program=provision_k8s
+        )
+
+        # Destroy the stack resources
+        print("Refreshing the stack...")
+        stack.refresh(on_output=print)

@@ -1,6 +1,6 @@
 import pytest
 from typing import Any
-from light.cluster.manager.config import (
+from light.cluster.config import (
     Serve,
     CloudServeConfig,
     CloudServerless,

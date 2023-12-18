@@ -21,5 +21,10 @@ def destroy_cluster() -> None:
     cluster_manager.destroy()
 
 
+@cli.command()
+def refresh_cluster() -> None:
+    cluster_manager.refresh()
+
+
 if __name__ == "__main__":
     cli()
