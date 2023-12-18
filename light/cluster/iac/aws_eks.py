@@ -6,9 +6,18 @@ import pulumi_kubernetes as k8s
 import pulumi_kubernetes.helm.v3 as helm
 
 
-def ignore_tags(
+def _ignore_tags_transformation(
     args: pulumi.ResourceTransformationArgs,
 ) -> pulumi.ResourceTransformationResult | None:
+    """
+    EKS adds tags to VPC and Subnet resources that are not managed by Pulumi. This function ignores those tags so that Pulumi does not try to remove them.
+
+    Args:
+        args (pulumi.ResourceTransformationArgs): The arguments containing the resource properties and options.
+
+    Returns:
+        pulumi.ResourceTransformationResult | None: The transformed resource properties and options, or None if no transformation is needed.
+    """
     if args.type_ == "aws:ec2/vpc:Vpc" or args.type_ == "aws:ec2/subnet:Subnet":
         return pulumi.ResourceTransformationResult(
             props=args.props,
@@ -20,6 +29,22 @@ def ignore_tags(
 
 
 def provision_k8s() -> None:
+    """
+    Provisions an AWS EKS cluster with the necessary resources.
+
+    This function creates an EKS cluster, a worker role, a VPC, and other required resources
+    for running Kubernetes workloads on AWS.
+
+    How does autoscaling work?
+    We use two-level scaling strategies. First, we install a Cluster Autoscaler to scale out or in the cluster
+    nodes based on the workload. However, the Cluster Autoscaler doesn't scale the nodes based on the CPU and
+    memory usage of the nodes. Instead, it scales the nodes based on the number of pending pods in the cluster.
+    Second, we install a Horizontal Pod Autoscaler to scale out or in the pods based on the CPU and memory usage of
+    the pods. Once the pods are scaled, the Cluster Autoscaler will scale the nodes based on the number of pending pods.
+
+    Returns:
+        None
+    """
     managed_policy_arns = [
         "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
         "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
@@ -40,7 +65,7 @@ def provision_k8s() -> None:
         ],
     ).json
 
-    role = aws.iam.Role(
+    worker_role = aws.iam.Role(
         "eks-worker-role",
         assume_role_policy=assume_role_policy,
         managed_policy_arns=managed_policy_arns,
@@ -50,6 +75,8 @@ def provision_k8s() -> None:
     vpc = awsx.ec2.Vpc(
         "vpc",
         subnet_strategy=awsx.ec2.SubnetAllocationStrategy.AUTO,
+        # AWS needs these tags for creating load balancers
+        # See https://repost.aws/knowledge-center/eks-vpc-subnet-discovery
         subnet_specs=[
             {
                 "type": awsx.ec2.SubnetType.PUBLIC,
@@ -60,7 +87,7 @@ def provision_k8s() -> None:
                 "tags": {"kubernetes.io/role/internal-elb": "1"},
             },
         ],
-        opts=pulumi.ResourceOptions(transformations=[ignore_tags]),
+        opts=pulumi.ResourceOptions(transformations=[_ignore_tags_transformation]),
     )
 
     cluster = eks.Cluster(
@@ -71,32 +98,39 @@ def provision_k8s() -> None:
         node_associate_public_ip_address=False,
         create_oidc_provider=True,
         skip_default_node_group=True,
-        instance_roles=[role],
+        # Use the worker role we created above. This is required for creating the managed node group.
+        instance_roles=[worker_role],
     )
 
+    # Create a managed node group for our cluster
     eks.ManagedNodeGroup(
-        "micro-group",
-        node_group_name="micro-group",
+        "default-group",
+        node_group_name="default-group",
         cluster=cluster,
         instance_types=["t2.micro"],
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
+            # Each t2.micro node is bounded to a maximum 4 pods.
+            # At least 2 t2.micro nodes are required for the Cluster Autoscaler to work
             desired_size=2,
-            min_size=1,
-            max_size=4,
+            min_size=2,
+            max_size=3,
         ),
-        labels={"ondemand": "true", "size": "micro"},
-        node_role_arn=role.arn,
+        labels={"size": "micro", "type": "default"},
+        node_role_arn=worker_role.arn,
         subnet_ids=vpc.private_subnet_ids,
     )
 
     k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
 
+    # Deploy the metrics server. This is required for the Horizontal Pod Autoscaler to work.
+    # HPA requires metrics to be available in order to scale the pods.
     k8s.yaml.ConfigFile(
         "metrics-server",
         file="https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml",
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
+    # Deploy the cluster autoscaler through Helm
     setup_cluster_autoscaler(cluster, k8s_provider)
 
     # Export the cluster's kubeconfig
@@ -104,7 +138,16 @@ def provision_k8s() -> None:
 
 
 def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -> None:
-    # IAM Policy Document for Cluster Autoscaler
+    """
+    Sets up the cluster autoscaler for an EKS cluster.
+
+    Args:
+        cluster (eks.Cluster): The EKS cluster.
+        k8s_provider (k8s.Provider): The Kubernetes provider.
+
+    Returns:
+        None
+    """
     autoscaler_policy_doc = aws.iam.get_policy_document(
         statements=[
             aws.iam.GetPolicyDocumentStatementArgs(
@@ -123,18 +166,21 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
         ]
     )
 
-    # Create IAM Policy
     autoscaler_policy = aws.iam.Policy(
         "autoscaler-policy", policy=autoscaler_policy_doc.json
     )
 
-    # Fetch the OIDC provider URL and the thumbprint from the EKS cluster
+    # Fetch the OIDC provider URL from the EKS cluster
     oidc_provider_url = cluster.core.oidc_provider.url
     oidc_provider = aws.iam.get_open_id_connect_provider(
         url=oidc_provider_url.apply(lambda url: "https://" + url if url else "")
     )
 
-    # Update the IAM Role for Cluster Autoscaler with the correct trust relationship
+    # Creates an AWS IAM Role named 'autoscaler-role' for the Kubernetes cluster autoscaler.
+    # This role uses Web Identity Federation for authentication, leveraging an OIDC provider.
+    # The OIDC provider is required because the cluster autoscaler runs within the Kubernetes
+    # cluster and needs to interact with the AWS API to manage the Auto Scaling Groups (ASGs).
+    # OIDC provides a secure mechanism for the cluster autoscaler to authenticate with the AWS API.
     autoscaler_role = aws.iam.Role(
         "autoscaler-role",
         assume_role_policy=oidc_provider_url.apply(
@@ -164,19 +210,17 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
         ),
     )
 
-    # Attach policy to the role
     aws.iam.RolePolicyAttachment(
         "autoscaler-role-policy-attachment",
         policy_arn=autoscaler_policy.arn,
         role=autoscaler_role.name,
     )
 
-    # Helm chart for Cluster Autoscaler
     helm.Chart(
         "cluster-autoscaler",
         helm.ChartOpts(
             chart="cluster-autoscaler",
-            version="9.34.0",  # Use the appropriate version
+            version="9.34.0",
             namespace="kube-system",
             fetch_opts=helm.FetchOpts(repo="https://kubernetes.github.io/autoscaler"),
             values={
@@ -193,7 +237,7 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
                     },
                 },
                 "serviceMonitor": {"interval": "2s"},
-                "image": {"tag": "v1.28.2"},  # Use the appropriate tag
+                "image": {"tag": "v1.28.2"},
             },
         ),
         opts=pulumi.ResourceOptions(provider=k8s_provider),
