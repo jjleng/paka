@@ -2,11 +2,8 @@ import pulumi
 import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_eks as eks
-import json
 import pulumi_kubernetes as k8s
 import pulumi_kubernetes.helm.v3 as helm
-import datetime
-from typing import Any
 
 
 def ignore_tags(
@@ -28,27 +25,26 @@ def provision_k8s() -> None:
         "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
         "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     ]
-    assume_role_policy = json.dumps(
-        {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Action": "sts:AssumeRole",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "ec2.amazonaws.com",
-                    },
-                }
-            ],
-        }
-    )
+    assume_role_policy = aws.iam.get_policy_document(
+        statements=[
+            aws.iam.GetPolicyDocumentStatementArgs(
+                actions=["sts:AssumeRole"],
+                effect="Allow",
+                principals=[
+                    aws.iam.GetPolicyDocumentStatementPrincipalArgs(
+                        type="Service",
+                        identifiers=["ec2.amazonaws.com"],
+                    ),
+                ],
+            ),
+        ],
+    ).json
+
     role = aws.iam.Role(
         "eks-worker-role",
         assume_role_policy=assume_role_policy,
         managed_policy_arns=managed_policy_arns,
     )
-
-    instance_profile = aws.iam.InstanceProfile("instanceProfile", role=role.name)
 
     # Create a VPC for our cluster
     vpc = awsx.ec2.Vpc(
@@ -93,43 +89,15 @@ def provision_k8s() -> None:
         subnet_ids=vpc.private_subnet_ids,
     )
 
-    # Node Group with micro instances
-    # eks.NodeGroupV2(
-    #     "micro-group",
-    #     cluster=cluster,
-    #     instance_type="t2.micro",
-    #     desired_capacity=1,
-    #     min_size=1,
-    #     max_size=3,
-    #     spot_price="1",
-    #     labels={"ondemand": "true", "size": "micro"},
-    #     instance_profile=instance_profile,
-    #     node_associate_public_ip_address=False,
-    #     node_subnet_ids=vpc.private_subnet_ids,
-    # )
-
     k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
 
-    def add_insecure_tls_arg(obj: [Any], _opts: pulumi.ResourceOptions) -> None:
-        if obj["kind"] == "Deployment" and "metrics-server" in obj["metadata"]["name"]:
-            containers = obj["spec"]["template"]["spec"]["containers"]
-            if len(containers) > 0:
-                # Ensure 'args' key exists
-                if "args" not in containers[0]:
-                    containers[0]["args"] = []
-                # Add the --kubelet-insecure-tls flag
-                containers[0]["args"].append("--kubelet-insecure-tls")
-
-    metrics_server_config = k8s.yaml.ConfigFile(
+    k8s.yaml.ConfigFile(
         "metrics-server",
         file="https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml",
-        transformations=[add_insecure_tls_arg],
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
     setup_cluster_autoscaler(cluster, k8s_provider)
-    deploy_nginx(k8s_provider)
-    deploy_cpu_load_generator(k8s_provider)
 
     # Export the cluster's kubeconfig
     pulumi.export("kubeconfig", cluster.kubeconfig)
@@ -170,23 +138,29 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
     autoscaler_role = aws.iam.Role(
         "autoscaler-role",
         assume_role_policy=oidc_provider_url.apply(
-            lambda url: json.dumps(
-                {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Principal": {"Federated": f"{oidc_provider.arn}"},
-                            "Action": "sts:AssumeRoleWithWebIdentity",
-                            "Condition": {
-                                "StringEquals": {
-                                    f"{url}:sub": "system:serviceaccount:kube-system:cluster-autoscaler"
-                                }
-                            },
-                        }
-                    ],
-                }
-            )
+            lambda url: aws.iam.get_policy_document(
+                statements=[
+                    aws.iam.GetPolicyDocumentStatementArgs(
+                        actions=["sts:AssumeRoleWithWebIdentity"],
+                        effect="Allow",
+                        principals=[
+                            aws.iam.GetPolicyDocumentStatementPrincipalArgs(
+                                type="Federated",
+                                identifiers=[oidc_provider.arn],
+                            )
+                        ],
+                        conditions=[
+                            aws.iam.GetPolicyDocumentStatementConditionArgs(
+                                test="StringEquals",
+                                variable=f"{url}:sub",
+                                values=[
+                                    "system:serviceaccount:kube-system:cluster-autoscaler"
+                                ],
+                            )
+                        ],
+                    )
+                ],
+            ).json
         ),
     )
 
@@ -198,7 +172,7 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
     )
 
     # Helm chart for Cluster Autoscaler
-    autoscaler_chart = helm.Chart(
+    helm.Chart(
         "cluster-autoscaler",
         helm.ChartOpts(
             chart="cluster-autoscaler",
@@ -218,104 +192,9 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
                         },
                     },
                 },
+                "serviceMonitor": {"interval": "2s"},
                 "image": {"tag": "v1.28.2"},  # Use the appropriate tag
             },
-        ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
-
-
-def deploy_nginx(k8s_provider: k8s.Provider) -> None:
-    app_labels = {"app": "nginx"}
-    deployment = k8s.apps.v1.Deployment(
-        "nginx-deployment",
-        spec={
-            "selector": {"matchLabels": app_labels},
-            "replicas": 1,
-            "template": {
-                "metadata": {"labels": app_labels},
-                "spec": {
-                    "containers": [
-                        {
-                            "name": "nginx",
-                            "image": "nginx:1.15.4",
-                            "resources": {
-                                "requests": {"cpu": "100m"},
-                            },
-                            "ports": [{"containerPort": 80}],
-                        }
-                    ]
-                },
-            },
-        },
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
-
-    # hpa = k8s.autoscaling.v1.HorizontalPodAutoscaler(
-    #     "nginx-hpa",
-    #     spec={
-    #         "scaleTargetRef": {
-    #             "apiVersion": "apps/v1",
-    #             "kind": "Deployment",
-    #             "name": deployment.metadata["name"],
-    #         },
-    #         "minReplicas": 1,
-    #         "maxReplicas": 3,
-    #         "targetCPUUtilizationPercentage": 50,
-    #     },
-    #     opts=pulumi.ResourceOptions(provider=k8s_provider),
-    # )
-
-
-def deploy_cpu_load_generator(k8s_provider: k8s.Provider) -> None:
-    app_labels = {"app": "cpu-load-generator"}
-
-    force_update_annotation = str(datetime.datetime.now())
-
-    deployment = k8s.apps.v1.Deployment(
-        "cpu-load-generator",
-        spec=k8s.apps.v1.DeploymentSpecArgs(
-            selector=k8s.meta.v1.LabelSelectorArgs(match_labels=app_labels),
-            replicas=1,
-            template=k8s.core.v1.PodTemplateSpecArgs(
-                metadata=k8s.meta.v1.ObjectMetaArgs(
-                    labels=app_labels,
-                    annotations={"force-update-timestamp": force_update_annotation},
-                ),
-                spec=k8s.core.v1.PodSpecArgs(
-                    node_selector={
-                        "ondemand": "true",
-                        "size": "micro",
-                    },  # Node selector added here
-                    containers=[
-                        k8s.core.v1.ContainerArgs(
-                            name="busybox",
-                            image="busybox",
-                            args=[
-                                "/bin/sh",
-                                "-c",
-                                "while true; do md5sum /dev/zero; done",
-                            ],
-                            resources=k8s.core.v1.ResourceRequirementsArgs(
-                                requests={"cpu": "100m"}, limits={"cpu": "500m"}
-                            ),
-                        )
-                    ],
-                ),
-            ),
-        ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
-
-    hpa = k8s.autoscaling.v1.HorizontalPodAutoscaler(
-        "cpu-load-generator-hpa",
-        spec=k8s.autoscaling.v1.HorizontalPodAutoscalerSpecArgs(
-            scale_target_ref=k8s.autoscaling.v1.CrossVersionObjectReferenceArgs(
-                api_version="apps/v1", kind="Deployment", name=deployment.metadata.name
-            ),
-            min_replicas=1,
-            max_replicas=4,
-            target_cpu_utilization_percentage=50,
         ),
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
