@@ -1,7 +1,8 @@
 from light.cluster.config import Config, CloudConfig
 from pulumi import automation as auto
-from light.cluster.iac.aws_eks import provision_k8s
-from functools import partial
+from light.cluster.aws.object_store import create_object_store
+from light.cluster.aws.container_registry import create_container_registry
+from light.cluster.aws.eks import create_k8s_cluster
 
 STACK_NAME = "default"
 
@@ -16,7 +17,12 @@ class AWSClusterManager:
 
     @property
     def program(self) -> auto.PulumiFn:
-        return partial(provision_k8s, config=self.config)
+        def internal_program() -> None:
+            create_object_store(self.config)
+            create_container_registry(self.config)
+            create_k8s_cluster(self.config)
+
+        return internal_program
 
     def create(self) -> None:
         project_name = self.config.cluster.name

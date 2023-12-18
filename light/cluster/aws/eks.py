@@ -3,10 +3,9 @@ import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
-import pulumi_kubernetes.helm.v3 as helm
 from light.cluster.config import CloudConfig
-
-SERVICE_ACCOUNT = "light-sa"
+from light.cluster.aws.auto_scaler import create_cluster_autoscaler
+from light.cluster.aws.service_account import create_service_account
 
 
 def _ignore_tags_transformation(
@@ -61,88 +60,7 @@ def create_node_group_for_model_group(
         )
 
 
-# Creates an AWS IAM Role named 'role_name'.
-# This role uses Web Identity Federation for authentication, leveraging an OIDC provider.
-def odic_role_for_sa(
-    config: CloudConfig,
-    cluster: eks.Cluster,
-    role_name: str,
-    ns_service_account: str,
-) -> aws.iam.Role:
-    project = config.cluster.name
-
-    role = aws.iam.Role(
-        f"{project}-{role_name}-role",
-        assume_role_policy=cluster.core.oidc_provider.url.apply(
-            lambda url: aws.iam.get_policy_document(
-                statements=[
-                    aws.iam.GetPolicyDocumentStatementArgs(
-                        effect="Allow",
-                        principals=[
-                            aws.iam.GetPolicyDocumentStatementPrincipalArgs(
-                                type="Federated",
-                                identifiers=[cluster.core.oidc_provider.arn],
-                            )
-                        ],
-                        actions=["sts:AssumeRoleWithWebIdentity"],
-                        conditions=[
-                            aws.iam.GetPolicyDocumentStatementConditionArgs(
-                                test="StringEquals",
-                                variable=f"{url}:sub",
-                                values=[f"system:serviceaccount:{ns_service_account}"],
-                            )
-                        ],
-                    )
-                ],
-            ).json
-        ),
-    )
-
-    return role
-
-
-def create_service_account(
-    config: CloudConfig,
-    cluster: eks.Cluster,
-) -> None:
-    project = config.cluster.name
-    bucket = project
-
-    s3_policy = aws.iam.Policy(
-        f"{project}-s3-access-policy",
-        policy=aws.iam.get_policy_document(
-            statements=[
-                aws.iam.GetPolicyDocumentStatementArgs(
-                    effect="Allow",
-                    actions=["s3:GetObject", "s3:ListBucket"],
-                    resources=[
-                        f"arn:aws:s3:::{bucket}/*",
-                        f"arn:aws:s3:::{bucket}",
-                    ],
-                )
-            ]
-        ).json,
-    )
-
-    sa_role = odic_role_for_sa(config, cluster, "sa", f"default:{SERVICE_ACCOUNT}")
-
-    aws.iam.RolePolicyAttachment(
-        f"{project}-sa-role-policy-attachment",
-        role=sa_role.name,
-        policy_arn=s3_policy.arn,
-    )
-
-    k8s.core.v1.ServiceAccount(
-        f"{project}-service-account",
-        metadata={
-            "namespace": "default",
-            "name": SERVICE_ACCOUNT,
-            "annotations": {"eks.amazonaws.com/role-arn": sa_role.arn},
-        },
-    )
-
-
-def provision_k8s(config: CloudConfig) -> None:
+def create_k8s_cluster(config: CloudConfig) -> None:
     """
     Provisions an AWS EKS cluster with the necessary resources.
 
@@ -253,95 +171,13 @@ def provision_k8s(config: CloudConfig) -> None:
     )
 
     # Deploy the cluster autoscaler through Helm
-    setup_cluster_autoscaler(
+    create_cluster_autoscaler(
         config,
         cluster,
         k8s_provider,
     )
 
-    aws.s3.Bucket(config.cluster.name)
     create_service_account(config, cluster)
 
     # Export the cluster's kubeconfig
     pulumi.export("kubeconfig", cluster.kubeconfig)
-
-
-def setup_cluster_autoscaler(
-    config: CloudConfig,
-    cluster: eks.Cluster,
-    k8s_provider: k8s.Provider,
-) -> None:
-    """
-    Sets up the cluster autoscaler for an EKS cluster.
-
-    Args:
-        cluster (eks.Cluster): The EKS cluster.
-        k8s_provider (k8s.Provider): The Kubernetes provider.
-        config (CloudConfig): The cluster config provided by user.
-
-    Returns:
-        None
-    """
-    project = config.cluster.name
-
-    autoscaler_policy_doc = aws.iam.get_policy_document(
-        statements=[
-            aws.iam.GetPolicyDocumentStatementArgs(
-                actions=[
-                    "autoscaling:DescribeAutoScalingGroups",
-                    "autoscaling:DescribeAutoScalingInstances",
-                    "autoscaling:DescribeLaunchConfigurations",
-                    "autoscaling:DescribeTags",
-                    "autoscaling:SetDesiredCapacity",
-                    "autoscaling:TerminateInstanceInAutoScalingGroup",
-                    "ec2:DescribeLaunchTemplateVersions",
-                    "eks:DescribeNodegroup",
-                ],
-                resources=["*"],
-            )
-        ]
-    )
-
-    autoscaler_policy = aws.iam.Policy(
-        f"{project}-autoscaler-policy", policy=autoscaler_policy_doc.json
-    )
-
-    # The OIDC provider is required because the cluster autoscaler runs within the Kubernetes
-    # cluster and needs to interact with the AWS API to manage the Auto Scaling Groups (ASGs).
-    # OIDC provides a secure mechanism for the cluster autoscaler to authenticate with the AWS API.
-    autoscaler_role = odic_role_for_sa(
-        config, cluster, "autoscaler", "kube-system:cluster-autoscaler"
-    )
-
-    aws.iam.RolePolicyAttachment(
-        f"{project}-autoscaler-role-policy-attachment",
-        policy_arn=autoscaler_policy.arn,
-        role=autoscaler_role.name,
-    )
-
-    helm.Chart(
-        "cluster-autoscaler",
-        helm.ChartOpts(
-            chart="cluster-autoscaler",
-            version="9.34.0",
-            namespace="kube-system",
-            fetch_opts=helm.FetchOpts(repo="https://kubernetes.github.io/autoscaler"),
-            values={
-                "autoDiscovery": {"clusterName": cluster.eks_cluster.name},
-                "awsRegion": aws.config.region,
-                "rbac": {
-                    "create": True,
-                    "serviceAccount": {
-                        "create": True,
-                        "name": "cluster-autoscaler",
-                        "annotations": {
-                            "eks.amazonaws.com/role-arn": autoscaler_role.arn
-                        },
-                    },
-                },
-                "serviceMonitor": {"interval": "2s"},
-                "image": {"tag": "v1.28.2"},
-            },
-        ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
