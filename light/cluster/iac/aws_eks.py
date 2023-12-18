@@ -6,6 +6,8 @@ import pulumi_kubernetes as k8s
 import pulumi_kubernetes.helm.v3 as helm
 from light.cluster.config import CloudConfig
 
+SERVICE_ACCOUNT = "light-sa"
+
 
 def _ignore_tags_transformation(
     args: pulumi.ResourceTransformationArgs,
@@ -57,6 +59,87 @@ def create_node_group_for_model_group(
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
         )
+
+
+# Creates an AWS IAM Role named 'role_name'.
+# This role uses Web Identity Federation for authentication, leveraging an OIDC provider.
+def odic_role_for_sa(
+    config: CloudConfig,
+    cluster: eks.Cluster,
+    role_name: str,
+    ns_service_account: str,
+) -> aws.iam.Role:
+    project = config.cluster.name
+
+    role = aws.iam.Role(
+        f"{project}-{role_name}-role",
+        assume_role_policy=cluster.core.oidc_provider.url.apply(
+            lambda url: aws.iam.get_policy_document(
+                statements=[
+                    aws.iam.GetPolicyDocumentStatementArgs(
+                        effect="Allow",
+                        principals=[
+                            aws.iam.GetPolicyDocumentStatementPrincipalArgs(
+                                type="Federated",
+                                identifiers=[cluster.core.oidc_provider.arn],
+                            )
+                        ],
+                        actions=["sts:AssumeRoleWithWebIdentity"],
+                        conditions=[
+                            aws.iam.GetPolicyDocumentStatementConditionArgs(
+                                test="StringEquals",
+                                variable=f"{url}:sub",
+                                values=[f"system:serviceaccount:{ns_service_account}"],
+                            )
+                        ],
+                    )
+                ],
+            ).json
+        ),
+    )
+
+    return role
+
+
+def create_service_account(
+    config: CloudConfig,
+    cluster: eks.Cluster,
+) -> None:
+    project = config.cluster.name
+    bucket = project
+
+    s3_policy = aws.iam.Policy(
+        f"{project}-s3-access-policy",
+        policy=aws.iam.get_policy_document(
+            statements=[
+                aws.iam.GetPolicyDocumentStatementArgs(
+                    effect="Allow",
+                    actions=["s3:GetObject", "s3:ListBucket"],
+                    resources=[
+                        f"arn:aws:s3:::{bucket}/*",
+                        f"arn:aws:s3:::{bucket}",
+                    ],
+                )
+            ]
+        ).json,
+    )
+
+    sa_role = odic_role_for_sa(config, cluster, "sa", f"default:{SERVICE_ACCOUNT}")
+
+    aws.iam.RolePolicyAttachment(
+        f"{project}-sa-role-policy-attachment",
+        role=sa_role.name,
+        policy_arn=s3_policy.arn,
+    )
+
+    k8s.core.v1.ServiceAccount(
+        f"{project}-service-account",
+        metadata={
+            "namespace": "default",
+            "name": SERVICE_ACCOUNT,
+            "annotations": {"eks.amazonaws.com/role-arn": sa_role.arn},
+        },
+    )
 
 
 def provision_k8s(config: CloudConfig) -> None:
@@ -176,6 +259,9 @@ def provision_k8s(config: CloudConfig) -> None:
         k8s_provider,
     )
 
+    aws.s3.Bucket(config.cluster.name)
+    create_service_account(config, cluster)
+
     # Export the cluster's kubeconfig
     pulumi.export("kubeconfig", cluster.kubeconfig)
 
@@ -220,44 +306,11 @@ def setup_cluster_autoscaler(
         f"{project}-autoscaler-policy", policy=autoscaler_policy_doc.json
     )
 
-    # Fetch the OIDC provider URL from the EKS cluster
-    oidc_provider_url = cluster.core.oidc_provider.url
-    oidc_provider = aws.iam.get_open_id_connect_provider(
-        url=oidc_provider_url.apply(lambda url: "https://" + url if url else "")
-    )
-
-    # Creates an AWS IAM Role named 'autoscaler-role' for the Kubernetes cluster autoscaler.
-    # This role uses Web Identity Federation for authentication, leveraging an OIDC provider.
     # The OIDC provider is required because the cluster autoscaler runs within the Kubernetes
     # cluster and needs to interact with the AWS API to manage the Auto Scaling Groups (ASGs).
     # OIDC provides a secure mechanism for the cluster autoscaler to authenticate with the AWS API.
-    autoscaler_role = aws.iam.Role(
-        f"{project}-autoscaler-role",
-        assume_role_policy=oidc_provider_url.apply(
-            lambda url: aws.iam.get_policy_document(
-                statements=[
-                    aws.iam.GetPolicyDocumentStatementArgs(
-                        actions=["sts:AssumeRoleWithWebIdentity"],
-                        effect="Allow",
-                        principals=[
-                            aws.iam.GetPolicyDocumentStatementPrincipalArgs(
-                                type="Federated",
-                                identifiers=[oidc_provider.arn],
-                            )
-                        ],
-                        conditions=[
-                            aws.iam.GetPolicyDocumentStatementConditionArgs(
-                                test="StringEquals",
-                                variable=f"{url}:sub",
-                                values=[
-                                    "system:serviceaccount:kube-system:cluster-autoscaler"
-                                ],
-                            )
-                        ],
-                    )
-                ],
-            ).json
-        ),
+    autoscaler_role = odic_role_for_sa(
+        config, cluster, "autoscaler", "kube-system:cluster-autoscaler"
     )
 
     aws.iam.RolePolicyAttachment(

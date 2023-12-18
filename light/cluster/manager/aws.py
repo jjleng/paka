@@ -1,6 +1,7 @@
 from light.cluster.config import Config, CloudConfig
 from pulumi import automation as auto
 from light.cluster.iac.aws_eks import provision_k8s
+from functools import partial
 
 STACK_NAME = "default"
 
@@ -13,11 +14,15 @@ class AWSClusterManager:
             raise ValueError("AWS config is required")
         self.config = config.aws
 
+    @property
+    def program(self) -> auto.PulumiFn:
+        return partial(provision_k8s, config=self.config)
+
     def create(self) -> None:
         project_name = self.config.cluster.name
 
         stack = auto.create_or_select_stack(
-            stack_name=STACK_NAME, project_name=project_name, program=provision_k8s
+            stack_name=STACK_NAME, project_name=project_name, program=self.program
         )
 
         # Set AWS region
@@ -34,7 +39,7 @@ class AWSClusterManager:
 
         # Select the stack
         stack = auto.select_stack(
-            stack_name=STACK_NAME, project_name=project_name, program=provision_k8s
+            stack_name=STACK_NAME, project_name=project_name, program=self.program
         )
 
         # Destroy the stack resources
@@ -46,7 +51,7 @@ class AWSClusterManager:
 
         # Select the stack
         stack = auto.select_stack(
-            stack_name=STACK_NAME, project_name=project_name, program=provision_k8s
+            stack_name=STACK_NAME, project_name=project_name, program=self.program
         )
 
         # Destroy the stack resources
