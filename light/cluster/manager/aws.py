@@ -16,7 +16,7 @@ class AWSClusterManager:
         self.config = config.aws
 
     @property
-    def program(self) -> auto.PulumiFn:
+    def _program(self) -> auto.PulumiFn:
         def internal_program() -> None:
             create_object_store(self.config)
             create_container_registry(self.config)
@@ -24,42 +24,33 @@ class AWSClusterManager:
 
         return internal_program
 
-    def create(self) -> None:
+    @property
+    def _stack(self) -> auto.Stack:
         project_name = self.config.cluster.name
 
-        stack = auto.create_or_select_stack(
-            stack_name=STACK_NAME, project_name=project_name, program=self.program
+        # Create a stack with the project name and stack name
+        return auto.create_or_select_stack(
+            stack_name=STACK_NAME,
+            project_name=project_name,
+            program=self._program,
         )
 
+    def create(self) -> None:
         # Set AWS region
-        stack.set_config(
+        self._stack.set_config(
             "aws:region", auto.ConfigValue(value=self.config.cluster.defaultRegion)
         )
 
-        # Deploy the stack
         print("Creating resources...")
-        stack.up(on_output=print)
+        self._stack.up(on_output=print)
 
     def destroy(self) -> None:
-        project_name = self.config.cluster.name
-
-        # Select the stack
-        stack = auto.select_stack(
-            stack_name=STACK_NAME, project_name=project_name, program=self.program
-        )
-
-        # Destroy the stack resources
         print("Destroying resources...")
-        stack.destroy(on_output=print)
+        self._stack.destroy(on_output=print)
 
     def refresh(self) -> None:
-        project_name = self.config.cluster.name
-
-        # Select the stack
-        stack = auto.select_stack(
-            stack_name=STACK_NAME, project_name=project_name, program=self.program
-        )
-
-        # Destroy the stack resources
         print("Refreshing the stack...")
-        stack.refresh(on_output=print)
+        self._stack.refresh(on_output=print)
+
+    def preview(self) -> None:
+        self._stack.preview(on_output=print)

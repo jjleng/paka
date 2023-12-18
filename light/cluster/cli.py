@@ -28,5 +28,10 @@ def refresh_cluster() -> None:
     cluster_manager.refresh()
 
 
+@cli.command()
+def preview_cluster() -> None:
+    cluster_manager.preview()
+
+
 if __name__ == "__main__":
     cli()
