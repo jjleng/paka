@@ -4,6 +4,7 @@ import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
 import pulumi_kubernetes.helm.v3 as helm
+from light.cluster.config import CloudConfig
 
 
 def _ignore_tags_transformation(
@@ -28,7 +29,37 @@ def _ignore_tags_transformation(
     return None
 
 
-def provision_k8s() -> None:
+def create_node_group_for_model_group(
+    config: CloudConfig,
+    cluster: eks.Cluster,
+    vpc: awsx.ec2.Vpc,
+    worker_role: aws.iam.Role,
+) -> None:
+    if config.modelGroups is None:
+        return
+
+    project = config.cluster.name
+
+    for model_group in config.modelGroups:
+        # Create a managed node group for our cluster
+        eks.ManagedNodeGroup(
+            f"{project}-{model_group.name}-group",
+            node_group_name=f"{project}-{model_group.name}-group",
+            cluster=cluster,
+            instance_types=[model_group.nodeType],
+            scaling_config=aws.eks.NodeGroupScalingConfigArgs(
+                desired_size=1,
+                # No scale down to 0 for now
+                min_size=1,
+                max_size=model_group.replica,
+            ),
+            labels={"size": model_group.nodeType, "group": model_group.name},
+            node_role_arn=worker_role.arn,
+            subnet_ids=vpc.private_subnet_ids,
+        )
+
+
+def provision_k8s(config: CloudConfig) -> None:
     """
     Provisions an AWS EKS cluster with the necessary resources.
 
@@ -42,9 +73,14 @@ def provision_k8s() -> None:
     Second, we install a Horizontal Pod Autoscaler to scale out or in the pods based on the CPU and memory usage of
     the pods. Once the pods are scaled, the Cluster Autoscaler will scale the nodes based on the number of pending pods.
 
+    Args:
+        config (CloudConfig): The cluster config provided by user.
+
     Returns:
         None
     """
+    project = config.cluster.name
+
     managed_policy_arns = [
         "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
         "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
@@ -66,14 +102,14 @@ def provision_k8s() -> None:
     ).json
 
     worker_role = aws.iam.Role(
-        "eks-worker-role",
+        f"{project}-eks-worker-role",
         assume_role_policy=assume_role_policy,
         managed_policy_arns=managed_policy_arns,
     )
 
     # Create a VPC for our cluster
     vpc = awsx.ec2.Vpc(
-        "vpc",
+        f"{project}-vpc",
         subnet_strategy=awsx.ec2.SubnetAllocationStrategy.AUTO,
         # AWS needs these tags for creating load balancers
         # See https://repost.aws/knowledge-center/eks-vpc-subnet-discovery
@@ -91,7 +127,7 @@ def provision_k8s() -> None:
     )
 
     cluster = eks.Cluster(
-        "cluster",
+        project,
         vpc_id=vpc.vpc_id,
         public_subnet_ids=vpc.public_subnet_ids,
         private_subnet_ids=vpc.private_subnet_ids,
@@ -104,8 +140,8 @@ def provision_k8s() -> None:
 
     # Create a managed node group for our cluster
     eks.ManagedNodeGroup(
-        "default-group",
-        node_group_name="default-group",
+        f"{project}-default-group",
+        node_group_name=f"{project}-default-group",
         cluster=cluster,
         instance_types=["t2.micro"],
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
@@ -115,10 +151,13 @@ def provision_k8s() -> None:
             min_size=2,
             max_size=3,
         ),
-        labels={"size": "micro", "type": "default"},
+        labels={"size": "t2.micro", "group": "default"},
         node_role_arn=worker_role.arn,
         subnet_ids=vpc.private_subnet_ids,
     )
+
+    # Create a managed node group for each model group
+    create_node_group_for_model_group(config, cluster, vpc, worker_role)
 
     k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
 
@@ -131,23 +170,34 @@ def provision_k8s() -> None:
     )
 
     # Deploy the cluster autoscaler through Helm
-    setup_cluster_autoscaler(cluster, k8s_provider)
+    setup_cluster_autoscaler(
+        config,
+        cluster,
+        k8s_provider,
+    )
 
     # Export the cluster's kubeconfig
     pulumi.export("kubeconfig", cluster.kubeconfig)
 
 
-def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -> None:
+def setup_cluster_autoscaler(
+    config: CloudConfig,
+    cluster: eks.Cluster,
+    k8s_provider: k8s.Provider,
+) -> None:
     """
     Sets up the cluster autoscaler for an EKS cluster.
 
     Args:
         cluster (eks.Cluster): The EKS cluster.
         k8s_provider (k8s.Provider): The Kubernetes provider.
+        config (CloudConfig): The cluster config provided by user.
 
     Returns:
         None
     """
+    project = config.cluster.name
+
     autoscaler_policy_doc = aws.iam.get_policy_document(
         statements=[
             aws.iam.GetPolicyDocumentStatementArgs(
@@ -167,7 +217,7 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
     )
 
     autoscaler_policy = aws.iam.Policy(
-        "autoscaler-policy", policy=autoscaler_policy_doc.json
+        f"{project}-autoscaler-policy", policy=autoscaler_policy_doc.json
     )
 
     # Fetch the OIDC provider URL from the EKS cluster
@@ -182,7 +232,7 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
     # cluster and needs to interact with the AWS API to manage the Auto Scaling Groups (ASGs).
     # OIDC provides a secure mechanism for the cluster autoscaler to authenticate with the AWS API.
     autoscaler_role = aws.iam.Role(
-        "autoscaler-role",
+        f"{project}-autoscaler-role",
         assume_role_policy=oidc_provider_url.apply(
             lambda url: aws.iam.get_policy_document(
                 statements=[
@@ -211,7 +261,7 @@ def setup_cluster_autoscaler(cluster: eks.Cluster, k8s_provider: k8s.Provider) -
     )
 
     aws.iam.RolePolicyAttachment(
-        "autoscaler-role-policy-attachment",
+        f"{project}-autoscaler-role-policy-attachment",
         policy_arn=autoscaler_policy.arn,
         role=autoscaler_role.name,
     )

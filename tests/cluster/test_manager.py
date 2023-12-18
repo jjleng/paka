@@ -10,11 +10,11 @@ from light.cluster.config import (
     LocalConfig,
     ClusterConfig,
     BlobStore,
-    CloudInferenceGroup,
+    CloudModelGroup,
     CloudJobConfig,
     CloudWorkerConfig,
     LocalClusterConfig,
-    LocalInferenceGroup,
+    LocalModelGroup,
     LocalServeConfig,
     LocalServer,
     LocalJobConfig,
@@ -28,8 +28,8 @@ server_config = CloudServer(maxInstances=1, minInstances=1, nodeType="t2.micro")
 cloud_config = CloudConfig(
     cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
     blobStore=BlobStore(),
-    inferenceGroups=[
-        CloudInferenceGroup(name="test-model-group", replica=1, nodeType="t2.micro")
+    modelGroups=[
+        CloudModelGroup(name="test-model-group", replica=1, nodeType="t2.micro")
     ],
     serve=CloudServeConfig(serverless=serverless_config),
     job=CloudJobConfig(
@@ -39,7 +39,7 @@ cloud_config = CloudConfig(
 )
 local_config = LocalConfig(
     cluster=LocalClusterConfig(name="mycluster"),
-    inferenceGroups=[LocalInferenceGroup(name="llama2", replica=1)],
+    modelGroups=[LocalModelGroup(name="llama2", replica=1)],
     serve=LocalServeConfig(server=LocalServer(minInstances=1, maxInstances=2)),
     job=LocalJobConfig(queue="redis", workers=LocalWorkerConfig(instances=2)),
 )

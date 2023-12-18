@@ -40,7 +40,7 @@ class BlobStore(BaseModel):
     skip: bool = False
 
 
-class InferenceGroup(BaseModel):
+class ModelGroup(BaseModel):
     """
     Represents a group of VMs that serve the inference for a specific type of model.
 
@@ -53,11 +53,11 @@ class InferenceGroup(BaseModel):
     replica: int
 
 
-class CloudInferenceGroup(InferenceGroup, CloudNode):
+class CloudModelGroup(ModelGroup, CloudNode):
     """
     Represents a group of cloud models.
 
-    This class inherits from both the `InferenceGroup` and `CloudNode` classes.
+    This class inherits from both the `ModelGroup` and `CloudNode` classes.
 
     Inherited Attributes:
         name (str): The name of the model group.
@@ -69,11 +69,11 @@ class CloudInferenceGroup(InferenceGroup, CloudNode):
     pass
 
 
-class LocalInferenceGroup(InferenceGroup):
+class LocalModelGroup(ModelGroup):
     """
     Represents a group of local models.
 
-    This class is a subclass of InferenceGroup and can be used to manage a group of local models.
+    This class is a subclass of ModelGroup and can be used to manage a group of local models.
 
     Inherited Attributes:
         name (str): The name of the model group.
@@ -296,14 +296,14 @@ class CloudConfig(BaseModel):
     Attributes:
         cluster (ClusterConfig): The configuration for the cluster.
         blobStore (BlobStore): The configuration for the blob store.
-        InferenceGroups (List[CloudInferenceGroup]): The list of cloud model groups.
+        ModelGroups (List[CloudModelGroup]): The list of cloud model groups.
         serve (CloudServeConfig): The configuration for serving models in the cloud.
         job (CloudJobConfig): The configuration for cloud jobs.
     """
 
     cluster: ClusterConfig
     blobStore: Optional[BlobStore] = None
-    inferenceGroups: Optional[List[CloudInferenceGroup]] = None
+    modelGroups: Optional[List[CloudModelGroup]] = None
     serve: Optional[CloudServeConfig] = None
     job: Optional[CloudJobConfig] = None
 
@@ -325,13 +325,13 @@ class LocalConfig(BaseModel):
 
     Attributes:
         cluster (LocalClusterConfig): Configuration for the local cluster.
-        InferenceGroups (List[LocalInferenceGroup]): List of local model groups.
+        ModelGroups (List[LocalModelGroup]): List of local model groups.
         serve (LocalServeConfig): Configuration for local serving.
         job (LocalJobConfig): Configuration for local jobs.
     """
 
     cluster: LocalClusterConfig
-    inferenceGroups: Optional[List[LocalInferenceGroup]] = None
+    modelGroups: Optional[List[LocalModelGroup]] = None
     serve: Optional[LocalServeConfig] = None
     job: Optional[LocalJobConfig] = None
 

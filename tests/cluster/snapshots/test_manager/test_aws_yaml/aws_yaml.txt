@@ -4,7 +4,7 @@ aws:
     defaultRegion: us-east-1
   blobStore:
     skip: false
-  inferenceGroups:
+  modelGroups:
     - nodeType: t2.micro
       name: test-model-group
       replica: 1

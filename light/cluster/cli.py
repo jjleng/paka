@@ -6,7 +6,9 @@ cli = typer.Typer()
 
 cluster_manager = AWSClusterManager(
     config=Config(
-        aws=CloudConfig(cluster=ClusterConfig(name="test", defaultRegion="us-west-2"))
+        aws=CloudConfig(
+            cluster=ClusterConfig(name="open-copilot", defaultRegion="us-west-2")
+        )
     )
 )
 
