@@ -29,7 +29,9 @@ cloud_config = CloudConfig(
     cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
     blobStore=BlobStore(),
     modelGroups=[
-        CloudModelGroup(name="test-model-group", replica=1, nodeType="t2.micro")
+        CloudModelGroup(
+            name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
+        )
     ],
     serve=CloudServeConfig(serverless=serverless_config),
     job=CloudJobConfig(
@@ -39,7 +41,7 @@ cloud_config = CloudConfig(
 )
 local_config = LocalConfig(
     cluster=LocalClusterConfig(name="mycluster"),
-    modelGroups=[LocalModelGroup(name="llama2", replica=1)],
+    modelGroups=[LocalModelGroup(name="llama2", minInstances=1, maxInstances=2)],
     serve=LocalServeConfig(server=LocalServer(minInstances=1, maxInstances=2)),
     job=LocalJobConfig(queue="redis", workers=LocalWorkerConfig(instances=2)),
 )

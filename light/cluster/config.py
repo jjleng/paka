@@ -46,11 +46,13 @@ class ModelGroup(BaseModel):
 
     Attributes:
         name (str): The name of the model group.
-        replica (int): The number of replicas for the model group.
+        minInstances (int): The min number of replicas for the model group.
+        maxInstances (int): The max number of replicas for the model group.
     """
 
     name: str
-    replica: int
+    minInstances: int
+    maxInstances: int
 
 
 class CloudModelGroup(ModelGroup, CloudNode):
@@ -61,7 +63,8 @@ class CloudModelGroup(ModelGroup, CloudNode):
 
     Inherited Attributes:
         name (str): The name of the model group.
-        replica (int): The number of replicas for the model group.
+        minInstances (int): The min number of replicas for the model group.
+        maxInstances (int): The max number of replicas for the model group.
         region (str): The region where the cloud resource is located.
         nodeType (str): The type of the node.
     """

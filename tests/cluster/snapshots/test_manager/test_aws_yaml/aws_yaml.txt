@@ -7,7 +7,8 @@ aws:
   modelGroups:
     - nodeType: t2.micro
       name: test-model-group
-      replica: 1
+      minInstances: 1
+      maxInstances: 2
   serve:
     serverless:
       region: us-east-1

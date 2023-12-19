@@ -108,6 +108,7 @@ def create_service(
 
 # HPA Configuration
 def create_hpa(
+    model_group: CloudModelGroup,
     service: k8s.core.v1.Service,
     k8s_provider: k8s.Provider,
 ) -> k8s.autoscaling.v2beta2.HorizontalPodAutoscaler:
@@ -128,8 +129,8 @@ def create_hpa(
                 kind="Service",
                 name=service.metadata.name,
             ),
-            min_replicas=1,
-            max_replicas=3,
+            min_replicas=model_group.minInstances,
+            max_replicas=model_group.maxInstances,
             metrics=[
                 k8s.autoscaling.v2beta2.MetricSpecArgs(
                     type="Resource",
