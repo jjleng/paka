@@ -99,6 +99,40 @@ def create_pod(
                     ],
                 )
             ],
+            tolerations=[
+                k8s.core.v1.TolerationArgs(
+                    key="app",
+                    value="model-group",
+                    effect="NoSchedule",
+                ),
+                k8s.core.v1.TolerationArgs(
+                    key="model",
+                    value=model_group.name,
+                    effect="NoSchedule",
+                ),
+            ],
+            affinity=k8s.core.v1.AffinityArgs(
+                node_affinity=k8s.core.v1.NodeAffinityArgs(
+                    required_during_scheduling_ignored_during_execution=k8s.core.v1.NodeSelectorArgs(
+                        node_selector_terms=[
+                            k8s.core.v1.NodeSelectorTermArgs(
+                                match_expressions=[
+                                    k8s.core.v1.NodeSelectorRequirementArgs(
+                                        key="app",
+                                        operator="In",
+                                        values=["model-group"],
+                                    ),
+                                    k8s.core.v1.NodeSelectorRequirementArgs(
+                                        key="model",
+                                        operator="In",
+                                        values=[model_group.name],
+                                    ),
+                                ]
+                            )
+                        ]
+                    )
+                )
+            ),
         ),
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )

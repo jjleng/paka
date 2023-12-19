@@ -54,9 +54,21 @@ def create_node_group_for_model_group(
                 min_size=model_group.minInstances,
                 max_size=model_group.maxInstances,
             ),
-            labels={"size": model_group.nodeType, "group": model_group.name},
+            labels={
+                "size": model_group.nodeType,
+                "app": "model-group",
+                "model": model_group.name,
+            },
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
+            taints=[
+                aws.eks.NodeGroupTaintArgs(
+                    effect="NO_SCHEDULE", key="app", value="model-group"
+                ),
+                aws.eks.NodeGroupTaintArgs(
+                    effect="NO_SCHEDULE", key="model", value=model_group.name
+                ),
+            ],
         )
 
 
