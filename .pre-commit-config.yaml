@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: ''
+    rev: 'v4.5.0'
     hooks:
       - id: check-merge-conflict
       - id: check-toml
@@ -10,6 +10,6 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: ''
+    rev: 'v1.7.1'
     hooks:
       - id: mypy

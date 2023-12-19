@@ -72,7 +72,7 @@ def create_node_group_for_model_group(
         )
 
 
-def create_k8s_cluster(config: CloudConfig) -> None:
+def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     """
     Provisions an AWS EKS cluster with the necessary resources.
 
@@ -193,3 +193,5 @@ def create_k8s_cluster(config: CloudConfig) -> None:
 
     # Export the cluster's kubeconfig
     pulumi.export("kubeconfig", cluster.kubeconfig)
+
+    return cluster

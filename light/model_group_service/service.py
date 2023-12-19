@@ -98,6 +98,7 @@ def create_pod(
                         ),
                     ],
                     # A good estimate for the resources required for a model group
+                    # This will make the pod's priority to be `Burstable`
                     resources=k8s.core.v1.ResourceRequirementsArgs(
                         requests={
                             "cpu": "900m",  # 0.9 CPU core
