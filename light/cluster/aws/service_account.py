@@ -1,3 +1,4 @@
+import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
@@ -9,6 +10,7 @@ from light.constants import SERVICE_ACCOUNT
 def create_service_account(
     config: CloudConfig,
     cluster: eks.Cluster,
+    k8s_provider: k8s.Provider,
 ) -> None:
     project = config.cluster.name
     bucket = project
@@ -44,4 +46,5 @@ def create_service_account(
             "name": SERVICE_ACCOUNT,
             "annotations": {"eks.amazonaws.com/role-arn": sa_role.arn},
         },
+        opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
