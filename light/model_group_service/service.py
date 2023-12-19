@@ -97,6 +97,13 @@ def create_pod(
                             value=str(port),
                         ),
                     ],
+                    # A good estimate for the resources required for a model group
+                    resources=k8s.core.v1.ResourceRequirementsArgs(
+                        requests={
+                            "cpu": "900m",  # 0.9 CPU core
+                            "memory": "8Gi",  # 8 GB RAM
+                        },
+                    ),
                 )
             ],
             tolerations=[
@@ -131,7 +138,20 @@ def create_pod(
                             )
                         ]
                     )
-                )
+                ),
+                pod_anti_affinity=k8s.core.v1.PodAntiAffinityArgs(
+                    required_during_scheduling_ignored_during_execution=[
+                        k8s.core.v1.PodAffinityTermArgs(
+                            label_selector=k8s.meta.v1.LabelSelectorArgs(
+                                match_labels={
+                                    "app": "model-group",
+                                    "model": model_group.name,
+                                }
+                            ),
+                            topology_key="kubernetes.io/hostname",
+                        )
+                    ]
+                ),
             ),
         ),
         opts=pulumi.ResourceOptions(provider=k8s_provider),
