@@ -3,6 +3,9 @@ import pulumi_kubernetes as k8s
 from light.constants import SERVICE_ACCOUNT
 from light.config import CloudConfig, CloudModelGroup, Config
 
+# We hardcode the image here for now
+LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
+
 
 def init_aws(
     config: CloudConfig, model_group: CloudModelGroup
@@ -16,7 +19,7 @@ def init_aws(
             "s3",
             "cp",
             f"s3://{bucket}/models/{model_group.name}",
-            "/data/{model_group.name}",
+            f"/data/{model_group.name}",
         ],
         volume_mounts=[
             k8s.core.v1.VolumeMountArgs(
@@ -31,8 +34,25 @@ def create_pod(
     config: Config,
     model_group: CloudModelGroup,
     runtime_image: str,
+    port: int,
     k8s_provider: k8s.Provider,
 ) -> None:
+    """
+    Creates a Kubernetes pod for the given model group.
+
+    Args:
+        config (Config): The configuration object.
+        model_group (CloudModelGroup): The model group object.
+        runtime_image (str): The runtime image for the container.
+        port (int): The port number for the container.
+        k8s_provider (k8s.Provider): The Kubernetes provider.
+
+    Raises:
+        ValueError: If the config does not have AWS information.
+
+    Returns:
+        None
+    """
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
 
@@ -63,6 +83,20 @@ def create_pod(
                             mount_path="/data",
                         )
                     ],
+                    env=[
+                        k8s.core.v1.EnvVarArgs(
+                            name="USE_MLOCK",  # Model weights are locked in RAM or not
+                            value="0",
+                        ),
+                        k8s.core.v1.EnvVarArgs(
+                            name="MODEL",
+                            value=f"/data/{model_group.name}",
+                        ),
+                        k8s.core.v1.EnvVarArgs(
+                            name="PORT",
+                            value=str(port),
+                        ),
+                    ],
                 )
             ],
         ),
@@ -72,18 +106,19 @@ def create_pod(
 
 def create_service(
     model_group: CloudModelGroup,
+    port: int,
     k8s_provider: k8s.Provider,
 ) -> k8s.core.v1.Service:
     """
-    Creates a Kubernetes service for the model service.
+    Creates a Kubernetes service for a given model group.
 
     Args:
-        config (pulumi.Config): The Pulumi configuration object.
-        service_account (k8s.core.v1.ServiceAccount): The service account for the model service.
-        pod (k8s.core.v1.Pod): The pod for the model service.
+        model_group (CloudModelGroup): The model group for which the service is created.
+        port (int): The port number to expose for the service.
+        k8s_provider (k8s.Provider): The Kubernetes provider.
 
     Returns:
-        None
+        k8s.core.v1.Service: The created Kubernetes service.
     """
     return k8s.core.v1.Service(
         f"{model_group.name}-service",
@@ -98,7 +133,7 @@ def create_service(
             ports=[
                 k8s.core.v1.ServicePortArgs(
                     port=80,
-                    target_port=8080,
+                    target_port=port,
                 )
             ],
         ),
@@ -106,20 +141,21 @@ def create_service(
     )
 
 
-# HPA Configuration
 def create_hpa(
     model_group: CloudModelGroup,
     service: k8s.core.v1.Service,
     k8s_provider: k8s.Provider,
 ) -> k8s.autoscaling.v2beta2.HorizontalPodAutoscaler:
     """
-    Creates a HorizontalPodAutoscaler for the model service.
+    Creates a HorizontalPodAutoscaler (HPA) for a given model group service.
 
     Args:
-        service (k8s.core.v1.Service): The service for the model service.
+        model_group (CloudModelGroup): The model group for which the HPA is being created.
+        service (k8s.core.v1.Service): The service associated with the model group.
+        k8s_provider (k8s.Provider): The Kubernetes provider.
 
     Returns:
-        None
+        k8s.autoscaling.v2beta2.HorizontalPodAutoscaler: The created HPA.
     """
     return k8s.autoscaling.v2beta2.HorizontalPodAutoscaler(
         "model-hpa",
@@ -146,3 +182,25 @@ def create_hpa(
         ),
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
+
+
+def create_model_group_service(
+    config: Config,
+    model_group: CloudModelGroup,
+    k8s_provider: k8s.Provider,
+) -> None:
+    """
+    Creates a model group service.
+
+    Args:
+        config (Config): The configuration object.
+        model_group (CloudModelGroup): The model group object.
+        k8s_provider (k8s.Provider): The Kubernetes provider.
+
+    Returns:
+        None
+    """
+    port = 8000
+    create_pod(config, model_group, LLAMA_CPP_PYTHON_IMAGE, port, k8s_provider)
+    service = create_service(model_group, port, k8s_provider)
+    create_hpa(model_group, service, k8s_provider)
