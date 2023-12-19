@@ -6,9 +6,9 @@ aws:
     skip: false
   modelGroups:
     - nodeType: t2.micro
-      name: test-model-group
       minInstances: 1
       maxInstances: 2
+      name: test-model-group
   serve:
     serverless:
       region: us-east-1

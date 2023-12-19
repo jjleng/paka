@@ -40,19 +40,43 @@ class BlobStore(BaseModel):
     skip: bool = False
 
 
-class ModelGroup(BaseModel):
+class Serve(BaseModel):
+    """
+    Represents the configuration for serving instances.
+
+    Attributes:
+        minInstances (int): The minimum number of instances to provision.
+        maxInstances (int): The maximum number of instances to provision.
+    """
+
+    minInstances: int
+    maxInstances: int
+
+    @model_validator(mode="before")
+    def check_instances_num(cls, values: Dict[str, int]) -> Dict[str, int]:
+        min_instances, max_instances = values.get("minInstances"), values.get(
+            "maxInstances"
+        )
+        if min_instances and max_instances and max_instances < min_instances:
+            raise ValueError(
+                "maxInstances must be greater than or equal to minInstances"
+            )
+        return values
+
+
+class ModelGroup(Serve):
     """
     Represents a group of VMs that serve the inference for a specific type of model.
 
     Attributes:
         name (str): The name of the model group.
+
+    Inherited Attributes:
         minInstances (int): The min number of replicas for the model group.
         maxInstances (int): The max number of replicas for the model group.
     """
 
     name: str
-    minInstances: int
-    maxInstances: int
 
 
 class CloudModelGroup(ModelGroup, CloudNode):
@@ -80,34 +104,11 @@ class LocalModelGroup(ModelGroup):
 
     Inherited Attributes:
         name (str): The name of the model group.
-        replica (int): The number of replicas for the model group.
+        minInstances (int): The min number of replicas for the model group.
+        maxInstances (int): The max number of replicas for the model group.
     """
 
     pass
-
-
-class Serve(BaseModel):
-    """
-    Represents the configuration for serving instances.
-
-    Attributes:
-        minInstances (int): The minimum number of instances to provision.
-        maxInstances (int): The maximum number of instances to provision.
-    """
-
-    minInstances: int
-    maxInstances: int
-
-    @model_validator(mode="before")
-    def check_dates(cls, values: Dict[str, int]) -> Dict[str, int]:
-        min_instances, max_instances = values.get("minInstances"), values.get(
-            "maxInstances"
-        )
-        if min_instances and max_instances and max_instances < min_instances:
-            raise ValueError(
-                "maxInstances must be greater than or equal to minInstances"
-            )
-        return values
 
 
 class CloudServerless(Serve, CloudResource):
