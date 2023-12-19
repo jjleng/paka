@@ -3,7 +3,7 @@ import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
-from light.cluster.config import CloudConfig
+from light.config import CloudConfig
 from light.cluster.aws.auto_scaler import create_cluster_autoscaler
 from light.cluster.aws.service_account import create_service_account
 
@@ -49,10 +49,10 @@ def create_node_group_for_model_group(
             cluster=cluster,
             instance_types=[model_group.nodeType],
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(
-                desired_size=1,
+                desired_size=model_group.minInstances,
                 # No scale down to 0 for now
-                min_size=1,
-                max_size=model_group.replica,
+                min_size=model_group.minInstances,
+                max_size=model_group.maxInstances,
             ),
             labels={"size": model_group.nodeType, "group": model_group.name},
             node_role_arn=worker_role.arn,
@@ -177,7 +177,7 @@ def create_k8s_cluster(config: CloudConfig) -> None:
         k8s_provider,
     )
 
-    create_service_account(config, cluster)
+    create_service_account(config, cluster, k8s_provider)
 
     # Export the cluster's kubeconfig
     pulumi.export("kubeconfig", cluster.kubeconfig)

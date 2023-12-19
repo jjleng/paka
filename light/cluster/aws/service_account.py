@@ -2,7 +2,7 @@ import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
-from light.cluster.config import CloudConfig
+from light.config import CloudConfig
 from light.cluster.aws.utils import odic_role_for_sa
 from light.constants import SERVICE_ACCOUNT
 

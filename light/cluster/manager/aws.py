@@ -1,4 +1,4 @@
-from light.cluster.config import Config, CloudConfig
+from light.config import Config, CloudConfig
 from pulumi import automation as auto
 from light.cluster.aws.object_store import create_object_store
 from light.cluster.aws.container_registry import create_container_registry

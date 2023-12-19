@@ -1,4 +1,4 @@
-from light.cluster.config import CloudConfig
+from light.config import CloudConfig
 import pulumi
 import pulumi_eks as eks
 import pulumi_aws as aws

@@ -1,7 +1,7 @@
 import pulumi
 import pulumi_kubernetes as k8s
 from light.constants import SERVICE_ACCOUNT
-from light.cluster.config import CloudConfig, CloudModelGroup, Config
+from light.config import CloudConfig, CloudModelGroup, Config
 
 
 def init_aws(
