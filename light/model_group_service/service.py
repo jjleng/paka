@@ -1,8 +1,7 @@
 from light.constants import SERVICE_ACCOUNT
 from light.config import CloudConfig, CloudModelGroup, Config
 from kubernetes import client
-from light.utils import apply_resource
-from light.utils import sanitize_name
+from light.utils import apply_resource, sanitize_k8s_name
 
 # We hardcode the image here for now
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
@@ -37,7 +36,7 @@ def create_pod(
 
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_name(model_group.name)}-pod",
+            name=f"{sanitize_k8s_name(model_group.name)}-pod",
             labels={
                 "app": "model-group",
                 "model": model_group.name,
@@ -54,7 +53,7 @@ def create_pod(
             init_containers=[init_aws(config.aws, model_group)],
             containers=[
                 client.V1Container(
-                    name=f"{sanitize_name(model_group.name)}-container",
+                    name=f"{sanitize_k8s_name(model_group.name)}-container",
                     image=runtime_image,
                     volume_mounts=[
                         client.V1VolumeMount(
@@ -141,7 +140,7 @@ def create_deployment(
         api_version="apps/v1",
         kind="Deployment",
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_name(model_group.name)}-deployment",
+            name=f"{sanitize_k8s_name(model_group.name)}-deployment",
         ),
         spec=client.V1DeploymentSpec(
             replicas=model_group.minInstances,
@@ -171,7 +170,7 @@ def create_service(model_group: CloudModelGroup, port: int) -> client.V1Service:
         api_version="v1",
         kind="Service",
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_name(model_group.name)}-service",
+            name=f"{sanitize_k8s_name(model_group.name)}-service",
         ),
         spec=client.V1ServiceSpec(
             selector={
@@ -205,7 +204,7 @@ def create_hpa(
         api_version="autoscaling/v2beta2",
         kind="HorizontalPodAutoscaler",
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_name(model_group.name)}-hpa",
+            name=f"{sanitize_k8s_name(model_group.name)}-hpa",
         ),
         spec=client.V2HorizontalPodAutoscalerSpec(
             scale_target_ref=client.V2CrossVersionObjectReference(
