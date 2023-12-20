@@ -35,8 +35,6 @@ def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
     Returns:
         None
     """
-    home = Path.home()
-
     kubeconfig_data = json.loads(kubeconfig_json)
 
     yaml = YAML()
@@ -62,7 +60,6 @@ def load_kubeconfig(name: str) -> None:
     Returns:
         None
     """
-    home = Path.home()
     kubeconfig_file_path = os.path.join(get_project_data_dir(), name)
 
     config.load_kube_config(kubeconfig_file_path)
