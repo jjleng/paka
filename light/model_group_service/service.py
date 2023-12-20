@@ -85,6 +85,18 @@ def create_pod(
                     ),
                 )
             ],
+            tolerations=[
+                client.V1Toleration(
+                    key="app",
+                    value="model-group",
+                    effect="NoSchedule",
+                ),
+                client.V1Toleration(
+                    key="model",
+                    value=model_group.name,
+                    effect="NoSchedule",
+                ),
+            ],
             affinity=client.V1Affinity(
                 node_affinity=client.V1NodeAffinity(
                     required_during_scheduling_ignored_during_execution=client.V1NodeSelector(
@@ -201,14 +213,14 @@ def create_hpa(
         client.V2HorizontalPodAutoscaler: The created HorizontalPodAutoscaler object.
     """
     return client.V2HorizontalPodAutoscaler(
-        api_version="autoscaling/v2beta2",
+        api_version="autoscaling/v2",
         kind="HorizontalPodAutoscaler",
         metadata=client.V1ObjectMeta(
             name=f"{sanitize_k8s_name(model_group.name)}-hpa",
         ),
         spec=client.V2HorizontalPodAutoscalerSpec(
             scale_target_ref=client.V2CrossVersionObjectReference(
-                api_version="v1",
+                api_version="apps/v1",
                 kind="Deployment",
                 name=deployment.metadata.name,
             ),

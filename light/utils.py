@@ -128,8 +128,8 @@ def apply_resource(
 
     # Try to read (get) the resource; if it exists, replace it, otherwise create it
     try:
-        read_method(namespace, resource.metadata.name)
-        response = replace_method(namespace, resource.metadata.name, resource)
+        read_method(resource.metadata.name, namespace)
+        response = replace_method(resource.metadata.name, namespace, resource)
         print(f"{kind} '{resource.metadata.name}' updated.")
     except ApiException as e:
         if e.status == 404:
