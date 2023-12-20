@@ -59,18 +59,9 @@ class AWSClusterManager:
     def preview(self) -> None:
         self._stack.preview(on_output=print)
 
-    def start_model_group_service(self) -> None:
-        def program() -> None:
-            cluster = self._provision_k8s()
+    def service_up(self) -> None:
+        if self.config.modelGroups is None:
+            raise ValueError("Model group config not found")
 
-            k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
-
-            if self.config.modelGroups is None:
-                print("No model groups found")
-                return
-
-            for model_group in self.config.modelGroups:
-                create_model_group_service(self._orig_config, model_group, k8s_provider)
-
-        stack = self._stack_for_program(program)
-        stack.up(on_output=print)
+        for model_group in self.config.modelGroups:
+            create_model_group_service(self._orig_config, model_group)

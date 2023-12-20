@@ -1,13 +1,21 @@
 import typer
 from light.cluster.manager.aws import AWSClusterManager
-from light.config import CloudConfig, ClusterConfig, Config
+from light.config import CloudConfig, ClusterConfig, Config, CloudModelGroup
 
 cli = typer.Typer()
 
 cluster_manager = AWSClusterManager(
     config=Config(
         aws=CloudConfig(
-            cluster=ClusterConfig(name="open-copilot", defaultRegion="us-west-2")
+            cluster=ClusterConfig(name="open-copilot", defaultRegion="us-west-2"),
+            modelGroups=[
+                CloudModelGroup(
+                    name="llama-2-7b.Q4_0.gguf",
+                    maxInstances=2,
+                    minInstances=1,
+                    nodeType="m5.xlarge",
+                ),
+            ],
         )
     )
 )
@@ -31,6 +39,11 @@ def refresh_cluster() -> None:
 @cli.command()
 def preview_cluster() -> None:
     cluster_manager.preview()
+
+
+@cli.command()
+def service_up() -> None:
+    cluster_manager.service_up()
 
 
 if __name__ == "__main__":

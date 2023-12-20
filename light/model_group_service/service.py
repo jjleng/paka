@@ -1,17 +1,16 @@
-import pulumi
-import pulumi_kubernetes as k8s
 from light.constants import SERVICE_ACCOUNT
 from light.config import CloudConfig, CloudModelGroup, Config
+from kubernetes import client
+from light.utils import apply_resource
+from light.utils import sanitize_name
 
 # We hardcode the image here for now
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
 
 
-def init_aws(
-    config: CloudConfig, model_group: CloudModelGroup
-) -> k8s.core.v1.ContainerArgs:
+def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Container:
     bucket = config.cluster.name
-    return k8s.core.v1.ContainerArgs(
+    return client.V1Container(
         name="init-s3-model-download",
         image="amazon/aws-cli",
         command=[
@@ -22,7 +21,7 @@ def init_aws(
             f"/data/{model_group.name}",
         ],
         volume_mounts=[
-            k8s.core.v1.VolumeMountArgs(
+            client.V1VolumeMount(
                 name="model-data",
                 mount_path="/data",
             )
@@ -31,75 +30,55 @@ def init_aws(
 
 
 def create_pod(
-    config: Config,
-    model_group: CloudModelGroup,
-    runtime_image: str,
-    port: int,
-    k8s_provider: k8s.Provider,
-) -> None:
-    """
-    Creates a Kubernetes pod for the given model group.
-
-    Args:
-        config (Config): The configuration object.
-        model_group (CloudModelGroup): The model group object.
-        runtime_image (str): The runtime image for the container.
-        port (int): The port number for the container.
-        k8s_provider (k8s.Provider): The Kubernetes provider.
-
-    Raises:
-        ValueError: If the config does not have AWS information.
-
-    Returns:
-        None
-    """
+    config: Config, model_group: CloudModelGroup, runtime_image: str, port: int
+) -> client.V1Pod:
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
 
-    k8s.core.v1.Pod(
-        f"{model_group.name}-pod",
-        metadata=k8s.meta.v1.ObjectMetaArgs(
+    return client.V1Pod(
+        metadata=client.V1ObjectMeta(
+            name=f"{sanitize_name(model_group.name)}-pod",
             labels={
                 "app": "model-group",
                 "model": model_group.name,
             },
         ),
-        spec=k8s.core.v1.PodSpecArgs(
+        spec=client.V1PodSpec(
             service_account_name=SERVICE_ACCOUNT,
             volumes=[
-                k8s.core.v1.VolumeArgs(
+                client.V1Volume(
                     name="model-data",
-                    empty_dir=k8s.core.v1.EmptyDirVolumeSourceArgs(),
+                    empty_dir=client.V1EmptyDirVolumeSource(),
                 )
             ],
             init_containers=[init_aws(config.aws, model_group)],
             containers=[
-                k8s.core.v1.ContainerArgs(
-                    name=f"{model_group.name}-container",
+                client.V1Container(
+                    name=f"{sanitize_name(model_group.name)}-container",
                     image=runtime_image,
                     volume_mounts=[
-                        k8s.core.v1.VolumeMountArgs(
+                        client.V1VolumeMount(
                             name="model-data",
                             mount_path="/data",
                         )
                     ],
                     env=[
-                        k8s.core.v1.EnvVarArgs(
+                        client.V1EnvVar(
                             name="USE_MLOCK",  # Model weights are locked in RAM or not
                             value="0",
                         ),
-                        k8s.core.v1.EnvVarArgs(
+                        client.V1EnvVar(
                             name="MODEL",
                             value=f"/data/{model_group.name}",
                         ),
-                        k8s.core.v1.EnvVarArgs(
+                        client.V1EnvVar(
                             name="PORT",
                             value=str(port),
                         ),
                     ],
                     # A good estimate for the resources required for a model group
                     # This will make the pod's priority to be `Burstable`
-                    resources=k8s.core.v1.ResourceRequirementsArgs(
+                    resources=client.V1ResourceRequirements(
                         requests={
                             "cpu": "900m",  # 0.9 CPU core
                             "memory": "8Gi",  # 8 GB RAM
@@ -107,30 +86,16 @@ def create_pod(
                     ),
                 )
             ],
-            tolerations=[
-                k8s.core.v1.TolerationArgs(
-                    key="app",
-                    value="model-group",
-                    effect="NoSchedule",
-                ),
-                k8s.core.v1.TolerationArgs(
-                    key="model",
-                    value=model_group.name,
-                    effect="NoSchedule",
-                ),
-            ],
-            affinity=k8s.core.v1.AffinityArgs(
-                node_affinity=k8s.core.v1.NodeAffinityArgs(
-                    required_during_scheduling_ignored_during_execution=k8s.core.v1.NodeSelectorArgs(
+            affinity=client.V1Affinity(
+                node_affinity=client.V1NodeAffinity(
+                    required_during_scheduling_ignored_during_execution=client.V1NodeSelector(
                         node_selector_terms=[
-                            k8s.core.v1.NodeSelectorTermArgs(
+                            client.V1NodeSelectorTerm(
                                 match_expressions=[
-                                    k8s.core.v1.NodeSelectorRequirementArgs(
-                                        key="app",
-                                        operator="In",
-                                        values=["model-group"],
+                                    client.V1NodeSelectorRequirement(
+                                        key="app", operator="In", values=["model-group"]
                                     ),
-                                    k8s.core.v1.NodeSelectorRequirementArgs(
+                                    client.V1NodeSelectorRequirement(
                                         key="model",
                                         operator="In",
                                         values=[model_group.name],
@@ -140,10 +105,10 @@ def create_pod(
                         ]
                     )
                 ),
-                pod_anti_affinity=k8s.core.v1.PodAntiAffinityArgs(
+                pod_anti_affinity=client.V1PodAntiAffinity(
                     required_during_scheduling_ignored_during_execution=[
-                        k8s.core.v1.PodAffinityTermArgs(
-                            label_selector=k8s.meta.v1.LabelSelectorArgs(
+                        client.V1PodAffinityTerm(
+                            label_selector=client.V1LabelSelector(
                                 match_labels={
                                     "app": "model-group",
                                     "model": model_group.name,
@@ -155,79 +120,107 @@ def create_pod(
                 ),
             ),
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
 
-def create_service(
-    model_group: CloudModelGroup,
-    port: int,
-    k8s_provider: k8s.Provider,
-) -> k8s.core.v1.Service:
+def create_deployment(
+    model_group: CloudModelGroup, pod: client.V1Pod
+) -> client.V1Deployment:
+    """
+    Create a deployment for a model group.
+
+    Args:
+        model_group (CloudModelGroup): The model group object.
+        pod (client.V1Pod): The pod object.
+
+    Returns:
+        client.V1Deployment: The created deployment object.
+    """
+
+    return client.V1Deployment(
+        api_version="apps/v1",
+        kind="Deployment",
+        metadata=client.V1ObjectMeta(
+            name=f"{sanitize_name(model_group.name)}-deployment",
+        ),
+        spec=client.V1DeploymentSpec(
+            replicas=model_group.minInstances,
+            selector=client.V1LabelSelector(
+                match_labels={
+                    "app": "model-group",
+                    "model": model_group.name,
+                }
+            ),
+            template=pod,
+        ),
+    )
+
+
+def create_service(model_group: CloudModelGroup, port: int) -> client.V1Service:
     """
     Creates a Kubernetes service for a given model group.
 
     Args:
         model_group (CloudModelGroup): The model group for which the service is created.
         port (int): The port number to expose for the service.
-        k8s_provider (k8s.Provider): The Kubernetes provider.
 
     Returns:
-        k8s.core.v1.Service: The created Kubernetes service.
+        V1Service: The created Kubernetes service.
     """
-    return k8s.core.v1.Service(
-        f"{model_group.name}-service",
-        metadata=k8s.meta.v1.ObjectMetaArgs(
-            name=f"{model_group.name}-service",
+    return client.V1Service(
+        api_version="v1",
+        kind="Service",
+        metadata=client.V1ObjectMeta(
+            name=f"{sanitize_name(model_group.name)}-service",
         ),
-        spec=k8s.core.v1.ServiceSpecArgs(
+        spec=client.V1ServiceSpec(
             selector={
                 "app": "model-group",
                 "model": model_group.name,
             },
             ports=[
-                k8s.core.v1.ServicePortArgs(
+                client.V1ServicePort(
                     port=80,
                     target_port=port,
                 )
             ],
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
 
 def create_hpa(
-    model_group: CloudModelGroup,
-    service: k8s.core.v1.Service,
-    k8s_provider: k8s.Provider,
-) -> k8s.autoscaling.v2beta2.HorizontalPodAutoscaler:
+    model_group: CloudModelGroup, deployment: client.V1Deployment
+) -> client.V2HorizontalPodAutoscaler:
     """
-    Creates a HorizontalPodAutoscaler (HPA) for a given model group service.
+    Create a HorizontalPodAutoscaler for a given model group and deployment.
 
     Args:
-        model_group (CloudModelGroup): The model group for which the HPA is being created.
-        service (k8s.core.v1.Service): The service associated with the model group.
-        k8s_provider (k8s.Provider): The Kubernetes provider.
+        model_group (CloudModelGroup): The model group object.
+        deployment (client.V1Deployment): The deployment object.
 
     Returns:
-        k8s.autoscaling.v2beta2.HorizontalPodAutoscaler: The created HPA.
+        client.V2HorizontalPodAutoscaler: The created HorizontalPodAutoscaler object.
     """
-    return k8s.autoscaling.v2beta2.HorizontalPodAutoscaler(
-        "model-hpa",
-        spec=k8s.autoscaling.v2beta2.HorizontalPodAutoscalerSpecArgs(
-            scale_target_ref=k8s.autoscaling.v2beta2.CrossVersionObjectReferenceArgs(
+    return client.V2HorizontalPodAutoscaler(
+        api_version="autoscaling/v2beta2",
+        kind="HorizontalPodAutoscaler",
+        metadata=client.V1ObjectMeta(
+            name=f"{sanitize_name(model_group.name)}-hpa",
+        ),
+        spec=client.V2HorizontalPodAutoscalerSpec(
+            scale_target_ref=client.V2CrossVersionObjectReference(
                 api_version="v1",
-                kind="Service",
-                name=service.metadata.name,
+                kind="Deployment",
+                name=deployment.metadata.name,
             ),
             min_replicas=model_group.minInstances,
             max_replicas=model_group.maxInstances,
             metrics=[
-                k8s.autoscaling.v2beta2.MetricSpecArgs(
+                client.V2MetricSpec(
                     type="Resource",
-                    resource=k8s.autoscaling.v2beta2.ResourceMetricSourceArgs(
+                    resource=client.V2ResourceMetricSource(
                         name="cpu",
-                        target=k8s.autoscaling.v2beta2.MetricTargetArgs(
+                        target=client.V2MetricTarget(
                             type="Utilization",
                             average_utilization=50,
                         ),
@@ -235,14 +228,12 @@ def create_hpa(
                 )
             ],
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
 
 def create_model_group_service(
     config: Config,
     model_group: CloudModelGroup,
-    k8s_provider: k8s.Provider,
 ) -> None:
     """
     Creates a model group service.
@@ -255,7 +246,19 @@ def create_model_group_service(
     Returns:
         None
     """
+    if config.aws is None:
+        raise ValueError("Only AWS is supported at this time")
+    kubeconfig_name = config.aws.cluster.name
+
     port = 8000
-    create_pod(config, model_group, LLAMA_CPP_PYTHON_IMAGE, port, k8s_provider)
-    service = create_service(model_group, port, k8s_provider)
-    create_hpa(model_group, service, k8s_provider)
+
+    pod = create_pod(config, model_group, LLAMA_CPP_PYTHON_IMAGE, port)
+
+    deployment = create_deployment(model_group, pod)
+    apply_resource(kubeconfig_name, deployment)
+
+    svc = create_service(model_group, port)
+    apply_resource(kubeconfig_name, svc)
+
+    hpa = create_hpa(model_group, deployment)
+    apply_resource(kubeconfig_name, hpa)

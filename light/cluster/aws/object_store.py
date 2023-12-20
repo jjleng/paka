@@ -13,4 +13,6 @@ def create_object_store(config: CloudConfig) -> None:
         None
     """
     project = config.cluster.name
-    aws.s3.Bucket(project)
+
+    # force_destroy is needed to delete the bucket when it's not empty
+    aws.s3.Bucket(project, force_destroy=True)
