@@ -2,6 +2,7 @@ from pydantic import BaseModel, model_validator
 from typing import Dict, Optional, List
 from ruamel.yaml import YAML
 from io import StringIO
+from utils import sanitize_k8s_name
 
 
 class CloudResource(BaseModel):
@@ -77,6 +78,10 @@ class ModelGroup(Serve):
     """
 
     name: str
+
+    @property
+    def sanitized_name(self) -> str:
+        return sanitize_k8s_name(self.name)
 
 
 class CloudModelGroup(ModelGroup, CloudNode):

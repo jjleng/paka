@@ -22,8 +22,27 @@ def camel_to_kebab(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1-\2", name).lower()
 
 
-def sanitize_name(name: str) -> str:
-    return name.replace(".", "-")
+def sanitize_k8s_name(name: str) -> str:
+    """
+    Sanitize a string to be compliant with Kubernetes resource naming conventions.
+
+    Args:
+    name (str): The original name string.
+
+    Returns:
+    str: The sanitized name string.
+    """
+
+    # Convert to lowercase
+    sanitized_name = name.lower()
+
+    # Replace any disallowed characters with '-'
+    sanitized_name = re.sub(r"[^a-z0-9\-]", "-", sanitized_name)
+
+    # Remove leading or trailing non-alphanumeric characters
+    sanitized_name = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", sanitized_name)
+
+    return sanitized_name
 
 
 def get_project_data_dir() -> str:

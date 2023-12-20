@@ -1,4 +1,9 @@
-from light.utils import camel_to_kebab, save_kubeconfig, get_project_data_dir
+from light.utils import (
+    camel_to_kebab,
+    save_kubeconfig,
+    get_project_data_dir,
+    sanitize_k8s_name,
+)
 import json
 import os
 from unittest.mock import mock_open, patch
@@ -10,6 +15,16 @@ def test_camel_to_kebab() -> None:
     assert camel_to_kebab("YetAnotherExample") == "yet-another-example"
     assert camel_to_kebab("lowercase") == "lowercase"
     assert camel_to_kebab("UPPERCASE") == "uppercase"
+
+
+def test_sanitize_k8s_name() -> None:
+    assert sanitize_k8s_name("MyName") == "myname"
+    assert sanitize_k8s_name("My.Name") == "my-name"
+    assert sanitize_k8s_name("My_Name") == "my-name"
+    assert sanitize_k8s_name("My-Name") == "my-name"
+    assert sanitize_k8s_name("123MyName") == "123myname"
+    assert sanitize_k8s_name("MyName123") == "myname123"
+    assert sanitize_k8s_name("MyName!") == "myname"
 
 
 def test_save_kubeconfig() -> None:
