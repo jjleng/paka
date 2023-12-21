@@ -7,6 +7,8 @@ from light.config import CloudConfig
 from light.utils import save_kubeconfig, sanitize_k8s_name
 from light.cluster.aws.auto_scaler import create_cluster_autoscaler
 from light.cluster.aws.service_account import create_service_account
+from light.cluster.redis import create_redis
+from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 
 
 def _ignore_tags_transformation(
@@ -157,15 +159,15 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         f"{project}-default-group",
         node_group_name=f"{project}-default-group",
         cluster=cluster,
-        instance_types=["t2.micro"],
+        instance_types=["t2.small"],
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
-            # Each t2.micro node is bounded to a maximum 4 pods.
-            # At least 2 t2.micro nodes are required for the Cluster Autoscaler to work
+            # Each t2.small node is bounded to a maximum 4 pods.
+            # At least 2 t2.small nodes are required for the Cluster Autoscaler to work
             desired_size=2,
             min_size=2,
             max_size=3,
         ),
-        labels={"size": "t2.micro", "group": "default"},
+        labels={"size": "t2.small", "group": "default"},
         node_role_arn=worker_role.arn,
         subnet_ids=vpc.private_subnet_ids,
     )
@@ -190,8 +192,12 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         k8s_provider,
     )
 
+    create_ebs_csi_driver(config, cluster, k8s_provider)
+    create_redis()
+
     create_service_account(config, cluster, k8s_provider)
 
+    # Save the kubeconfig to a file
     cluster.kubeconfig_json.apply(
         lambda kubeconfig_json: save_kubeconfig(config.cluster.name, kubeconfig_json)
     )
