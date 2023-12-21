@@ -9,6 +9,7 @@ from light.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from light.cluster.aws.service_account import create_service_account
 from light.cluster.redis import create_redis
 from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
+from light.cluster.keda import create_keda
 
 
 def _ignore_tags_transformation(
@@ -193,7 +194,8 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     )
 
     create_ebs_csi_driver(config, cluster, k8s_provider)
-    create_redis()
+    create_redis(k8s_provider)
+    create_keda(k8s_provider)
 
     create_service_account(config, cluster, k8s_provider)
 
