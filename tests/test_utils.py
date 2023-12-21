@@ -1,13 +1,9 @@
 from light.utils import (
     camel_to_kebab,
-    save_kubeconfig,
     get_project_data_dir,
     sanitize_k8s_name,
     call_once,
 )
-import json
-import os
-from unittest.mock import mock_open, patch
 
 
 def test_camel_to_kebab() -> None:
@@ -26,17 +22,6 @@ def test_sanitize_k8s_name() -> None:
     assert sanitize_k8s_name("123MyName") == "123myname"
     assert sanitize_k8s_name("MyName123") == "myname123"
     assert sanitize_k8s_name("MyName!") == "myname"
-
-
-def test_save_kubeconfig() -> None:
-    m = mock_open()
-    with patch("builtins.open", m):
-        kubeconfig_json = json.dumps({"apiVersion": "v1"})
-        save_kubeconfig("test", kubeconfig_json)
-    f = os.path.join(get_project_data_dir(), "test")
-    m.assert_called_once_with(f, "w")
-    handle = m()
-    handle.write.assert_called_once()
 
 
 def test_call_once() -> None:
