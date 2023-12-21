@@ -83,6 +83,22 @@ def create_pod(
                             "memory": "8Gi",  # 8 GB RAM
                         },
                     ),
+                    readiness_probe=client.V1Probe(
+                        http_get=client.V1HTTPGetAction(
+                            path="/v1/models",
+                            port=port,
+                        ),
+                        initial_delay_seconds=60,
+                        period_seconds=5,
+                    ),
+                    liveness_probe=client.V1Probe(
+                        http_get=client.V1HTTPGetAction(
+                            path="/v1/models",
+                            port=port,
+                        ),
+                        initial_delay_seconds=240,
+                        period_seconds=5,
+                    ),
                 )
             ],
             tolerations=[
