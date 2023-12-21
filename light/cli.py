@@ -12,7 +12,7 @@ cluster_manager = AWSClusterManager(
                 CloudModelGroup(
                     name="llama-2-7b.Q4_0.gguf",
                     maxInstances=2,
-                    minInstances=1,
+                    minInstances=0,
                     nodeType="m5.xlarge",
                 ),
             ],

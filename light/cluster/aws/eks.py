@@ -5,7 +5,7 @@ import pulumi_eks as eks
 import pulumi_kubernetes as k8s
 from light.config import CloudConfig
 from light.utils import save_kubeconfig, sanitize_k8s_name
-from light.cluster.aws.auto_scaler import create_cluster_autoscaler
+from light.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from light.cluster.aws.service_account import create_service_account
 from light.cluster.redis import create_redis
 from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
