@@ -8,6 +8,16 @@ LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
 
 
 def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Container:
+    """
+    Initializes an AWS container for downloading a model from S3.
+
+    Args:
+        config (CloudConfig): The cloud configuration.
+        model_group (CloudModelGroup): The cloud model group.
+
+    Returns:
+        client.V1Container: The initialized AWS container.
+    """
     bucket = config.cluster.name
     return client.V1Container(
         name="init-s3-model-download",
@@ -31,6 +41,18 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
 def create_pod(
     config: Config, model_group: CloudModelGroup, runtime_image: str, port: int
 ) -> client.V1Pod:
+    """
+    Creates a Kubernetes pod for a model group.
+
+    Args:
+        config (Config): The configuration object.
+        model_group (CloudModelGroup): The model group object.
+        runtime_image (str): The runtime image for the pod.
+        port (int): The port number for the pod.
+
+    Returns:
+        client.V1Pod: The created Kubernetes pod.
+    """
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
 

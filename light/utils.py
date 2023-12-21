@@ -17,7 +17,23 @@ class KubernetesResource(Protocol):
     kind: Literal["Deployment", "Service", "HorizontalPodAutoscaler"]
 
 
+import re
+
+
 def camel_to_kebab(name: str) -> str:
+    """
+    Converts a camel case string to kebab case.
+
+    Args:
+        name (str): The camel case string to be converted.
+
+    Returns:
+        str: The kebab case string.
+
+    Example:
+        >>> camel_to_kebab("camelCaseString")
+        'camel-case-string'
+    """
     name = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", name)
     return re.sub("([a-z0-9])([A-Z])", r"\1-\2", name).lower()
 
@@ -101,6 +117,20 @@ def apply_resource(
     kubeconfig_name: str,
     resource: KubernetesResource,
 ) -> Any:
+    """
+    Applies a Kubernetes resource by creating or updating it.
+
+    Args:
+        kubeconfig_name (str): The name of the kubeconfig file to use.
+        resource (KubernetesResource): The Kubernetes resource to apply.
+
+    Returns:
+        Any: The response from the API call.
+
+    Raises:
+        ValueError: If the resource kind is unsupported.
+        ApiException: If an error occurs while creating or updating the resource.
+    """
     # Load the Kubernetes configuration
     load_kubeconfig(kubeconfig_name)
 
