@@ -3,6 +3,7 @@ from light.utils import (
     save_kubeconfig,
     get_project_data_dir,
     sanitize_k8s_name,
+    call_once,
 )
 import json
 import os
@@ -36,3 +37,19 @@ def test_save_kubeconfig() -> None:
     m.assert_called_once_with(f, "w")
     handle = m()
     handle.write.assert_called_once()
+
+
+def test_call_once() -> None:
+    counter = 0
+
+    @call_once
+    def increment_counter() -> None:
+        nonlocal counter
+        counter += 1
+
+    # Call the function twice
+    increment_counter()
+    increment_counter()
+
+    # Check that the counter was only incremented once
+    assert counter == 1

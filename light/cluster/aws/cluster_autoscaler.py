@@ -5,8 +5,10 @@ import pulumi_aws as aws
 import pulumi_kubernetes as k8s
 import pulumi_kubernetes.helm.v3 as helm
 from light.cluster.aws.utils import odic_role_for_sa
+from light.utils import call_once
 
 
+@call_once
 def create_cluster_autoscaler(
     config: CloudConfig,
     cluster: eks.Cluster,

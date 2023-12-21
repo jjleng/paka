@@ -5,8 +5,10 @@ import pulumi_kubernetes as k8s
 from light.config import CloudConfig
 from light.cluster.aws.utils import odic_role_for_sa
 from light.constants import SERVICE_ACCOUNT
+from light.utils import call_once
 
 
+@call_once
 def create_service_account(
     config: CloudConfig,
     cluster: eks.Cluster,

@@ -6,7 +6,7 @@ from kubernetes import config
 from io import StringIO
 from light.constants import PROJECT_NAME
 import re
-from typing import Any
+from typing import Callable, Any
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from typing import Protocol, Literal
@@ -166,3 +166,16 @@ def apply_resource(
             raise e
 
     return response
+
+
+def call_once(func: Callable) -> Callable:
+    """Decorator to ensure a function is only called once."""
+    has_been_called = False
+
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        nonlocal has_been_called
+        if not has_been_called:
+            has_been_called = True
+            return func(*args, **kwargs)
+
+    return wrapper

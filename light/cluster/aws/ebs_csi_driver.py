@@ -5,8 +5,10 @@ from light.config import CloudConfig
 import pulumi_eks as eks
 import pulumi_aws as aws
 from light.cluster.aws.utils import odic_role_for_sa
+from light.utils import call_once
 
 
+@call_once
 def create_ebs_csi_driver(
     config: CloudConfig, cluster: eks.Cluster, k8s_provider: k8s.Provider
 ) -> None:

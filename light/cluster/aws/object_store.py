@@ -1,7 +1,9 @@
 from light.config import CloudConfig
 import pulumi_aws as aws
+from light.utils import call_once
 
 
+@call_once
 def create_object_store(config: CloudConfig) -> None:
     """
     Creates an object store in AWS S3 based on the provided configuration.
