@@ -17,9 +17,6 @@ class KubernetesResource(Protocol):
     kind: Literal["Deployment", "Service", "HorizontalPodAutoscaler"]
 
 
-import re
-
-
 def camel_to_kebab(name: str) -> str:
     """
     Converts a camel case string to kebab case.
