@@ -98,10 +98,10 @@ def create_pod(
                         ),
                     ],
                     # A good estimate for the resources required for a model group
-                    # This will make the pod's priority to be `Burstable`
+                    # This will make the pod's QoS to be `Burstable`
                     resources=client.V1ResourceRequirements(
                         requests={
-                            "cpu": "900m",  # 0.9 CPU core
+                            "cpu": "1900m",  # 1.9 CPU core
                             "memory": "8Gi",  # 8 GB RAM
                         },
                     ),
@@ -111,7 +111,7 @@ def create_pod(
                             port=port,
                         ),
                         initial_delay_seconds=60,
-                        period_seconds=5,
+                        period_seconds=30,
                     ),
                     liveness_probe=client.V1Probe(
                         http_get=client.V1HTTPGetAction(
@@ -119,7 +119,7 @@ def create_pod(
                             port=port,
                         ),
                         initial_delay_seconds=240,
-                        period_seconds=5,
+                        period_seconds=30,
                     ),
                 )
             ],
