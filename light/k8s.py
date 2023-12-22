@@ -134,7 +134,16 @@ def replace_namespaced_custom_object(
 
 class KubernetesResource(Protocol):
     metadata: client.V1ObjectMeta
-    kind: Literal["Deployment", "Service", "HorizontalPodAutoscaler", "ScaledObject"]
+    kind: Literal[
+        "Deployment",
+        "Service",
+        "HorizontalPodAutoscaler",
+        "ScaledObject",
+        "ServiceAccount",
+        "Secret",
+        "RoleBinding",
+        "ConfigMap",
+    ]
 
 
 def apply_resource(
@@ -181,6 +190,26 @@ def apply_resource(
         create_method = create_namespaced_custom_object
         replace_method = replace_namespaced_custom_object
         read_method = partial(read_namespaced_custom_object, resource=resource)
+    elif kind == "ServiceAccount":
+        api = client.CoreV1Api()
+        create_method = api.create_namespaced_service_account
+        replace_method = api.patch_namespaced_service_account
+        read_method = api.read_namespaced_service_account
+    elif kind == "Secret":
+        api = client.CoreV1Api()
+        create_method = api.create_namespaced_secret
+        replace_method = api.patch_namespaced_secret
+        read_method = api.read_namespaced_secret
+    elif kind == "RoleBinding":
+        api = client.RbacAuthorizationV1Api()
+        create_method = api.create_namespaced_role_binding
+        replace_method = api.patch_namespaced_role_binding
+        read_method = api.read_namespaced_role_binding
+    elif kind == "ConfigMap":
+        api = client.CoreV1Api()
+        create_method = api.create_namespaced_config_map
+        replace_method = api.patch_namespaced_config_map
+        read_method = api.read_namespaced_config_map
     else:
         raise ValueError(f"Unsupported kind: {kind}")
 
@@ -197,3 +226,30 @@ def apply_resource(
             raise e
 
     return response
+
+
+def create_namespace(kubeconfig_name: str, name: str) -> None:
+    """
+    Creates a Kubernetes namespace.
+
+    Args:
+        name (str): The name of the namespace to create.
+
+    Returns:
+        None
+
+    Raises:
+        ApiException: If an error occurs while creating the namespace.
+    """
+    # Load the Kubernetes configuration
+    load_kubeconfig(kubeconfig_name)
+
+    api = client.CoreV1Api()
+    namespace = client.V1Namespace(metadata=client.V1ObjectMeta(name=name))
+    try:
+        api.create_namespace(body=namespace)
+    except ApiException as e:
+        if e.status == 409:  # Conflict, namespace already exists
+            pass
+        else:
+            raise
