@@ -27,7 +27,7 @@ def create_redis(k8s_provider: k8s.Provider) -> None:
             fetch_opts=FetchOpts(repo="https://charts.bitnami.com/bitnami"),
             values={
                 "architecture": "standalone",  # Use "replication" for high availability
-                "auth": {"enabled": True, "password": password},
+                "auth": {"enabled": True, "password": "123456"},  # TODO: set password
                 # "master": {"persistence": {"enabled": True, "size": "2Gi"}},
                 "metrics": {"enabled": True},  # For enabling metrics
             },
@@ -39,7 +39,7 @@ def create_redis(k8s_provider: k8s.Provider) -> None:
     secret = k8s.core.v1.Secret(
         "redis-password",
         metadata={"name": "redis-password", "namespace": "redis"},
-        string_data={"password": password},
+        string_data={"password": "123456"},
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
