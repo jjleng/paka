@@ -31,6 +31,8 @@ FETCH_URL="http://localhost:8000/fetch"
 # Stringified JSON body for the POST request
 JSON_BODY='{escaped_json_body}'
 
+WORKING_DIR='/userfunc/{dst_name}'
+
 # Function to perform an HTTP POST request using Python or Node.js
 perform_request() {{
   if command -v python &>/dev/null; then
@@ -49,8 +51,17 @@ while true; do
   if [ "$response" -eq 200 ]; then
     echo "Fetch successful. Executing the runtime command."
 
+    cd "$WORKING_DIR"
+
+    if command -v python &>/dev/null; then
+      export PYTHONPATH="$WORKING_DIR:$PYTHONPATH"
+
+      if [ -d "$WORKING_DIR/bin" ]; then
+        export PATH="$WORKING_DIR/bin:$PATH"
+      fi
+    fi
+
     # Execute the runtime command
-    cd /userfunc/{dst_name}
     {runtime_command}
     break
   else
