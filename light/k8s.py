@@ -143,6 +143,7 @@ class KubernetesResource(Protocol):
         "Secret",
         "RoleBinding",
         "ConfigMap",
+        "Role",
     ]
 
 
@@ -205,6 +206,11 @@ def apply_resource(
         create_method = api.create_namespaced_role_binding
         replace_method = api.patch_namespaced_role_binding
         read_method = api.read_namespaced_role_binding
+    elif kind == "Role":
+        api = client.RbacAuthorizationV1Api()
+        create_method = api.create_namespaced_role
+        replace_method = api.patch_namespaced_role
+        read_method = api.read_namespaced_role
     elif kind == "ConfigMap":
         api = client.CoreV1Api()
         create_method = api.create_namespaced_config_map
