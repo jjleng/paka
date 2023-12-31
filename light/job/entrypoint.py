@@ -87,9 +87,6 @@ while true; do
         # Read the content of the file
         file_content=$(cat "$file")
 
-        echo "Exporting $env_name"
-        echo "Content: $file_content"
-
         # Export the content as an environment variable
         export "$env_name=$file_content"
     done < "$temp_file"

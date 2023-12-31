@@ -1,2 +1,5 @@
 PROJECT_NAME = "light"
 SERVICE_ACCOUNT = "light-sa"
+CELERY_WORKER_NS = "celery-workers"
+CELERY_WORKER_SA = "celery-worker-sa"
+FISSION_PACKAGE_NS = "default"

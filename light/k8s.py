@@ -259,3 +259,61 @@ def create_namespace(kubeconfig_name: str, name: str) -> None:
             pass
         else:
             raise
+
+
+def create_service_account(
+    kubeconfig_name: str, namespace: str, account_name: str
+) -> None:
+    service_account = client.V1ServiceAccount(
+        kind="ServiceAccount",
+        metadata=client.V1ObjectMeta(name=account_name, namespace=namespace),
+    )
+    apply_resource(kubeconfig_name, service_account)
+
+
+def create_role_binding(
+    kubeconfig_name: str,
+    binding_namespace: str,
+    binding_name: str,
+    role_name: str,
+    subject_namespace: str,
+    service_account_name: str,
+) -> None:
+    role_binding = client.V1RoleBinding(
+        kind="RoleBinding",
+        metadata=client.V1ObjectMeta(name=binding_name, namespace=binding_namespace),
+        subjects=[
+            client.V1Subject(
+                kind="ServiceAccount",
+                name=service_account_name,
+                namespace=subject_namespace,
+            )
+        ],
+        role_ref=client.V1RoleRef(
+            api_group="rbac.authorization.k8s.io", kind="Role", name=role_name
+        ),
+    )
+    apply_resource(kubeconfig_name, role_binding)
+
+
+def create_config_map(
+    kubeconfig_name: str, namespace: str, map_name: str, data: dict
+) -> None:
+    config_map = client.V1ConfigMap(
+        kind="ConfigMap",
+        metadata=client.V1ObjectMeta(name=map_name, namespace=namespace),
+        data=data,
+    )
+    apply_resource(kubeconfig_name, config_map)
+
+
+def create_role(
+    kubeconfig_name: str, namespace: str, role_name: str, rules: list
+) -> None:
+    role = client.V1Role(
+        api_version="rbac.authorization.k8s.io/v1",
+        kind="Role",
+        metadata=client.V1ObjectMeta(name=role_name, namespace=namespace),
+        rules=rules,
+    )
+    apply_resource(kubeconfig_name, role)
