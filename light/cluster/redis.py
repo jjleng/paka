@@ -39,14 +39,14 @@ def create_redis(k8s_provider: k8s.Provider) -> None:
     secret = k8s.core.v1.Secret(
         "redis-password",
         metadata={"name": "redis-password", "namespace": "redis"},
-        string_data={"password": "123456"},
+        string_data={"redis-password": "123456"},
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
     # Create a Kubernetes Role that allows reading the secret
     k8s.rbac.v1.Role(
         "redis-secret-reader",
-        metadata={"namespace": "redis"},
+        metadata={"name": "redis-secret-reader", "namespace": "redis"},
         rules=[
             {
                 "apiGroups": [""],

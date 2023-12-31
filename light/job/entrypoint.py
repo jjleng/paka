@@ -19,7 +19,7 @@ def write_entrypoint_script_to_cfgmap(
     """
     project = config.cluster.name
     json_body_dict = json.loads(json_body)
-    dst_name = json_body_dict["FileName"]
+    dst_name = json_body_dict["filename"]
 
     escaped_json_body = json_body.replace('"', '\\"')
 
@@ -32,6 +32,15 @@ FETCH_URL="http://localhost:8000/fetch"
 JSON_BODY='{escaped_json_body}'
 
 WORKING_DIR='/userfunc/{dst_name}'
+
+# Directory containing secrets
+SECRETS_DIR="/secrets"
+
+# Function to convert filename to environment variable name
+convert_to_env_name() {{
+    local filename=$1
+    echo "$filename" | tr '[:lower:]-' '[:upper:]_'
+}}
 
 # Function to perform an HTTP POST request using Python or Node.js
 perform_request() {{
@@ -60,6 +69,33 @@ while true; do
         export PATH="$WORKING_DIR/bin:$PATH"
       fi
     fi
+
+    # Create a temporary file
+    temp_file=$(mktemp)
+
+    # Find files and save the list to the temporary file
+    find "$SECRETS_DIR" -type f > "$temp_file"
+
+    # Read from the temporary file
+    while IFS= read -r file; do
+        # Extract filename without the leading directory path
+        filename=$(basename "$file")
+
+        # Convert filename to environment variable name
+        env_name=$(convert_to_env_name "$filename")
+
+        # Read the content of the file
+        file_content=$(cat "$file")
+
+        echo "Exporting $env_name"
+        echo "Content: $file_content"
+
+        # Export the content as an environment variable
+        export "$env_name=$file_content"
+    done < "$temp_file"
+
+    # Remove the temporary file
+    rm "$temp_file"
 
     # Execute the runtime command
     {runtime_command}

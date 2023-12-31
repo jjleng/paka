@@ -14,8 +14,6 @@ def create_celery_workers(
 ) -> None:
     project = config.cluster.name
 
-    api = client.CoreV1Api()
-
     # Create a namespace
     create_namespace(project, "celery-workers")
 
@@ -97,14 +95,20 @@ def create_celery_workers(
     package = get_package_details(config, "default", task_name)
     # 0 = FETCH_SOURCE 1 = FETCH_DEPLOYMENT 2 = FETCH_URL
     fetch_payload = {
-        "FetchType": 1,
-        "FileName": task_name,
-        "Package": {
-            "Name": task_name,
-            "Namespace": "default",
-            "ResourceVersion": package.metadata.resourceVersion,
+        "fetchType": 1,
+        "filename": task_name,
+        "package": {
+            "name": task_name,
+            "namespace": "default",
+            "resourceVersion": package.metadata.resourceVersion,
         },
-        "KeepArchive": False,
+        "keeparchive": False,
+        "secretList": [
+            {
+                "name": "redis-password",
+                "namespace": "redis",
+            }
+        ],
     }
 
     write_entrypoint_script_to_cfgmap(
@@ -145,6 +149,9 @@ def create_celery_workers(
                                 ),
                                 client.V1VolumeMount(
                                     mount_path="/userfunc", name="userfunc"
+                                ),
+                                client.V1VolumeMount(
+                                    mount_path="/secrets", name="secrets"
                                 ),
                             ],
                         ),
