@@ -11,6 +11,7 @@ from light.job.entrypoint import write_entrypoint_script_to_cfgmap
 from light.job.utils import get_package_details
 import json
 from light.constants import JOBS_NS, CELERY_WORKER_SA, FISSION_CRD_NS
+from light.job.autoscaler import create_autoscaler
 
 
 def create_deployment(
@@ -213,12 +214,25 @@ def create_celery_workers(
         service_account_name,
     )
 
+    deployment_name = "celery-worker"
+
     create_deployment(
         config,
         runtime_command,
         task_name,
         namespace,
-        "celery-worker",
+        deployment_name,
         service_account_name,
         "python:slim",
+    )
+
+    create_autoscaler(
+        config=config,
+        namespace=namespace,
+        redis_svc_name="redis-master",
+        queue_name="0",
+        trigger_queue_length=5,
+        deployment_name=deployment_name,
+        min_replicas=1,
+        max_replicas=5,
     )

@@ -1,5 +1,5 @@
 from kubernetes import client
-from typing import Any, Dict
+from typing import Any, Dict, TypeAlias
 import re
 import os
 from kubernetes.client.rest import ApiException
@@ -10,6 +10,19 @@ from kubernetes import config
 from io import StringIO
 from light.utils import get_project_data_dir
 from functools import partial
+
+KubernetesResourceKind: TypeAlias = Literal[
+    "Deployment",
+    "Service",
+    "HorizontalPodAutoscaler",
+    "ScaledObject",
+    "TriggerAuthentication",
+    "ServiceAccount",
+    "Secret",
+    "RoleBinding",
+    "ConfigMap",
+    "Role",
+]
 
 
 def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
@@ -57,13 +70,13 @@ class CustomResource:
     def __init__(
         self,
         api_version: str,
-        kind: str,
+        kind: KubernetesResourceKind,
         plural: str,
         spec: Dict[str, Any],
-        metadata: Dict[str, Any],
+        metadata: client.V1ObjectMeta,
     ):
         # Ensure api_version is in the format group/version
-        if not re.match(r"^.+/v\d+$", api_version):
+        if not re.match(r"^.+/v[\w]+$", api_version):
             raise ValueError("api_version must be in the format 'group/version'")
         self.api_version = api_version
         self.group, self.version = api_version.split("/")
@@ -78,9 +91,9 @@ def create_namespaced_custom_object(namespace: str, resource: CustomResource) ->
         "apiVersion": resource.api_version,
         "kind": resource.kind,
         "metadata": {
-            "name": resource.metadata["name"],
+            **resource.metadata.to_dict(),
+            "name": resource.metadata.name,
             "namespace": namespace,
-            **resource.metadata,
         },
         "spec": resource.spec,
     }
@@ -111,13 +124,15 @@ def read_namespaced_custom_object(
 def replace_namespaced_custom_object(
     name: str, namespace: str, resource: CustomResource
 ) -> Any:
+    res = read_namespaced_custom_object(name, namespace, resource)
     body = {
         "apiVersion": resource.api_version,
         "kind": resource.kind,
         "metadata": {
-            "name": resource.metadata["name"],
+            **resource.metadata.to_dict(),
+            "name": resource.metadata.name,
             "namespace": namespace,
-            **resource.metadata,
+            "resourceVersion": res["metadata"]["resourceVersion"],
         },
         "spec": resource.spec,
     }
@@ -134,17 +149,7 @@ def replace_namespaced_custom_object(
 
 class KubernetesResource(Protocol):
     metadata: client.V1ObjectMeta
-    kind: Literal[
-        "Deployment",
-        "Service",
-        "HorizontalPodAutoscaler",
-        "ScaledObject",
-        "ServiceAccount",
-        "Secret",
-        "RoleBinding",
-        "ConfigMap",
-        "Role",
-    ]
+    kind: KubernetesResourceKind
 
 
 def apply_resource(
@@ -187,7 +192,7 @@ def apply_resource(
         create_method = api.create_namespaced_horizontal_pod_autoscaler
         replace_method = api.replace_namespaced_horizontal_pod_autoscaler
         read_method = api.read_namespaced_horizontal_pod_autoscaler
-    elif kind == "ScaledObject":
+    elif kind == "ScaledObject" or kind == "TriggerAuthentication":
         create_method = create_namespaced_custom_object
         replace_method = replace_namespaced_custom_object
         read_method = partial(read_namespaced_custom_object, resource=resource)
