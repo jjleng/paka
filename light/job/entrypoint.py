@@ -5,7 +5,7 @@ import json
 
 
 def write_entrypoint_script_to_cfgmap(
-    config: CloudConfig, runtime_command: str, json_body: str
+    config: CloudConfig, namespace: str, runtime_command: str, json_body: str
 ) -> None:
     """
     Writes the entrypoint script to the given path.
@@ -70,30 +70,6 @@ while true; do
       fi
     fi
 
-    # Create a temporary file
-    temp_file=$(mktemp)
-
-    # Find files and save the list to the temporary file
-    find "$SECRETS_DIR" -type f > "$temp_file"
-
-    # Read from the temporary file
-    while IFS= read -r file; do
-        # Extract filename without the leading directory path
-        filename=$(basename "$file")
-
-        # Convert filename to environment variable name
-        env_name=$(convert_to_env_name "$filename")
-
-        # Read the content of the file
-        file_content=$(cat "$file")
-
-        # Export the content as an environment variable
-        export "$env_name=$file_content"
-    done < "$temp_file"
-
-    # Remove the temporary file
-    rm "$temp_file"
-
     # Execute the runtime command
     {runtime_command}
     break
@@ -108,9 +84,7 @@ done
     # Write the entrypoint script to the configmap
     config_map = client.V1ConfigMap(
         kind="ConfigMap",
-        metadata=client.V1ObjectMeta(
-            name="entrypoint-script", namespace="celery-workers"
-        ),
+        metadata=client.V1ObjectMeta(name="entrypoint-script", namespace=namespace),
         data=configmap_data,
     )
     apply_resource(project, config_map)

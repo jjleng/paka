@@ -55,5 +55,5 @@ def test_write_entrypoint(
 
     create_namespace(config.cluster.name, "celery-workers")
     write_entrypoint_script_to_cfgmap(
-        config, "celery -A celery.main worker", json.dumps(fetch_payload)
+        config, "jobs", "celery -A celery.main worker", json.dumps(fetch_payload)
     )

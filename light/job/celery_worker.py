@@ -4,14 +4,13 @@ from light.k8s import (
     create_service_account,
     create_role_binding,
     create_role,
-    create_config_map,
     apply_resource,
 )
 from light.config import CloudConfig
 from light.job.entrypoint import write_entrypoint_script_to_cfgmap
 from light.job.utils import get_package_details
 import json
-from light.constants import CELERY_WORKER_NS, CELERY_WORKER_SA, FISSION_PACKAGE_NS
+from light.constants import JOBS_NS, CELERY_WORKER_SA, FISSION_CRD_NS
 
 
 def create_deployment(
@@ -26,26 +25,20 @@ def create_deployment(
     package_name = task_name
 
     kubeconfig_name = config.cluster.name
-    package = get_package_details(config, "default", package_name)
+    package = get_package_details(config, FISSION_CRD_NS, package_name)
     fetch_payload = {
         "fetchType": 1,
         "filename": task_name,
         "package": {
             "name": task_name,
-            "namespace": "default",
+            "namespace": FISSION_CRD_NS,
             "resourceVersion": package.metadata.resourceVersion,
         },
         "keeparchive": False,
-        "secretList": [
-            {
-                "name": "redis-password",
-                "namespace": "redis",
-            }
-        ],
     }
 
     write_entrypoint_script_to_cfgmap(
-        config, runtime_command, json.dumps(fetch_payload)
+        config, namespace, runtime_command, json.dumps(fetch_payload)
     )
 
     containers = [
@@ -56,11 +49,11 @@ def create_deployment(
             args=["/scripts/entrypoint.sh"],
             env=[
                 client.V1EnvVar(
-                    name="REDIS_HOST",
+                    name="REDIS_PASSWORD",
                     value_from=client.V1EnvVarSource(
-                        config_map_key_ref=client.V1ConfigMapKeySelector(
-                            name="celery-workers-config",
-                            key="redis-host",
+                        secret_key_ref=client.V1SecretKeySelector(
+                            name="redis-password",
+                            key="password",
                         ),
                     ),
                 ),
@@ -187,24 +180,13 @@ def create_celery_workers(
     drain_existing_task: bool = True,
 ) -> None:
     kubeconfig_name = config.cluster.name
-    namespace = CELERY_WORKER_NS
+    namespace = JOBS_NS
     service_account_name = CELERY_WORKER_SA
-    package_ns = FISSION_PACKAGE_NS
+    package_ns = FISSION_CRD_NS
 
     # Create the namespace and service account for celery workers
     create_namespace(kubeconfig_name, namespace)
     create_service_account(kubeconfig_name, namespace, service_account_name)
-
-    # Create the role binding in `redis`` namespace. The role binding will allow
-    # the celery workers to read the redis password secret.
-    create_role_binding(
-        kubeconfig_name,
-        "redis",
-        "redis-secret-reader-binding",
-        "redis-secret-reader",
-        namespace,
-        service_account_name,
-    )
 
     # Create a namespaced role for accessing fission packages
     create_role(
@@ -229,14 +211,6 @@ def create_celery_workers(
         "package-reader",
         namespace,
         service_account_name,
-    )
-
-    # Config map for celery workers to know the redis host
-    create_config_map(
-        kubeconfig_name,
-        namespace,
-        "celery-workers-config",
-        {"redis-host": "redis-master.redis.svc.cluster.local"},
     )
 
     create_deployment(
