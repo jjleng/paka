@@ -20,30 +20,40 @@ cluster_manager = AWSClusterManager(
     )
 )
 
+cluster_app = typer.Typer()
 
-@cli.command()
-def create_cluster() -> None:
+
+@cluster_app.command()
+def up() -> None:
     cluster_manager.create()
 
 
-@cli.command()
-def destroy_cluster() -> None:
+@cluster_app.command()
+def down() -> None:
     cluster_manager.destroy()
 
 
-@cli.command()
-def refresh_cluster() -> None:
+@cluster_app.command()
+def refresh() -> None:
     cluster_manager.refresh()
 
 
-@cli.command()
-def preview_cluster() -> None:
+@cluster_app.command()
+def preview() -> None:
     cluster_manager.preview()
 
 
-@cli.command()
+cli.add_typer(cluster_app, name="cluster")
+
+service_app = typer.Typer()
+
+
+@service_app.command("up")
 def service_up() -> None:
     cluster_manager.service_up()
+
+
+cli.add_typer(service_app, name="service")
 
 
 if __name__ == "__main__":
