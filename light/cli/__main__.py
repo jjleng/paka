@@ -45,6 +45,7 @@ def preview() -> None:
 
 cli.add_typer(cluster_app, name="cluster")
 
+
 service_app = typer.Typer()
 
 
@@ -55,6 +56,8 @@ def service_up() -> None:
 
 cli.add_typer(service_app, name="service")
 
+
+package_app = typer.Typer()
 
 if __name__ == "__main__":
     cli()
