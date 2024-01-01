@@ -24,6 +24,7 @@ pulumi-eks = "^2.0.0"
 pulumi-awsx = "^2.3.0"
 pulumi-kubernetes = "^4.6.1"
 kubernetes = "^28.1.0"
+pathspec = "^0.12.1"
 
 [tool.poetry.group.dev.dependencies]
 codespell = "^2.2.6"
