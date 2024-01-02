@@ -1,15 +1,19 @@
 from kubernetes import client
-from typing import Any, Dict, TypeAlias
 import re
 import os
+import socket
 from kubernetes.client.rest import ApiException
-from typing import Protocol, Literal
+from typing import Protocol, Literal, Optional, Tuple, Any, Dict, TypeAlias, Callable
 import json
 from ruamel.yaml import YAML
 from kubernetes import config
 from io import StringIO
 from light.utils import get_project_data_dir
 from functools import partial
+from kubernetes.stream import portforward
+import contextlib
+import threading
+
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -322,3 +326,142 @@ def create_role(
         rules=rules,
     )
     apply_resource(kubeconfig_name, role)
+
+
+def is_ready_pod(pod: Any) -> bool:
+    for condition in pod.status.conditions:
+        if condition.type == "Ready" and condition.status == "True":
+            return True
+    return False
+
+
+def find_free_port() -> int:
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
+
+
+def run_port_forward(
+    kubeconfig_name: str,
+    label_selector: str,
+    local_port: int,
+    namespace: Optional[str] = None,
+) -> Tuple[threading.Event, threading.Event, Callable[[], None]]:
+    load_kubeconfig(kubeconfig_name)
+
+    v1 = client.CoreV1Api()
+
+    if namespace is None:
+        namespace = ""
+
+    pods = v1.list_namespaced_pod(namespace, label_selector=label_selector)
+
+    if len(pods.items) == 0:
+        raise Exception(
+            f"No available pod for port-forwarding with label selector {label_selector}"
+        )
+
+    namespaces: Dict[str, Any] = {}
+    ns_list = []
+
+    for pod in pods.items:
+        if pod.metadata.namespace not in namespaces:
+            namespaces[pod.metadata.namespace] = []
+            ns_list.append(pod.metadata.namespace)
+        namespaces[pod.metadata.namespace].append(pod)
+
+    if len(ns_list) > 1:
+        raise Exception(
+            f"Found pods in {len(namespaces)} namespaces, {', '.join(ns_list)}. Please specify a namespace."
+        )
+
+    ns = ns_list[0]
+    pods = namespaces.get(ns)
+
+    if pods is None:
+        raise Exception(f"Error finding pods within the given namespace {ns}")
+
+    pod_name = None
+    pod_namespace = None
+
+    for pod in pods:
+        if is_ready_pod(pod):
+            pod_name = pod.metadata.name
+            pod_namespace = pod.metadata.namespace
+            break
+
+    if pod_name is None or pod_namespace is None:
+        raise Exception(
+            f"No ready pod for port-forwarding with label selector {label_selector}"
+        )
+
+    pf = portforward.PortForwarder(
+        v1.connect_get_namespaced_pod_portforward,
+        pod_name,
+        pod_namespace,
+        ports=str(local_port),
+    )
+
+    stop_event = threading.Event()
+    ready_event = threading.Event()
+
+    def _stop_forward() -> None:
+        stop_event.set()
+        pf.close()
+
+    def _run_forward() -> None:
+        pf.forward(ready_event, stop_event)
+
+    threading.Thread(target=_run_forward).start()
+
+    return stop_event, ready_event, _stop_forward
+
+
+def setup_port_forward(
+    kubeconfig_name: str, label_selector: str, namespace: str
+) -> Tuple[str, threading.Event, threading.Event]:
+    load_kubeconfig(kubeconfig_name)
+
+    v1 = client.CoreV1Api()
+    local_port = find_free_port()
+
+    wait_duration = 0.05
+    max_duration = 2
+
+    while True:
+        try:
+            with socket.create_connection(
+                ("localhost", local_port), timeout=wait_duration
+            ):
+                pass
+        except:
+            break
+        else:
+            wait_duration *= 2
+            if wait_duration > max_duration:
+                wait_duration = max_duration
+
+    stop_event, ready_event, stop_forward = run_port_forward(
+        kubeconfig_name, label_selector, local_port, namespace
+    )
+
+    ready_event.wait()
+
+    print(f"Waiting for port forward {local_port} to start...")
+
+    wait_duration = 0.05
+    while True:
+        try:
+            with socket.create_connection(
+                ("localhost", local_port), timeout=wait_duration
+            ):
+                break
+        except:
+            print(f"Error dialing on local port {local_port}")
+            wait_duration *= 2
+            if wait_duration > max_duration:
+                wait_duration = max_duration
+
+    print(f"Port forward from local port {local_port} started")
+
+    return str(local_port), stop_event, ready_event
