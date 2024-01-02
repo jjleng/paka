@@ -419,7 +419,7 @@ def run_port_forward(
 
 def setup_port_forward(
     kubeconfig_name: str, label_selector: str, namespace: str
-) -> Tuple[str, threading.Event, threading.Event]:
+) -> Tuple[str, threading.Event, threading.Event, Callable[[], None]]:
     load_kubeconfig(kubeconfig_name)
 
     v1 = client.CoreV1Api()
@@ -464,4 +464,4 @@ def setup_port_forward(
 
     print(f"Port forward from local port {local_port} started")
 
-    return str(local_port), stop_event, ready_event
+    return str(local_port), stop_event, ready_event, stop_forward
