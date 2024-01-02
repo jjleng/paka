@@ -23,27 +23,29 @@ def camel_to_kebab(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1-\2", name).lower()
 
 
-def sanitize_k8s_name(name: str) -> str:
-    """
-    Sanitize a string to be compliant with Kubernetes resource naming conventions.
+# Port from Fission
+def kubify_name(old: str) -> str:
+    max_len = 63
 
-    Args:
-    name (str): The original name string.
+    new_name = old.lower()
 
-    Returns:
-    str: The sanitized name string.
-    """
+    # replace disallowed chars with '-'
+    new_name = re.sub(r"[^-a-z0-9]", "-", new_name)
 
-    # Convert to lowercase
-    sanitized_name = name.lower()
+    # trim leading non-alphabetic
+    new_name = re.sub(r"^[^a-z]+", "", new_name)
 
-    # Replace any disallowed characters with '-'
-    sanitized_name = re.sub(r"[^a-z0-9\-]", "-", sanitized_name)
+    # trim trailing
+    new_name = re.sub(r"[^a-z0-9]+$", "", new_name)
 
-    # Remove leading or trailing non-alphanumeric characters
-    sanitized_name = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", sanitized_name)
+    # truncate to length
+    if len(new_name) > max_len:
+        new_name = new_name[:max_len]
 
-    return sanitized_name
+    if len(new_name) == 0:
+        raise Exception(f"Name: {old} can't be converted to a valid Kubernetes name")
+
+    return new_name
 
 
 def get_project_data_dir() -> str:

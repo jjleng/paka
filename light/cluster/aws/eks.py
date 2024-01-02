@@ -4,7 +4,7 @@ import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
 from light.config import CloudConfig
-from light.utils import sanitize_k8s_name
+from light.utils import kubify_name
 from light.k8s import save_kubeconfig
 from light.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from light.cluster.aws.service_account import create_service_account
@@ -50,8 +50,8 @@ def create_node_group_for_model_group(
     for model_group in config.modelGroups:
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
-            f"{project}-{sanitize_k8s_name(model_group.name)}-group",
-            node_group_name=f"{project}-{sanitize_k8s_name(model_group.name)}-group",
+            f"{project}-{kubify_name(model_group.name)}-group",
+            node_group_name=f"{project}-{kubify_name(model_group.name)}-group",
             cluster=cluster,
             instance_types=[model_group.nodeType],
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(

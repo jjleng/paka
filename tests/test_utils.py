@@ -1,7 +1,6 @@
 from light.utils import (
     camel_to_kebab,
-    get_project_data_dir,
-    sanitize_k8s_name,
+    kubify_name,
     call_once,
 )
 
@@ -14,14 +13,14 @@ def test_camel_to_kebab() -> None:
     assert camel_to_kebab("UPPERCASE") == "uppercase"
 
 
-def test_sanitize_k8s_name() -> None:
-    assert sanitize_k8s_name("MyName") == "myname"
-    assert sanitize_k8s_name("My.Name") == "my-name"
-    assert sanitize_k8s_name("My_Name") == "my-name"
-    assert sanitize_k8s_name("My-Name") == "my-name"
-    assert sanitize_k8s_name("123MyName") == "123myname"
-    assert sanitize_k8s_name("MyName123") == "myname123"
-    assert sanitize_k8s_name("MyName!") == "myname"
+def test_kubify_name() -> None:
+    assert kubify_name("MyName") == "myname"
+    assert kubify_name("My.Name") == "my-name"
+    assert kubify_name("My_Name") == "my-name"
+    assert kubify_name("My-Name") == "my-name"
+    assert kubify_name("123MyName") == "myname"
+    assert kubify_name("MyName123") == "myname123"
+    assert kubify_name("MyName!") == "myname"
 
 
 def test_call_once() -> None:

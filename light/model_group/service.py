@@ -1,7 +1,7 @@
 from light.constants import SERVICE_ACCOUNT
 from light.config import CloudConfig, CloudModelGroup, Config
 from kubernetes import client
-from light.utils import sanitize_k8s_name
+from light.utils import kubify_name
 from light.k8s import apply_resource
 
 # We hardcode the image here for now
@@ -59,7 +59,7 @@ def create_pod(
 
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_k8s_name(model_group.name)}-pod",
+            name=f"{kubify_name(model_group.name)}-pod",
             labels={
                 "app": "model-group",
                 "model": model_group.name,
@@ -76,7 +76,7 @@ def create_pod(
             init_containers=[init_aws(config.aws, model_group)],
             containers=[
                 client.V1Container(
-                    name=f"{sanitize_k8s_name(model_group.name)}-container",
+                    name=f"{kubify_name(model_group.name)}-container",
                     image=runtime_image,
                     volume_mounts=[
                         client.V1VolumeMount(
@@ -191,7 +191,7 @@ def create_deployment(
         api_version="apps/v1",
         kind="Deployment",
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_k8s_name(model_group.name)}-deployment",
+            name=f"{kubify_name(model_group.name)}-deployment",
         ),
         spec=client.V1DeploymentSpec(
             replicas=model_group.minInstances,
@@ -221,7 +221,7 @@ def create_service(model_group: CloudModelGroup, port: int) -> client.V1Service:
         api_version="v1",
         kind="Service",
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_k8s_name(model_group.name)}-service",
+            name=f"{kubify_name(model_group.name)}-service",
         ),
         spec=client.V1ServiceSpec(
             selector={
@@ -255,7 +255,7 @@ def create_hpa(
         api_version="autoscaling/v2",
         kind="HorizontalPodAutoscaler",
         metadata=client.V1ObjectMeta(
-            name=f"{sanitize_k8s_name(model_group.name)}-hpa",
+            name=f"{kubify_name(model_group.name)}-hpa",
         ),
         spec=client.V2HorizontalPodAutoscalerSpec(
             scale_target_ref=client.V2CrossVersionObjectReference(
