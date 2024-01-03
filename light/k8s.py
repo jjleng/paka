@@ -30,6 +30,7 @@ KubernetesResourceKind: TypeAlias = Literal[
     "ConfigMap",
     "Role",
     "Package",
+    "Environment",
 ]
 
 
@@ -206,7 +207,7 @@ def apply_resource(
         create_method = api.create_namespaced_horizontal_pod_autoscaler
         replace_method = api.replace_namespaced_horizontal_pod_autoscaler
         read_method = api.read_namespaced_horizontal_pod_autoscaler
-    elif kind == "ScaledObject" or kind == "TriggerAuthentication" or kind == "Package":
+    elif kind in ["ScaledObject", "TriggerAuthentication", "Package", "Environment"]:
         create_method = create_namespaced_custom_object
         replace_method = replace_namespaced_custom_object
         read_method = partial(read_namespaced_custom_object, resource=resource)
