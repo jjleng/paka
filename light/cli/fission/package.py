@@ -9,7 +9,6 @@ from light.k8s import (
     load_kubeconfig,
 )
 from light.cli.fission.archive import create_archive
-from light.logger import logger
 
 
 def upsert_package(
@@ -44,27 +43,23 @@ def upsert_package(
     if len(pkg_name) == 0:
         pkg_name = str(uuid.uuid4()).lower()
 
-    try:
-        package_crd = CustomResource(
-            api_version="fission.io/v1",
-            kind="Package",
-            plural="packages",
-            metadata=client.V1ObjectMeta(name=pkg_name, namespace=pkg_namespace),
-            spec=pkg_spec,
-            status={
-                "buildstatus": pkg_status,
-                # triggers a new build
-                "lastUpdateTimestamp": datetime.datetime.now(
-                    datetime.timezone.utc
-                ).isoformat(),
-            },
-        )
-        # Update the resource if it already exists
-        apply_resource(kubeconfig_name, package_crd)
-        return package_crd.metadata.to_dict()
-    except Exception as e:
-        logger.info(f"Error creating package: {str(e)}")
-        raise
+    package_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Package",
+        plural="packages",
+        metadata=client.V1ObjectMeta(name=pkg_name, namespace=pkg_namespace),
+        spec=pkg_spec,
+        status={
+            "buildstatus": pkg_status,
+            # triggers a new build
+            "lastUpdateTimestamp": datetime.datetime.now(
+                datetime.timezone.utc
+            ).isoformat(),
+        },
+    )
+    # Update the resource if it already exists
+    apply_resource(kubeconfig_name, package_crd)
+    return package_crd.metadata.to_dict()
 
 
 def get_package(
@@ -73,18 +68,14 @@ def get_package(
     pkg_namespace: str,
 ) -> dict:
     load_kubeconfig(kubeconfig_name)
-    try:
-        package_crd = CustomResource(
-            api_version="fission.io/v1",
-            kind="Package",
-            plural="packages",
-            metadata=client.V1ObjectMeta(name=pkg_name, namespace=pkg_namespace),
-            spec={},
-        )
+    package_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Package",
+        plural="packages",
+        metadata=client.V1ObjectMeta(name=pkg_name, namespace=pkg_namespace),
+        spec={},
+    )
 
-        package = read_namespaced_custom_object(pkg_name, pkg_namespace, package_crd)
+    package = read_namespaced_custom_object(pkg_name, pkg_namespace, package_crd)
 
-        return package
-    except Exception as e:
-        logger.info(f"Error getting package: {str(e)}")
-        raise
+    return package
