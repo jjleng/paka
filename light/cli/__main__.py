@@ -1,7 +1,8 @@
 import typer
 from light.cluster.manager.aws import AWSClusterManager
 from light.config import CloudConfig, ClusterConfig, Config, CloudModelGroup
-from light.cli.package.typer import package_app
+from light.cli.package import package_app
+from light.cli.env import env_app
 
 
 cli = typer.Typer()
@@ -60,6 +61,8 @@ cli.add_typer(service_app, name="service")
 
 
 cli.add_typer(package_app, name="package")
+
+cli.add_typer(env_app, name="env")
 
 if __name__ == "__main__":
     cli()

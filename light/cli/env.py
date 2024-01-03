@@ -1,0 +1,74 @@
+import typer
+import re
+from typing import Tuple
+from light.logger import setup_logger, logger
+from light.cli.fission.env import upsert_env
+
+
+env_app = typer.Typer()
+
+
+def pick_runtime(runtime: str) -> Tuple[str, str]:
+    language, version = runtime.split(":")
+    if not language or not version:
+        logger.info(
+            "Invalid runtime. Runtime must be in the format of 'language:version'."
+        )
+        raise typer.Exit(1)
+
+    if language not in ["python", "node"]:
+        logger.info(
+            f"Invalid language '{language}'. Supported languages are 'python' and 'node'."
+        )
+        raise typer.Exit(1)
+
+    # Only support python for now
+    if language != "python":
+        logger.info(f"Invalid language '{language}'. Only 'python' is supported.")
+        raise typer.Exit(1)
+
+    # Only support version 3.12 for now
+    if version not in ["3.12"]:
+        logger.info(
+            f"Invalid version '{version}'. Supported versions for language '{language}' are '3.12'."
+        )
+        raise typer.Exit(1)
+
+    return (
+        f"jijunleng/{language}-env-{version}:dev",
+        f"jijunleng/{language}-builder-{version}:dev",
+    )
+
+
+@env_app.command("create")
+def env_create(
+    name: str = typer.Argument(
+        ...,
+        help="The env name.",
+    ),
+    runtime: str = typer.Option(
+        ...,
+        "--runtime",
+        "-r",
+        help="The runtime to use for the env. Runtime is a combination of language and version. Supported runtimes are 'python:3.12', 'node:18', etc",
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", is_flag=True, help="Enable verbose output"
+    ),
+) -> None:
+    setup_logger(verbose)
+
+    if (
+        not re.match(
+            r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$", name
+        )
+        or len(name) > 63
+    ):
+        logger.info(
+            "Invalid name. It must contain no more than 63 characters, contain only lowercase alphanumeric characters, '-' or '.', start with an alphanumeric character, and end with an alphanumeric character."
+        )
+        raise typer.Exit(1)
+
+    image, builder_image = pick_runtime(runtime)
+
+    upsert_env("open-copilot", name, "default", image, builder_image)

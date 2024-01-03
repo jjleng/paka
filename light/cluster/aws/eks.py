@@ -168,7 +168,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
             # At least 2 t2.small nodes are required for the Cluster Autoscaler to work
             desired_size=2,
             min_size=2,
-            max_size=3,
+            max_size=4,
         ),
         labels={"size": "t2.small", "group": "default"},
         node_role_arn=worker_role.arn,
