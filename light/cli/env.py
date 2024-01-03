@@ -3,6 +3,7 @@ import re
 from typing import Tuple
 from light.logger import setup_logger, logger
 from light.cli.fission.env import upsert_env
+from light.cli.utils import validate_name
 
 
 env_app = typer.Typer()
@@ -41,6 +42,7 @@ def pick_runtime(runtime: str) -> Tuple[str, str]:
 
 
 @env_app.command("create")
+@validate_name
 def env_create(
     name: str = typer.Argument(
         ...,
@@ -57,17 +59,6 @@ def env_create(
     ),
 ) -> None:
     setup_logger(verbose)
-
-    if (
-        not re.match(
-            r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$", name
-        )
-        or len(name) > 63
-    ):
-        logger.info(
-            "Invalid name. It must contain no more than 63 characters, contain only lowercase alphanumeric characters, '-' or '.', start with an alphanumeric character, and end with an alphanumeric character."
-        )
-        raise typer.Exit(1)
 
     image, builder_image = pick_runtime(runtime)
 

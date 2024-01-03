@@ -7,12 +7,14 @@ from light.cli.package.archive import archive_directory
 from light.cli.package.ignore import blacklist
 from light.cli.fission.package import upsert_package, get_package
 from light.logger import setup_logger, logger
+from light.cli.utils import validate_name
 
 
 package_app = typer.Typer()
 
 
 @package_app.command("create")
+@validate_name
 def package_create(
     name: str = typer.Argument(
         ...,
@@ -35,17 +37,6 @@ def package_create(
     ),
 ) -> None:
     setup_logger(verbose)
-
-    if (
-        not re.match(
-            r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$", name
-        )
-        or len(name) > 63
-    ):
-        logger.info(
-            "Invalid name. It must contain no more than 63 characters, contain only lowercase alphanumeric characters, '-' or '.', start with an alphanumeric character, and end with an alphanumeric character."
-        )
-        raise typer.Exit(1)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         archive_path = os.path.join(temp_dir, name)
