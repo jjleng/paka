@@ -2,21 +2,11 @@ import uuid
 import datetime
 from typing import Dict, Any
 from kubernetes import client
-from light.cli.fission.storage import StorageClient
-from light.cli.fission.archive import Archive, ARCHIVE_TYPE_URL
 from light.k8s import CustomResource, apply_resource
-
-FISSION_RELEASE_NS = "fission"
-
-
-def create_archive(kubeconfig_name: str, archive_file: str) -> Archive:
-    with StorageClient(kubeconfig_name, FISSION_RELEASE_NS) as storage_client:
-        archive_url = storage_client.upload_archive_file(archive_file)
-        checksum = storage_client.get_file_checksum(archive_file)
-        return Archive(ARCHIVE_TYPE_URL, "", archive_url, checksum)
+from light.cli.fission.archive import create_archive
 
 
-def create_package(
+def upsert_package(
     kubeconfig_name: str,
     pkg_name: str,
     pkg_namespace: str,
@@ -34,6 +24,8 @@ def create_package(
     pkg_status = "succeeded"
 
     if len(src_archive_file) > 0:
+        # We create a new archive and update the package spec
+        # Old archive will be garbage collected
         archive = create_archive(kubeconfig_name, src_archive_file)
         archive_dict = archive._asdict()
         archive_dict["checksum"] = archive.checksum._asdict()
@@ -55,13 +47,14 @@ def create_package(
             spec=pkg_spec,
             status={
                 "buildstatus": pkg_status,
+                # triggers a new build
                 "lastUpdateTimestamp": datetime.datetime.now(
                     datetime.timezone.utc
                 ).isoformat(),
             },
         )
+        # Update the resource if it already exists
         apply_resource(kubeconfig_name, package_crd)
-        print(f"Package '{package_crd.metadata.name}' created")
         return package_crd.metadata.to_dict()
     except Exception as e:
         print(f"Error creating package: {str(e)}")
