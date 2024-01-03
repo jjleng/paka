@@ -1,11 +1,15 @@
-from typing import Tuple, Callable
-import threading
+from typing import Tuple, Callable, Optional, Type
+from types import TracebackType
 import os
 import requests
 import hashlib
+from urllib.parse import quote
 from collections import namedtuple
 from urllib.parse import urljoin
 from light.k8s import setup_port_forward
+
+STORAGE_CONTAINER_PORT = 8000
+FISSION_STORAGESVC_URL = "http://storagesvc.fission/v1"
 
 Checksum = namedtuple("Checksum", ["type", "sum"])
 
@@ -16,21 +20,33 @@ class StorageClient:
         self.namespace = namespace
         (
             self.storage_url,
-            self.stop_event,
-            self.ready_event,
             self.stop_forward,
         ) = self.get_storage_url()
 
+    def __enter__(self) -> "StorageClient":
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        self.stop_forward()
+
     def get_storage_url(
         self,
-    ) -> Tuple[str, threading.Event, threading.Event, Callable[[], None]]:
-        local_port, stop_event, ready_event, stop_forward = setup_port_forward(
-            self.kubeconfig_name, "application=fission-storage", self.namespace
+    ) -> Tuple[str, Callable[[], None]]:
+        local_port, stop_forward = setup_port_forward(
+            self.kubeconfig_name,
+            "application=fission-storage",
+            self.namespace,
+            STORAGE_CONTAINER_PORT,
         )
 
-        server_url = f"http://localhost:{local_port}/v1/"
+        server_url = f"http://localhost:{local_port}/v1"
 
-        return server_url, stop_event, ready_event, stop_forward
+        return server_url, stop_forward
 
     def upload_file(self, file_path: str) -> str:
         try:
@@ -42,7 +58,7 @@ class StorageClient:
                     self.storage_url + "/archive", files=files, headers=headers
                 )
                 response.raise_for_status()
-                id = response.json()["ID"]
+                id = response.json()["id"]
                 return id
         except Exception as e:
             print(f"Error uploading file: {str(e)}")
@@ -50,8 +66,7 @@ class StorageClient:
 
     def get_archive_url(self, archive_id: str) -> str:
         try:
-            relative_url = f"/archive?id={archive_id}"
-            storage_access_url = urljoin(self.storage_url, relative_url)
+            storage_access_url = f"{self.storage_url}/archive?id={quote(archive_id)}"
 
             response = requests.head(storage_access_url)
             response.raise_for_status()
@@ -59,9 +74,7 @@ class StorageClient:
             storage_type = response.headers.get("X-FISSION-STORAGETYPE")
 
             if storage_type == "local":
-                response = requests.get(storage_access_url)
-                response.raise_for_status()
-                return response.text
+                return f"{FISSION_STORAGESVC_URL}/archive?id={quote(archive_id)}"
             elif storage_type == "s3":
                 raise NotImplementedError("S3 storage type not implemented")
             else:
