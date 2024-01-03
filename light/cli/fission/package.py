@@ -2,7 +2,12 @@ import uuid
 import datetime
 from typing import Dict, Any
 from kubernetes import client
-from light.k8s import CustomResource, apply_resource
+from light.k8s import (
+    CustomResource,
+    apply_resource,
+    read_namespaced_custom_object,
+    load_kubeconfig,
+)
 from light.cli.fission.archive import create_archive
 
 
@@ -58,4 +63,27 @@ def upsert_package(
         return package_crd.metadata.to_dict()
     except Exception as e:
         print(f"Error creating package: {str(e)}")
+        raise
+
+
+def get_package(
+    kubeconfig_name: str,
+    pkg_name: str,
+    pkg_namespace: str,
+) -> dict:
+    load_kubeconfig(kubeconfig_name)
+    try:
+        package_crd = CustomResource(
+            api_version="fission.io/v1",
+            kind="Package",
+            plural="packages",
+            metadata=client.V1ObjectMeta(name=pkg_name, namespace=pkg_namespace),
+            spec={},
+        )
+
+        package = read_namespaced_custom_object(pkg_name, pkg_namespace, package_crd)
+
+        return package
+    except Exception as e:
+        print(f"Error getting package: {str(e)}")
         raise
