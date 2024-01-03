@@ -2,9 +2,11 @@ from kubernetes import client
 import re
 import os
 import socket
+import select
 from kubernetes.client.rest import ApiException
 from typing import Protocol, Literal, Optional, Tuple, Any, Dict, TypeAlias, Callable
 import json
+import time
 from ruamel.yaml import YAML
 from kubernetes import config
 from io import StringIO
@@ -26,6 +28,7 @@ KubernetesResourceKind: TypeAlias = Literal[
     "RoleBinding",
     "ConfigMap",
     "Role",
+    "Package",
 ]
 
 
@@ -78,6 +81,7 @@ class CustomResource:
         plural: str,
         spec: Dict[str, Any],
         metadata: client.V1ObjectMeta,
+        status: Optional[Dict[str, Any]] = None,
     ):
         # Ensure api_version is in the format group/version
         if not re.match(r"^.+/v[\w]+$", api_version):
@@ -88,6 +92,7 @@ class CustomResource:
         self.plural = plural
         self.metadata = metadata
         self.spec = spec
+        self.status = status
 
 
 def create_namespaced_custom_object(namespace: str, resource: CustomResource) -> Any:
@@ -101,6 +106,10 @@ def create_namespaced_custom_object(namespace: str, resource: CustomResource) ->
         },
         "spec": resource.spec,
     }
+
+    if resource.status is not None:
+        body["status"] = resource.status
+
     api_instance = client.CustomObjectsApi()
 
     return api_instance.create_namespaced_custom_object(
@@ -196,7 +205,7 @@ def apply_resource(
         create_method = api.create_namespaced_horizontal_pod_autoscaler
         replace_method = api.replace_namespaced_horizontal_pod_autoscaler
         read_method = api.read_namespaced_horizontal_pod_autoscaler
-    elif kind == "ScaledObject" or kind == "TriggerAuthentication":
+    elif kind == "ScaledObject" or kind == "TriggerAuthentication" or kind == "Package":
         create_method = create_namespaced_custom_object
         replace_method = replace_namespaced_custom_object
         read_method = partial(read_namespaced_custom_object, resource=resource)
@@ -345,8 +354,9 @@ def run_port_forward(
     kubeconfig_name: str,
     label_selector: str,
     local_port: int,
+    container_port: int,
     namespace: Optional[str] = None,
-) -> Tuple[threading.Event, threading.Event, Callable[[], None]]:
+) -> Tuple[threading.Event, Callable[[], None]]:
     load_kubeconfig(kubeconfig_name)
 
     v1 = client.CoreV1Api()
@@ -395,54 +405,104 @@ def run_port_forward(
             f"No ready pod for port-forwarding with label selector {label_selector}"
         )
 
-    pf = portforward.PortForwarder(
-        v1.connect_get_namespaced_pod_portforward,
-        pod_name,
-        pod_namespace,
-        ports=str(local_port),
-    )
-
-    stop_event = threading.Event()
     ready_event = threading.Event()
+    stop_event = threading.Event()
 
-    def _stop_forward() -> None:
-        stop_event.set()
-        pf.close()
+    def _proxy(
+        client_socket: socket.socket,
+        unix_socket: socket.socket,
+        socket_lock: threading.Lock,
+    ) -> None:
+        try:
+            while not stop_event.is_set():
+                # Wait for data to be available on either socket
+                readable, _, _ = select.select([client_socket, unix_socket], [], [])
+
+                for sock in readable:
+                    with socket_lock:
+                        data = sock.recv(4096)
+
+                    if not data:
+                        # If the connection was closed, stop the proxy
+                        return
+
+                    # Determine the target socket
+                    target_socket = (
+                        unix_socket if sock is client_socket else client_socket
+                    )
+
+                    # Forward the data to the other socket
+                    with socket_lock:
+                        target_socket.sendall(data)
+
+        except Exception as e:
+            pass
+        finally:
+            client_socket.close()
 
     def _run_forward() -> None:
-        pf.forward(ready_event, stop_event)
+        pf = portforward(
+            v1.connect_get_namespaced_pod_portforward,
+            pod_name,
+            pod_namespace,
+            ports=str(container_port),
+        )
 
-    threading.Thread(target=_run_forward).start()
+        while not pf.connected:
+            time.sleep(0.1)
 
-    return stop_event, ready_event, _stop_forward
+        unix_socket = pf.socket(container_port)
+
+        inet_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        inet_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        inet_socket.bind(("localhost", local_port))
+        inet_socket.listen(5)
+        inet_socket.settimeout(1)
+
+        ready_event.set()
+
+        lock = threading.Lock()
+
+        try:
+            while not stop_event.is_set():
+                try:
+                    # Accept new client connections
+                    client_socket, addr = inet_socket.accept()
+                    print(f"New connection from {addr}")
+
+                    # Start a new thread to handle this client
+                    threading.Thread(
+                        target=_proxy, args=(client_socket, unix_socket, lock)
+                    ).start()
+                except socket.timeout:
+                    # The accept call timed out, just loop again
+                    continue
+        finally:
+            inet_socket.close()
+
+        pf.close()
+
+    forward_thread = threading.Thread(target=_run_forward)
+    forward_thread.start()
+
+    def stop_port_forward() -> None:
+        stop_event.set()
+        forward_thread.join()
+
+    return ready_event, stop_port_forward
 
 
 def setup_port_forward(
-    kubeconfig_name: str, label_selector: str, namespace: str
-) -> Tuple[str, threading.Event, threading.Event, Callable[[], None]]:
+    kubeconfig_name: str, label_selector: str, namespace: str, container_port: int
+) -> Tuple[str, Callable[[], None]]:
     load_kubeconfig(kubeconfig_name)
 
-    v1 = client.CoreV1Api()
     local_port = find_free_port()
 
-    wait_duration = 0.05
     max_duration = 2
 
-    while True:
-        try:
-            with socket.create_connection(
-                ("localhost", local_port), timeout=wait_duration
-            ):
-                pass
-        except:
-            break
-        else:
-            wait_duration *= 2
-            if wait_duration > max_duration:
-                wait_duration = max_duration
-
-    stop_event, ready_event, stop_forward = run_port_forward(
-        kubeconfig_name, label_selector, local_port, namespace
+    ready_event, stop_forward = run_port_forward(
+        kubeconfig_name, label_selector, local_port, container_port, namespace
     )
 
     ready_event.wait()
@@ -458,10 +518,11 @@ def setup_port_forward(
                 break
         except:
             print(f"Error dialing on local port {local_port}")
+            time.sleep(wait_duration)
             wait_duration *= 2
             if wait_duration > max_duration:
                 wait_duration = max_duration
 
     print(f"Port forward from local port {local_port} started")
 
-    return str(local_port), stop_event, ready_event, stop_forward
+    return str(local_port), stop_forward
