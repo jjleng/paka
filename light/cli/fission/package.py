@@ -9,6 +9,7 @@ from light.k8s import (
     load_kubeconfig,
 )
 from light.cli.fission.archive import create_archive
+from light.logger import logger
 
 
 def upsert_package(
@@ -62,7 +63,7 @@ def upsert_package(
         apply_resource(kubeconfig_name, package_crd)
         return package_crd.metadata.to_dict()
     except Exception as e:
-        print(f"Error creating package: {str(e)}")
+        logger.info(f"Error creating package: {str(e)}")
         raise
 
 
@@ -85,5 +86,5 @@ def get_package(
 
         return package
     except Exception as e:
-        print(f"Error getting package: {str(e)}")
+        logger.info(f"Error getting package: {str(e)}")
         raise

@@ -5,8 +5,8 @@ import requests
 import hashlib
 from urllib.parse import quote
 from collections import namedtuple
-from urllib.parse import urljoin
 from light.k8s import setup_port_forward
+from light.logger import logger
 
 STORAGE_CONTAINER_PORT = 8000
 FISSION_STORAGESVC_URL = "http://storagesvc.fission/v1"
@@ -61,7 +61,7 @@ class StorageClient:
                 id = response.json()["id"]
                 return id
         except Exception as e:
-            print(f"Error uploading file: {str(e)}")
+            logger.info(f"Error uploading file: {str(e)}")
             raise
 
     def get_archive_url(self, archive_id: str) -> str:
@@ -80,7 +80,7 @@ class StorageClient:
             else:
                 raise Exception(f"Unknown storage type: {storage_type}")
         except Exception as e:
-            print(f"Error getting archive URL: {str(e)}")
+            logger.info(f"Error getting archive URL: {str(e)}")
             raise
 
     @staticmethod
@@ -92,7 +92,9 @@ class StorageClient:
                     sha256_hash.update(byte_block)
                 return Checksum("sha256", sha256_hash.hexdigest())
         except Exception as e:
-            print(f"Failed to open file {file_name} or calculate checksum: {str(e)}")
+            logger.info(
+                f"Failed to open file {file_name} or calculate checksum: {str(e)}"
+            )
             raise
 
     def upload_archive_file(self, file_name: str) -> str:
@@ -100,5 +102,5 @@ class StorageClient:
             archive_id = self.upload_file(file_name)
             return self.get_archive_url(archive_id)
         except Exception as e:
-            print(f"Error uploading archive file: {str(e)}")
+            logger.info(f"Error uploading archive file: {str(e)}")
             raise

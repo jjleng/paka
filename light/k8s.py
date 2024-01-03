@@ -15,6 +15,7 @@ from functools import partial
 from kubernetes.stream import portforward
 import contextlib
 import threading
+from light.logger import logger
 
 
 KubernetesResourceKind: TypeAlias = Literal[
@@ -468,7 +469,7 @@ def run_port_forward(
                 try:
                     # Accept new client connections
                     client_socket, addr = inet_socket.accept()
-                    print(f"New connection from {addr}")
+                    logger.debug(f"New connection from {addr}")
 
                     # Start a new thread to handle this client
                     threading.Thread(
@@ -507,7 +508,7 @@ def setup_port_forward(
 
     ready_event.wait()
 
-    print(f"Waiting for port forward {local_port} to start...")
+    logger.debug(f"Waiting for port forward {local_port} to start...")
 
     wait_duration = 0.05
     while True:
@@ -517,12 +518,12 @@ def setup_port_forward(
             ):
                 break
         except:
-            print(f"Error dialing on local port {local_port}")
+            logger.debug(f"Error dialing on local port {local_port}")
             time.sleep(wait_duration)
             wait_duration *= 2
             if wait_duration > max_duration:
                 wait_duration = max_duration
 
-    print(f"Port forward from local port {local_port} started")
+    logger.debug(f"Port forward from local port {local_port} started")
 
     return str(local_port), stop_forward
