@@ -7,6 +7,8 @@ from light.k8s import (
     apply_resource,
     read_namespaced_custom_object,
     load_kubeconfig,
+    delete_namespaced_custom_object,
+    list_namespaced_custom_object,
 )
 from light.cli.fission.archive import create_archive
 
@@ -79,3 +81,38 @@ def get_package(
     package = read_namespaced_custom_object(pkg_name, pkg_namespace, package_crd)
 
     return package
+
+
+def delete_package(
+    kubeconfig_name: str,
+    pkg_name: str,
+    pkg_namespace: str,
+) -> None:
+    load_kubeconfig(kubeconfig_name)
+    package_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Package",
+        plural="packages",
+        metadata=client.V1ObjectMeta(name=pkg_name, namespace=pkg_namespace),
+        spec={},
+    )
+
+    delete_namespaced_custom_object(pkg_name, pkg_namespace, package_crd)
+
+
+def list_packages(
+    kubeconfig_name: str,
+    pkg_namespace: str,
+) -> dict:
+    load_kubeconfig(kubeconfig_name)
+    package_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Package",
+        plural="packages",
+        metadata=client.V1ObjectMeta(namespace=pkg_namespace),
+        spec={},
+    )
+
+    packages = list_namespaced_custom_object(pkg_namespace, package_crd)
+
+    return packages

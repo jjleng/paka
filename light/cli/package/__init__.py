@@ -5,10 +5,16 @@ import time
 from kubernetes.client.rest import ApiException
 from light.cli.package.archive import archive_directory
 from light.cli.package.ignore import blacklist
-from light.cli.fission.package import upsert_package, get_package
+from light.cli.fission.package import (
+    upsert_package,
+    get_package,
+    delete_package,
+    list_packages,
+)
 from light.cli.fission.env import get_env
 from light.logger import logger
 from light.cli.utils import validate_name
+from light.utils import to_yaml
 
 
 package_app = typer.Typer()
@@ -70,3 +76,22 @@ def package_upsert(
             logger.info("Package build failed.")
         else:
             logger.info("Package build succeeded.")
+
+
+@package_app.command("delete")
+def package_delete(
+    name: str = typer.Argument(
+        ...,
+        help="The package name",
+    ),
+) -> None:
+    delete_package("open-copilot", name, "default")
+    logger.info(f"Package '{name}' deleted successfully.")
+
+
+@package_app.command("list")
+def package_list() -> None:
+    packages = list_packages("open-copilot", "default")
+    for package in packages:
+        logger.info(package["metadata"]["name"])
+        logger.debug(to_yaml(package))
