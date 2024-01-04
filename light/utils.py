@@ -3,6 +3,8 @@ from pathlib import Path
 from light.constants import PROJECT_NAME
 import re
 from typing import Callable, Any
+from ruamel.yaml import YAML
+from io import StringIO
 
 
 def camel_to_kebab(name: str) -> str:
@@ -70,3 +72,20 @@ def call_once(func: Callable) -> Callable:
             return func(*args, **kwargs)
 
     return wrapper
+
+
+def to_yaml(obj: dict) -> str:
+    """
+    Converts an object to a YAML string.
+
+    Args:
+        obj (dict): The object to be converted.
+
+    Returns:
+        str: The YAML string.
+    """
+    yaml = YAML()
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    buf = StringIO()
+    yaml.dump(obj, buf)
+    return buf.getvalue()

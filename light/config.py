@@ -1,7 +1,7 @@
 from pydantic import BaseModel, model_validator
 from typing import Dict, Optional, List
 from ruamel.yaml import YAML
-from io import StringIO
+from light.utils import to_yaml
 
 
 class CloudResource(BaseModel):
@@ -392,11 +392,7 @@ def generate_yaml(config: Config) -> str:
     Returns:
         str: The YAML string representation of the config object.
     """
-    yaml = YAML()
-    yaml.indent(mapping=2, sequence=4, offset=2)
-    buf = StringIO()
-    yaml.dump(config.model_dump(exclude_none=True), buf)
-    return buf.getvalue()
+    return to_yaml(config.model_dump(exclude_none=True))
 
 
 def parse_yaml(yaml_str: str) -> Config:
