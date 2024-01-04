@@ -13,8 +13,9 @@ package_app = typer.Typer()
 
 
 @package_app.command("create")
+@package_app.command("update")
 @validate_name
-def package_create(
+def package_upsert(
     name: str = typer.Argument(
         ...,
         help="The package name",
@@ -29,7 +30,7 @@ def package_create(
         ...,
         "--env",
         "-e",
-        help="The environment to use for the package. Supported environments are 'python3.12', 'node18', etc.",
+        help="The environment to use for the package. Supported environments are 'python:3.12', 'node:18', etc.",
     ),
 ) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:

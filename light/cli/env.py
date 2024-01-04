@@ -1,5 +1,4 @@
 import typer
-import re
 from typing import Tuple
 from light.logger import logger
 from light.cli.fission.env import upsert_env
@@ -44,7 +43,7 @@ def pick_runtime(runtime: str) -> Tuple[str, str]:
 @env_app.command("create")
 @env_app.command("update")
 @validate_name
-def env_create(
+def env_upsert(
     name: str = typer.Argument(
         ...,
         help="The env name.",
