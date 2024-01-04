@@ -113,3 +113,11 @@ class StorageClient:
         except Exception as e:
             logger.info(f"Error listing archive files: {str(e)}")
             raise
+
+    def delete_archive_file(self, archive_id: str) -> None:
+        try:
+            response = requests.delete(self.storage_url + "/archive?id=" + archive_id)
+            response.raise_for_status()
+        except Exception as e:
+            logger.info(f"Error deleting archive file: {str(e)}")
+            raise
