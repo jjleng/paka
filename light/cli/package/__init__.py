@@ -1,12 +1,11 @@
 import typer
 import tempfile
 import os
-import re
 import time
 from light.cli.package.archive import archive_directory
 from light.cli.package.ignore import blacklist
 from light.cli.fission.package import upsert_package, get_package
-from light.logger import setup_logger, logger
+from light.logger import logger
 from light.cli.utils import validate_name
 
 
@@ -32,12 +31,7 @@ def package_create(
         "-e",
         help="The environment to use for the package. Supported environments are 'python3.12', 'node18', etc.",
     ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", is_flag=True, help="Enable verbose output"
-    ),
 ) -> None:
-    setup_logger(verbose)
-
     with tempfile.TemporaryDirectory() as temp_dir:
         archive_path = os.path.join(temp_dir, name)
         archive_directory(source_directory, archive_path, blacklist)

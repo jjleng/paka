@@ -1,7 +1,7 @@
 import typer
 import re
 from typing import Tuple
-from light.logger import setup_logger, logger
+from light.logger import logger
 from light.cli.fission.env import upsert_env
 from light.cli.utils import validate_name
 
@@ -42,6 +42,7 @@ def pick_runtime(runtime: str) -> Tuple[str, str]:
 
 
 @env_app.command("create")
+@env_app.command("update")
 @validate_name
 def env_create(
     name: str = typer.Argument(
@@ -54,12 +55,7 @@ def env_create(
         "-r",
         help="The runtime to use for the env. Runtime is a combination of language and version. Supported runtimes are 'python:3.12', 'node:18', etc",
     ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", is_flag=True, help="Enable verbose output"
-    ),
 ) -> None:
-    setup_logger(verbose)
-
     image, builder_image = pick_runtime(runtime)
 
     upsert_env("open-copilot", name, "default", image, builder_image)

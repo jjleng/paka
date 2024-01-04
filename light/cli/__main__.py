@@ -3,6 +3,15 @@ from light.cluster.manager.aws import AWSClusterManager
 from light.config import CloudConfig, ClusterConfig, Config, CloudModelGroup
 from light.cli.package import package_app
 from light.cli.env import env_app
+from light.logger import setup_logger
+
+
+def verbose_option(
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"
+    ),
+) -> None:
+    setup_logger(verbose)
 
 
 cli = typer.Typer()
@@ -62,6 +71,7 @@ cli.add_typer(service_app, name="service")
 
 cli.add_typer(package_app, name="package")
 
+env_app.callback()(verbose_option)
 cli.add_typer(env_app, name="env")
 
 if __name__ == "__main__":
