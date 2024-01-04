@@ -10,6 +10,9 @@ def setup_logger(verbose: bool = False, format: str = "%(message)s") -> None:
     # Set the logging level based on the verbose flag
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
+
     # Create a console handler
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG if verbose else logging.INFO)
@@ -22,3 +25,6 @@ def setup_logger(verbose: bool = False, format: str = "%(message)s") -> None:
 
     # Add the console handler to the logger
     logger.addHandler(ch)
+
+
+setup_logger()
