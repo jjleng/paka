@@ -15,6 +15,7 @@ def verbose_option(
 
 
 cli = typer.Typer()
+cli.callback()(verbose_option)
 
 cluster_manager = AWSClusterManager(
     config=Config(
@@ -71,7 +72,6 @@ cli.add_typer(service_app, name="service")
 
 cli.add_typer(package_app, name="package")
 
-env_app.callback()(verbose_option)
 cli.add_typer(env_app, name="env")
 
 if __name__ == "__main__":

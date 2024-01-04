@@ -1,8 +1,9 @@
 import typer
 from typing import Tuple
 from light.logger import logger
-from light.cli.fission.env import upsert_env, delete_env
+from light.cli.fission.env import upsert_env, delete_env, list_envs
 from light.cli.utils import validate_name
+from light.utils import to_yaml
 
 
 env_app = typer.Typer()
@@ -68,3 +69,13 @@ def env_delete(
     ),
 ) -> None:
     delete_env("open-copilot", name, "default")
+    logger.info(f"Env '{name}' deleted successfully.")
+
+
+@env_app.command("list")
+def env_list() -> None:
+    envs = list_envs("open-copilot", "default")
+    for env in envs:
+        del env["metadata"]["managedFields"]
+        logger.info(env["metadata"]["name"])
+        logger.debug(to_yaml(env))
