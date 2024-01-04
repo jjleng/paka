@@ -2,9 +2,11 @@ import typer
 import tempfile
 import os
 import time
+from kubernetes.client.rest import ApiException
 from light.cli.package.archive import archive_directory
 from light.cli.package.ignore import blacklist
 from light.cli.fission.package import upsert_package, get_package
+from light.cli.fission.env import get_env
 from light.logger import logger
 from light.cli.utils import validate_name
 
@@ -33,10 +35,19 @@ def package_upsert(
         help="The environment to use for the package. Supported environments are 'python:3.12', 'node:18', etc.",
     ),
 ) -> None:
+    try:
+        get_env("open-copilot", env, "default")
+    except ApiException as e:
+        if e.status == 404:
+            logger.info(f"Env '{env}' doesn't exist. Please create it first.")
+            raise typer.Exit(1)
+        else:
+            raise e
+
     with tempfile.TemporaryDirectory() as temp_dir:
         archive_path = os.path.join(temp_dir, name)
         archive_directory(source_directory, archive_path, blacklist)
-        typer.echo(f"Archive '{archive_path}.zip' created successfully.")
+        logger.info(f"Archive '{archive_path}.zip' created successfully.")
         upsert_package(
             "open-copilot", name, "default", env, f"{archive_path}.zip", "./build.sh"
         )

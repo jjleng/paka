@@ -22,3 +22,6 @@ def setup_logger(verbose: bool = False, format: str = "%(message)s") -> None:
 
     # Add the console handler to the logger
     logger.addHandler(ch)
+
+
+setup_logger(False)

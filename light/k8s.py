@@ -243,11 +243,11 @@ def apply_resource(
     try:
         read_method(resource.metadata.name, namespace)
         response = replace_method(resource.metadata.name, namespace, resource)
-        print(f"{kind} '{resource.metadata.name}' updated.")
+        logger.info(f"{kind} '{resource.metadata.name}' updated.")
     except ApiException as e:
         if e.status == 404:
             response = create_method(namespace, resource)
-            print(f"{kind} '{resource.metadata.name}' created.")
+            logger.info(f"{kind} '{resource.metadata.name}' created.")
         else:
             raise e
 
