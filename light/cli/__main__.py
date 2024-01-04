@@ -4,6 +4,7 @@ from light.config import CloudConfig, ClusterConfig, Config, CloudModelGroup
 from light.cli.package import package_app
 from light.cli.env import env_app
 from light.cli.archive import archive_app
+from light.cli.function import function_app
 from light.logger import setup_logger
 
 
@@ -76,6 +77,8 @@ cli.add_typer(package_app, name="package")
 cli.add_typer(env_app, name="env")
 
 cli.add_typer(archive_app, name="archive")
+
+cli.add_typer(function_app, name="fn")
 
 if __name__ == "__main__":
     cli()
