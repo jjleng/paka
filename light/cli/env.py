@@ -55,10 +55,44 @@ def env_upsert(
         "-r",
         help="The runtime to use for the env. Runtime is a combination of language and version. Supported runtimes are 'python:3.12', 'node:18', etc",
     ),
+    min_cpu: str = typer.Option(
+        "",
+        "--min-cpu",
+        "-c",
+        help="The minimum cpu to use for the env.",
+    ),
+    max_cpu: str = typer.Option(
+        "",
+        "--max-cpu",
+        "-C",
+        help="The maximum cpu to use for the env.",
+    ),
+    min_memory: str = typer.Option(
+        "",
+        "--min-memory",
+        "-m",
+        help="The minimum memory to use for the env.",
+    ),
+    max_memory: str = typer.Option(
+        "",
+        "--max-memory",
+        "-M",
+        help="The maximum memory to use for the env.",
+    ),
 ) -> None:
     image, builder_image = pick_runtime(runtime)
 
-    upsert_env("open-copilot", name, "default", image, builder_image)
+    upsert_env(
+        "open-copilot",
+        name,
+        "default",
+        image,
+        builder_image,
+        min_cpu=min_cpu,
+        max_cpu=max_cpu,
+        min_memory=min_memory,
+        max_memory=max_memory,
+    )
 
 
 @env_app.command("delete")
