@@ -1,5 +1,6 @@
 from collections import namedtuple
 from light.cli.fission.storage import StorageClient
+from typing import List
 
 FISSION_RELEASE_NS = "fission"
 ARCHIVE_TYPE_URL = "url"
@@ -13,3 +14,8 @@ def create_archive(kubeconfig_name: str, archive_file: str) -> Archive:
         archive_url = storage_client.upload_archive_file(archive_file)
         checksum = storage_client.get_file_checksum(archive_file)
         return Archive(ARCHIVE_TYPE_URL, "", archive_url, checksum)
+
+
+def list_archive_files(kubeconfig_name: str) -> List[str]:
+    with StorageClient(kubeconfig_name, FISSION_RELEASE_NS) as storage_client:
+        return storage_client.list_archive_files()

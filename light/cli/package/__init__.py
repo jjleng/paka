@@ -3,7 +3,7 @@ import tempfile
 import os
 import time
 from kubernetes.client.rest import ApiException
-from light.cli.package.archive import archive_directory
+from light.cli.package.zip import archive_directory
 from light.cli.package.ignore import blacklist
 from light.cli.fission.package import (
     upsert_package,

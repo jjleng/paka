@@ -1,4 +1,4 @@
-from typing import Tuple, Callable, Optional, Type
+from typing import Tuple, Callable, Optional, Type, List
 from types import TracebackType
 import os
 import requests
@@ -103,4 +103,13 @@ class StorageClient:
             return self.get_archive_url(archive_id)
         except Exception as e:
             logger.info(f"Error uploading archive file: {str(e)}")
+            raise
+
+    def list_archive_files(self) -> List[str]:
+        try:
+            response = requests.get(self.storage_url + "/archive")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.info(f"Error listing archive files: {str(e)}")
             raise
