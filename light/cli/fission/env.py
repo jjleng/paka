@@ -4,6 +4,7 @@ from light.k8s import (
     apply_resource,
     load_kubeconfig,
     read_namespaced_custom_object,
+    delete_namespaced_custom_object,
 )
 
 
@@ -62,3 +63,20 @@ def get_env(
     env = read_namespaced_custom_object(env_name, env_namespace, env_crd)
 
     return env
+
+
+def delete_env(
+    kubeconfig_name: str,
+    env_name: str,
+    env_namespace: str,
+) -> None:
+    load_kubeconfig(kubeconfig_name)
+    env_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Environment",
+        plural="environments",
+        metadata=client.V1ObjectMeta(name=env_name, namespace=env_namespace),
+        spec={},
+    )
+
+    delete_namespaced_custom_object(env_name, env_namespace, env_crd)

@@ -1,7 +1,7 @@
 import typer
 from typing import Tuple
 from light.logger import logger
-from light.cli.fission.env import upsert_env
+from light.cli.fission.env import upsert_env, delete_env
 from light.cli.utils import validate_name
 
 
@@ -58,3 +58,13 @@ def env_upsert(
     image, builder_image = pick_runtime(runtime)
 
     upsert_env("open-copilot", name, "default", image, builder_image)
+
+
+@env_app.command("delete")
+def env_delete(
+    name: str = typer.Argument(
+        ...,
+        help="The env name.",
+    ),
+) -> None:
+    delete_env("open-copilot", name, "default")

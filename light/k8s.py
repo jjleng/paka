@@ -162,6 +162,19 @@ def replace_namespaced_custom_object(
     )
 
 
+def delete_namespaced_custom_object(
+    name: str, namespace: str, resource: CustomResource
+) -> Any:
+    api_instance = client.CustomObjectsApi()
+    return api_instance.delete_namespaced_custom_object(
+        group=resource.group,
+        version=resource.version,
+        namespace=namespace,
+        plural=resource.plural,
+        name=name,
+    )
+
+
 class KubernetesResource(Protocol):
     metadata: client.V1ObjectMeta
     kind: KubernetesResourceKind
