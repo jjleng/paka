@@ -64,3 +64,57 @@ def upsert_fn(
     apply_resource(kubeconfig_name, fn_crd)
 
     return fn_crd.metadata.to_dict()
+
+
+def get_fn(
+    kubeconfig_name: str,
+    fn_name: str,
+    fn_namespace: str,
+) -> dict:
+    load_kubeconfig(kubeconfig_name)
+    fn_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Function",
+        plural="functions",
+        metadata=client.V1ObjectMeta(name=fn_name, namespace=fn_namespace),
+        spec={},
+    )
+
+    fn = read_namespaced_custom_object(fn_name, fn_namespace, fn_crd)
+
+    return fn
+
+
+def delete_fn(
+    kubeconfig_name: str,
+    fn_name: str,
+    fn_namespace: str,
+) -> None:
+    load_kubeconfig(kubeconfig_name)
+    fn_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Function",
+        plural="functions",
+        metadata=client.V1ObjectMeta(name=fn_name, namespace=fn_namespace),
+        spec={},
+    )
+
+    delete_namespaced_custom_object(fn_name, fn_namespace, fn_crd)
+
+
+def list_fns(
+    kubeconfig_name: str,
+    fn_namespace: str,
+) -> dict:
+    load_kubeconfig(kubeconfig_name)
+    fn_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Function",
+        plural="functions",
+        metadata=client.V1ObjectMeta(namespace=fn_namespace),
+        spec={},
+    )
+
+    fns = list_namespaced_custom_object(fn_namespace, fn_crd)
+
+    return fns
