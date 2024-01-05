@@ -5,16 +5,16 @@ import time
 import typer
 from kubernetes.client.rest import ApiException
 
-from light.cli.fission.env import get_env
-from light.cli.fission.package import (
+from light.cli.package.ignore import blacklist
+from light.cli.package.zip import archive_directory
+from light.cli.utils import validate_name
+from light.fission.env import get_env
+from light.fission.package import (
     delete_package,
     get_package,
     list_packages,
     upsert_package,
 )
-from light.cli.package.ignore import blacklist
-from light.cli.package.zip import archive_directory
-from light.cli.utils import validate_name
 from light.logger import logger
 from light.utils import to_yaml
 

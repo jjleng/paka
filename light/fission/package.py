@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from kubernetes import client
 
-from light.cli.fission.archive import create_archive
+from light.fission.archive import create_archive
 from light.k8s import (
     CustomResource,
     apply_resource,

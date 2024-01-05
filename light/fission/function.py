@@ -1,6 +1,6 @@
 from kubernetes import client
 
-from light.cli.fission.package import get_package
+from light.fission.package import get_package
 from light.k8s import (
     CustomResource,
     apply_resource,

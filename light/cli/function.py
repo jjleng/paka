@@ -1,7 +1,7 @@
 import typer
 
-from light.cli.fission.function import delete_fn, list_fns, upsert_fn
 from light.cli.utils import validate_name
+from light.fission.function import delete_fn, list_fns, upsert_fn
 from light.logger import logger
 from light.utils import to_yaml
 

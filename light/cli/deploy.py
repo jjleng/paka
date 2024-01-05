@@ -3,8 +3,8 @@ from kubernetes import config
 from ruamel.yaml import YAML
 
 from light.cli.env import pick_runtime
-from light.cli.fission.env import upsert_env
 from light.cli.spec.schema import APP_KIND_FUNCTION, FunctionSpec
+from light.fission.env import upsert_env
 from light.logger import logger
 
 APP_NS = "default"

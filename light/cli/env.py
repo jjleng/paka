@@ -2,8 +2,8 @@ from typing import Tuple
 
 import typer
 
-from light.cli.fission.env import delete_env, list_envs, upsert_env
 from light.cli.utils import validate_name
+from light.fission.env import delete_env, list_envs, upsert_env
 from light.logger import logger
 from light.utils import to_yaml
 

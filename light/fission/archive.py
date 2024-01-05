@@ -1,7 +1,7 @@
 from collections import namedtuple
 from typing import List
 
-from light.cli.fission.storage import StorageClient
+from light.fission.storage import StorageClient
 
 FISSION_RELEASE_NS = "fission"
 ARCHIVE_TYPE_URL = "url"

@@ -4,9 +4,9 @@ from kubernetes import client
 
 from light.config import CloudConfig
 from light.constants import CELERY_WORKER_SA, FISSION_CRD_NS, JOBS_NS
+from light.fission.package import get_package
 from light.job.autoscaler import create_autoscaler
 from light.job.entrypoint import write_entrypoint_script_to_cfgmap
-from light.job.utils import get_package_details
 from light.k8s import (
     apply_resource,
     create_namespace,
@@ -26,14 +26,17 @@ def create_deployment(
 ) -> None:
     package_name = task_name
 
-    package = get_package_details(FISSION_CRD_NS, package_name)
+    package = get_package(
+        package_name,
+        FISSION_CRD_NS,
+    )
     fetch_payload = {
         "fetchType": 1,
         "filename": task_name,
         "package": {
             "name": task_name,
             "namespace": FISSION_CRD_NS,
-            "resourceVersion": package.metadata.resourceVersion,
+            "resourceVersion": package["metadata"]["resourceVersion"],
         },
         "keeparchive": False,
     }
