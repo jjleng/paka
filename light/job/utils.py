@@ -2,27 +2,21 @@ import json
 from typing import Any
 
 from kubernetes import client
-from kubernetes.dynamic import DynamicClient
 
 from light.job.entrypoint import write_entrypoint_script_to_cfgmap
-from light.k8s import create_namespace
+from light.k8s import CustomResource, create_namespace, read_namespaced_custom_object
 
 
 def get_package_details(namespace: str, package_name: str) -> Any:
-    # Create a dynamic client
-    k8s_client = client.api_client.ApiClient()
-    dynamic_client = DynamicClient(k8s_client)
-
-    # Define the API version and kind for the Package resource
-    package_group = "fission.io"
-    package_version = "v1"
-    package_plural = "packages"  # Plural form of the CRD as defined in its definition
-
-    # Fetch the Package resource
-    package_api = dynamic_client.resources.get(
-        api_version=f"{package_group}/{package_version}", kind="Package"
+    package_crd = CustomResource(
+        api_version="fission.io/v1",
+        kind="Package",
+        plural="packages",
+        metadata=client.V1ObjectMeta(name=package_name, namespace=namespace),
+        spec={},
     )
-    package = package_api.get(namespace=namespace, name=package_name)
+
+    package = read_namespaced_custom_object(package_name, namespace, package_crd)
 
     # Print details of the Package
     print("Package Details:\n")
