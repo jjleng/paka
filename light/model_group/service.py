@@ -1,7 +1,7 @@
 from kubernetes import client
 
 from light.config import CloudConfig, CloudModelGroup, Config
-from light.constants import SERVICE_ACCOUNT
+from light.constants import MODEL_GROUP_SA
 from light.k8s import apply_resource
 from light.utils import kubify_name
 
@@ -67,7 +67,7 @@ def create_pod(
             },
         ),
         spec=client.V1PodSpec(
-            service_account_name=SERVICE_ACCOUNT,
+            service_account_name=MODEL_GROUP_SA,
             volumes=[
                 client.V1Volume(
                     name="model-data",

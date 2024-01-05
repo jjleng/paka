@@ -1,5 +1,13 @@
 PROJECT_NAME = "light"
-SERVICE_ACCOUNT = "light-sa"
-JOBS_NS = "jobs"
+# Model group service account
+MODEL_GROUP_SA = "light-sa"
+# Celery worker service account
 CELERY_WORKER_SA = "celery-worker-sa"
-FISSION_CRD_NS = "default"
+# Namespace for redis and workers
+JOB_NS = "jobs"
+# Namespace for functions, model groups, etc.
+APP_NS = "default"
+# Namespace for fission resources (CRDs), such as packages, functions, etc.
+FISSION_RESOURCE_NS = "default"
+# Namespace for fission controllers
+FISSION_RELEASE_NS = "fission"

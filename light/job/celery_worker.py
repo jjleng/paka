@@ -3,7 +3,7 @@ import json
 from kubernetes import client
 
 from light.config import CloudConfig
-from light.constants import CELERY_WORKER_SA, FISSION_CRD_NS, JOBS_NS
+from light.constants import CELERY_WORKER_SA, FISSION_RESOURCE_NS, JOB_NS
 from light.fission.package import get_package
 from light.job.autoscaler import create_autoscaler
 from light.job.entrypoint import write_entrypoint_script_to_cfgmap
@@ -28,14 +28,14 @@ def create_deployment(
 
     package = get_package(
         package_name,
-        FISSION_CRD_NS,
+        FISSION_RESOURCE_NS,
     )
     fetch_payload = {
         "fetchType": 1,
         "filename": task_name,
         "package": {
             "name": task_name,
-            "namespace": FISSION_CRD_NS,
+            "namespace": FISSION_RESOURCE_NS,
             "resourceVersion": package["metadata"]["resourceVersion"],
         },
         "keeparchive": False,
@@ -183,9 +183,9 @@ def create_celery_workers(
     task_name: str,
     drain_existing_task: bool = True,
 ) -> None:
-    namespace = JOBS_NS
+    namespace = JOB_NS
     service_account_name = CELERY_WORKER_SA
-    package_ns = FISSION_CRD_NS
+    package_ns = FISSION_RESOURCE_NS
 
     # Create the namespace and service account for celery workers
     create_namespace(namespace)

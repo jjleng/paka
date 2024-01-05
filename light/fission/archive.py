@@ -1,9 +1,9 @@
 from collections import namedtuple
 from typing import List
 
+from light.constants import FISSION_RELEASE_NS
 from light.fission.storage import StorageClient
 
-FISSION_RELEASE_NS = "fission"
 ARCHIVE_TYPE_URL = "url"
 ARCHIVE_TYPE_LITERAL = "literal"
 

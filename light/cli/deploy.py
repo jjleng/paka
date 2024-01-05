@@ -1,14 +1,11 @@
 import typer
-from kubernetes import config
 from ruamel.yaml import YAML
 
 from light.cli.env import pick_runtime
 from light.cli.spec.schema import APP_KIND_FUNCTION, FunctionSpec
+from light.constants import APP_NS
 from light.fission.env import upsert_env
 from light.logger import logger
-
-APP_NS = "default"
-JOB_NS = "jobs"
 
 deploy_app = typer.Typer()
 

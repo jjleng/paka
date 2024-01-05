@@ -3,6 +3,7 @@ from typing import Tuple
 import typer
 
 from light.cli.utils import validate_name
+from light.constants import FISSION_RESOURCE_NS
 from light.fission.env import delete_env, list_envs, upsert_env
 from light.logger import logger
 from light.utils import to_yaml
@@ -85,7 +86,7 @@ def env_upsert(
 
     upsert_env(
         name,
-        "default",
+        FISSION_RESOURCE_NS,
         image,
         builder_image,
         min_cpu=min_cpu,
@@ -102,13 +103,13 @@ def env_delete(
         help="The env name.",
     ),
 ) -> None:
-    delete_env(name, "default")
+    delete_env(name, FISSION_RESOURCE_NS)
     logger.info(f"Env '{name}' deleted successfully.")
 
 
 @env_app.command("list")
 def env_list() -> None:
-    envs = list_envs("default")
+    envs = list_envs(FISSION_RESOURCE_NS)
     for env in envs:
         del env["metadata"]["managedFields"]
         logger.info(env["metadata"]["name"])

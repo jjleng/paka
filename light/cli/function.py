@@ -1,6 +1,7 @@
 import typer
 
 from light.cli.utils import validate_name
+from light.constants import FISSION_RESOURCE_NS
 from light.fission.function import delete_fn, list_fns, upsert_fn
 from light.logger import logger
 from light.utils import to_yaml
@@ -29,7 +30,7 @@ def function_upsert(
         help="The entrypoint of the function.",
     ),
 ) -> None:
-    upsert_fn(name, "default", package, entrypoint)
+    upsert_fn(name, FISSION_RESOURCE_NS, package, entrypoint)
 
 
 @function_app.command("delete")
@@ -39,13 +40,13 @@ def function_delete(
         help="The function name.",
     ),
 ) -> None:
-    delete_fn(name, "default")
+    delete_fn(name, FISSION_RESOURCE_NS)
     logger.info(f"Function '{name}' deleted successfully.")
 
 
 @function_app.command("list")
 def function_list() -> None:
-    functions = list_fns("default")
+    functions = list_fns(FISSION_RESOURCE_NS)
     for function in functions:
         logger.info(function["metadata"]["name"])
         logger.debug(to_yaml(function))

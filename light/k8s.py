@@ -198,7 +198,9 @@ def apply_resource(
 
     # Determine the resource kind and prepare the appropriate API client
     kind = resource.kind
-    namespace = resource.metadata.namespace or "default"
+    namespace = resource.metadata.namespace
+    if not namespace:
+        raise ValueError("Namespace is required")
 
     if kind == "Deployment":
         api = client.AppsV1Api()

@@ -5,7 +5,7 @@ import pulumi_kubernetes as k8s
 
 from light.cluster.aws.utils import odic_role_for_sa
 from light.config import CloudConfig
-from light.constants import SERVICE_ACCOUNT
+from light.constants import APP_NS, MODEL_GROUP_SA
 from light.utils import call_once
 
 
@@ -34,7 +34,7 @@ def create_service_account(
         ).json,
     )
 
-    sa_role = odic_role_for_sa(config, cluster, "sa", f"default:{SERVICE_ACCOUNT}")
+    sa_role = odic_role_for_sa(config, cluster, "sa", f"default:{MODEL_GROUP_SA}")
 
     aws.iam.RolePolicyAttachment(
         f"{project}-sa-role-policy-attachment",
@@ -45,8 +45,8 @@ def create_service_account(
     k8s.core.v1.ServiceAccount(
         f"{project}-service-account",
         metadata={
-            "namespace": "default",
-            "name": SERVICE_ACCOUNT,
+            "namespace": APP_NS,
+            "name": MODEL_GROUP_SA,
             "annotations": {"eks.amazonaws.com/role-arn": sa_role.arn},
         },
         opts=pulumi.ResourceOptions(provider=k8s_provider),

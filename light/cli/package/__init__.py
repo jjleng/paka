@@ -8,6 +8,7 @@ from kubernetes.client.rest import ApiException
 from light.cli.package.ignore import blacklist
 from light.cli.package.zip import archive_directory
 from light.cli.utils import validate_name
+from light.constants import FISSION_RESOURCE_NS
 from light.fission.env import get_env
 from light.fission.package import (
     delete_package,
@@ -43,7 +44,7 @@ def package_upsert(
     ),
 ) -> None:
     try:
-        get_env(env, "default")
+        get_env(env, FISSION_RESOURCE_NS)
     except ApiException as e:
         if e.status == 404:
             logger.info(f"Env '{env}' doesn't exist. Please create it first.")
@@ -55,15 +56,17 @@ def package_upsert(
         archive_path = os.path.join(temp_dir, name)
         archive_directory(source_directory, archive_path, blacklist)
         logger.info(f"Archive '{archive_path}.zip' created successfully.")
-        upsert_package(name, "default", env, f"{archive_path}.zip", "./build.sh")
-        package = get_package(name, "default")
+        upsert_package(
+            name, FISSION_RESOURCE_NS, env, f"{archive_path}.zip", "./build.sh"
+        )
+        package = get_package(name, FISSION_RESOURCE_NS)
         status = package["status"]
 
         if status["buildstatus"] in ["pending", "running"]:
             logger.info("Package building")
 
         while status["buildstatus"] in ["pending", "running"]:
-            package = get_package(name, "default")
+            package = get_package(name, FISSION_RESOURCE_NS)
             status = package["status"]
             print(".", end="", flush=True)
             time.sleep(1)
@@ -84,13 +87,13 @@ def package_delete(
         help="The package name",
     ),
 ) -> None:
-    delete_package(name, "default")
+    delete_package(name, FISSION_RESOURCE_NS)
     logger.info(f"Package '{name}' deleted successfully.")
 
 
 @package_app.command("list")
 def package_list() -> None:
-    packages = list_packages("default")
+    packages = list_packages(FISSION_RESOURCE_NS)
     for package in packages:
         logger.info(package["metadata"]["name"])
         logger.debug(to_yaml(package))
