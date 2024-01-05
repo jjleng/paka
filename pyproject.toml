@@ -13,6 +13,9 @@ ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
 
+[tool.poetry.scripts]
+light-cli = "light.cli.__main__:main"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 pydantic = "^2.5.2"

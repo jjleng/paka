@@ -1,5 +1,10 @@
 from pydantic import BaseModel
 from typing import Optional
+from enum import Enum
+
+
+APP_KIND_FUNCTION = "function"
+APP_KIND_JOB = "job"
 
 
 class Resource(BaseModel):
@@ -24,3 +29,4 @@ class FunctionSpec(BaseModel):
     runtime: str
     resources: Resources
     settings: Settings
+    kind: str = APP_KIND_FUNCTION

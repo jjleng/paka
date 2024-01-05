@@ -83,5 +83,10 @@ cli.add_typer(function_app, name="fn")
 
 cli.add_typer(spec_app, name="spec")
 
-if __name__ == "__main__":
+
+def main() -> None:
     cli()
+
+
+if __name__ == "__main__":
+    main()
