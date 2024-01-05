@@ -305,10 +305,10 @@ def create_model_group_service(
     pod = create_pod(config, model_group, LLAMA_CPP_PYTHON_IMAGE, port)
 
     deployment = create_deployment(model_group, pod)
-    apply_resource(kubeconfig_name, deployment)
+    apply_resource(deployment)
 
     svc = create_service(model_group, port)
-    apply_resource(kubeconfig_name, svc)
+    apply_resource(svc)
 
     hpa = create_hpa(model_group, deployment)
-    apply_resource(kubeconfig_name, hpa)
+    apply_resource(hpa)

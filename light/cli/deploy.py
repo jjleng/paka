@@ -41,12 +41,6 @@ def deploy(
         ...,
         help="Path of the spec file.",
     ),
-    kubeconfig: str = typer.Option(
-        ...,
-        "--kubeconfig",
-        "-k",
-        help="Path of the kubeconfig file.",
-    ),
     build_command: str = typer.Option(
         "",
         "--build-command",
@@ -54,7 +48,6 @@ def deploy(
         help="The command to build the function.",
     ),
 ) -> None:
-    config.load_kube_config(kubeconfig)
     with open(spec, "r") as f:
         file_data = f.read()
         yaml = YAML()

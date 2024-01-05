@@ -1,17 +1,12 @@
 from kubernetes import client
 from kubernetes.dynamic import DynamicClient
-from light.config import CloudConfig
-from light.k8s import load_kubeconfig
 from typing import Any
 from light.job.entrypoint import write_entrypoint_script_to_cfgmap
 import json
 from light.k8s import create_namespace
 
 
-def get_package_details(config: CloudConfig, namespace: str, package_name: str) -> Any:
-    kubeconfig_name = config.cluster.name
-    load_kubeconfig(kubeconfig_name)
-
+def get_package_details(namespace: str, package_name: str) -> Any:
     # Create a dynamic client
     k8s_client = client.api_client.ApiClient()
     dynamic_client = DynamicClient(k8s_client)
@@ -37,10 +32,8 @@ def get_package_details(config: CloudConfig, namespace: str, package_name: str) 
     return package
 
 
-def test_write_entrypoint(
-    config: CloudConfig, namespace: str, package_name: str
-) -> None:
-    package = get_package_details(config, namespace, package_name)
+def test_write_entrypoint(namespace: str, package_name: str) -> None:
+    package = get_package_details(namespace, package_name)
 
     fetch_payload = {
         "FetchType": 1,
@@ -53,7 +46,7 @@ def test_write_entrypoint(
         "KeepArchive": False,
     }
 
-    create_namespace(config.cluster.name, "celery-workers")
+    create_namespace("celery-workers")
     write_entrypoint_script_to_cfgmap(
-        config, "jobs", "celery -A celery.main worker", json.dumps(fetch_payload)
+        "jobs", "celery -A celery.main worker", json.dumps(fetch_payload)
     )

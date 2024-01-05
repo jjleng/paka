@@ -2,7 +2,6 @@ from kubernetes import client
 from light.k8s import (
     CustomResource,
     apply_resource,
-    load_kubeconfig,
     read_namespaced_custom_object,
     delete_namespaced_custom_object,
     list_namespaced_custom_object,
@@ -15,7 +14,6 @@ ExecutorTypeContainer = "container"
 
 
 def upsert_fn(
-    kubeconfig_name: str,
     fn_name: str,
     fn_namespace: str,
     pkg_name: str,
@@ -26,7 +24,7 @@ def upsert_fn(
     requests_per_pod: int = 1,
 ) -> dict:
     # read the package
-    pkg = get_package(kubeconfig_name, pkg_name, fn_namespace)
+    pkg = get_package(pkg_name, fn_namespace)
     fn_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Function",
@@ -61,17 +59,15 @@ def upsert_fn(
             "resources": {},
         },
     )
-    apply_resource(kubeconfig_name, fn_crd)
+    apply_resource(fn_crd)
 
     return fn_crd.metadata.to_dict()
 
 
 def get_fn(
-    kubeconfig_name: str,
     fn_name: str,
     fn_namespace: str,
 ) -> dict:
-    load_kubeconfig(kubeconfig_name)
     fn_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Function",
@@ -86,11 +82,9 @@ def get_fn(
 
 
 def delete_fn(
-    kubeconfig_name: str,
     fn_name: str,
     fn_namespace: str,
 ) -> None:
-    load_kubeconfig(kubeconfig_name)
     fn_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Function",
@@ -103,10 +97,8 @@ def delete_fn(
 
 
 def list_fns(
-    kubeconfig_name: str,
     fn_namespace: str,
 ) -> dict:
-    load_kubeconfig(kubeconfig_name)
     fn_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Function",

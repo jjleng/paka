@@ -6,7 +6,6 @@ from light.k8s import (
     CustomResource,
     apply_resource,
     read_namespaced_custom_object,
-    load_kubeconfig,
     delete_namespaced_custom_object,
     list_namespaced_custom_object,
 )
@@ -14,7 +13,6 @@ from light.cli.fission.archive import create_archive
 
 
 def upsert_package(
-    kubeconfig_name: str,
     pkg_name: str,
     pkg_namespace: str,
     env_name: str,
@@ -33,7 +31,7 @@ def upsert_package(
     if len(src_archive_file) > 0:
         # We create a new archive and update the package spec
         # Old archive will be garbage collected
-        archive = create_archive(kubeconfig_name, src_archive_file)
+        archive = create_archive(src_archive_file)
         archive_dict = archive._asdict()
         archive_dict["checksum"] = archive.checksum._asdict()
         pkg_spec["source"] = archive_dict
@@ -60,16 +58,14 @@ def upsert_package(
         },
     )
     # Update the resource if it already exists
-    apply_resource(kubeconfig_name, package_crd)
+    apply_resource(package_crd)
     return package_crd.metadata.to_dict()
 
 
 def get_package(
-    kubeconfig_name: str,
     pkg_name: str,
     pkg_namespace: str,
 ) -> dict:
-    load_kubeconfig(kubeconfig_name)
     package_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Package",
@@ -84,11 +80,9 @@ def get_package(
 
 
 def delete_package(
-    kubeconfig_name: str,
     pkg_name: str,
     pkg_namespace: str,
 ) -> None:
-    load_kubeconfig(kubeconfig_name)
     package_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Package",
@@ -101,10 +95,8 @@ def delete_package(
 
 
 def list_packages(
-    kubeconfig_name: str,
     pkg_namespace: str,
 ) -> dict:
-    load_kubeconfig(kubeconfig_name)
     package_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Package",

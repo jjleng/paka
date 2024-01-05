@@ -1,10 +1,8 @@
 from light.k8s import CustomResource, apply_resource
-from light.config import CloudConfig
 from kubernetes import client
 
 
 def create_autoscaler(
-    config: CloudConfig,
     namespace: str,
     redis_svc_name: str,
     queue_name: str,
@@ -13,8 +11,6 @@ def create_autoscaler(
     min_replicas: int,
     max_replicas: int,
 ) -> None:
-    kubeconfig_name = config.cluster.name
-
     trigger_auth = CustomResource(
         api_version="keda.sh/v1alpha1",
         kind="TriggerAuthentication",
@@ -26,7 +22,7 @@ def create_autoscaler(
             ]
         },
     )
-    apply_resource(kubeconfig_name, trigger_auth)
+    apply_resource(trigger_auth)
 
     scaled_object = CustomResource(
         api_version="keda.sh/v1alpha1",
@@ -54,4 +50,4 @@ def create_autoscaler(
             ],
         },
     )
-    apply_resource(kubeconfig_name, scaled_object)
+    apply_resource(scaled_object)

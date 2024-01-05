@@ -42,7 +42,7 @@ def package_upsert(
     ),
 ) -> None:
     try:
-        get_env("open-copilot", env, "default")
+        get_env(env, "default")
     except ApiException as e:
         if e.status == 404:
             logger.info(f"Env '{env}' doesn't exist. Please create it first.")
@@ -54,17 +54,15 @@ def package_upsert(
         archive_path = os.path.join(temp_dir, name)
         archive_directory(source_directory, archive_path, blacklist)
         logger.info(f"Archive '{archive_path}.zip' created successfully.")
-        upsert_package(
-            "open-copilot", name, "default", env, f"{archive_path}.zip", "./build.sh"
-        )
-        package = get_package("open-copilot", name, "default")
+        upsert_package(name, "default", env, f"{archive_path}.zip", "./build.sh")
+        package = get_package(name, "default")
         status = package["status"]
 
         if status["buildstatus"] in ["pending", "running"]:
             logger.info("Package building")
 
         while status["buildstatus"] in ["pending", "running"]:
-            package = get_package("open-copilot", name, "default")
+            package = get_package(name, "default")
             status = package["status"]
             print(".", end="", flush=True)
             time.sleep(1)
@@ -85,13 +83,13 @@ def package_delete(
         help="The package name",
     ),
 ) -> None:
-    delete_package("open-copilot", name, "default")
+    delete_package(name, "default")
     logger.info(f"Package '{name}' deleted successfully.")
 
 
 @package_app.command("list")
 def package_list() -> None:
-    packages = list_packages("open-copilot", "default")
+    packages = list_packages("default")
     for package in packages:
         logger.info(package["metadata"]["name"])
         logger.debug(to_yaml(package))

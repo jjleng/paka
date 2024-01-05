@@ -102,13 +102,13 @@ def env_delete(
         help="The env name.",
     ),
 ) -> None:
-    delete_env("open-copilot", name, "default")
+    delete_env(name, "default")
     logger.info(f"Env '{name}' deleted successfully.")
 
 
 @env_app.command("list")
 def env_list() -> None:
-    envs = list_envs("open-copilot", "default")
+    envs = list_envs("default")
     for env in envs:
         del env["metadata"]["managedFields"]
         logger.info(env["metadata"]["name"])

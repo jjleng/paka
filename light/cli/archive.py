@@ -8,7 +8,7 @@ archive_app = typer.Typer()
 
 @archive_app.command("list")
 def archive_list() -> None:
-    archives = list_archive_files("open-copilot")
+    archives = list_archive_files()
     for archive in archives:
         logger.info(archive)
 
@@ -25,5 +25,5 @@ def archive_delete(
     ):
         raise typer.Abort()
 
-    delete_archive("open-copilot", archive_id)
+    delete_archive(archive_id)
     logger.info(f"Archive '{archive_id}' deleted successfully.")

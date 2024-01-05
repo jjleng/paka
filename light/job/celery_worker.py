@@ -15,7 +15,6 @@ from light.job.autoscaler import create_autoscaler
 
 
 def create_deployment(
-    config: CloudConfig,
     runtime_command: str,
     task_name: str,
     namespace: str,
@@ -25,8 +24,7 @@ def create_deployment(
 ) -> None:
     package_name = task_name
 
-    kubeconfig_name = config.cluster.name
-    package = get_package_details(config, FISSION_CRD_NS, package_name)
+    package = get_package_details(FISSION_CRD_NS, package_name)
     fetch_payload = {
         "fetchType": 1,
         "filename": task_name,
@@ -39,7 +37,7 @@ def create_deployment(
     }
 
     write_entrypoint_script_to_cfgmap(
-        config, namespace, runtime_command, json.dumps(fetch_payload)
+        namespace, runtime_command, json.dumps(fetch_payload)
     )
 
     containers = [
@@ -171,7 +169,7 @@ def create_deployment(
             ),
         ),
     )
-    apply_resource(kubeconfig_name, deployment)
+    apply_resource(deployment)
 
 
 def create_celery_workers(
@@ -180,18 +178,16 @@ def create_celery_workers(
     task_name: str,
     drain_existing_task: bool = True,
 ) -> None:
-    kubeconfig_name = config.cluster.name
     namespace = JOBS_NS
     service_account_name = CELERY_WORKER_SA
     package_ns = FISSION_CRD_NS
 
     # Create the namespace and service account for celery workers
-    create_namespace(kubeconfig_name, namespace)
-    create_service_account(kubeconfig_name, namespace, service_account_name)
+    create_namespace(namespace)
+    create_service_account(namespace, service_account_name)
 
     # Create a namespaced role for accessing fission packages
     create_role(
-        kubeconfig_name,
         package_ns,
         "package-reader",
         [
@@ -206,7 +202,6 @@ def create_celery_workers(
     # Create a role binding in the namespace of the package resource. The role
     # binding will allow the celery workers to read the package resource.
     create_role_binding(
-        kubeconfig_name,
         package_ns,
         "package-reader-binding",
         "package-reader",
@@ -217,7 +212,6 @@ def create_celery_workers(
     deployment_name = "celery-worker"
 
     create_deployment(
-        config,
         runtime_command,
         task_name,
         namespace,
@@ -227,7 +221,6 @@ def create_celery_workers(
     )
 
     create_autoscaler(
-        config=config,
         namespace=namespace,
         redis_svc_name="redis-master",
         queue_name="0",

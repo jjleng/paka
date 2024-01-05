@@ -17,6 +17,7 @@ import contextlib
 import threading
 from light.logger import logger
 
+config.load_config()
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -59,21 +60,6 @@ def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
 
     with open(kubeconfig_file_path, "w") as f:
         f.write(kubeconfig_yaml)
-
-
-def load_kubeconfig(name: str) -> None:
-    """
-    Load the kubeconfig data from a YAML file.
-
-    Args:
-        name (str): The name of the kubeconfig file.
-
-    Returns:
-        None
-    """
-    kubeconfig_file_path = os.path.join(get_project_data_dir(), name)
-
-    config.load_kube_config(kubeconfig_file_path)
 
 
 class CustomResource:
@@ -193,14 +179,12 @@ class KubernetesResource(Protocol):
 
 
 def apply_resource(
-    kubeconfig_name: str,
     resource: KubernetesResource,
 ) -> Any:
     """
     Applies a Kubernetes resource by creating or updating it.
 
     Args:
-        kubeconfig_name (str): The name of the kubeconfig file to use.
         resource (KubernetesResource): The Kubernetes resource to apply.
 
     Returns:
@@ -210,8 +194,6 @@ def apply_resource(
         ValueError: If the resource kind is unsupported.
         ApiException: If an error occurs while creating or updating the resource.
     """
-    # Load the Kubernetes configuration
-    load_kubeconfig(kubeconfig_name)
 
     # Determine the resource kind and prepare the appropriate API client
     kind = resource.kind
@@ -285,7 +267,7 @@ def apply_resource(
     return response
 
 
-def create_namespace(kubeconfig_name: str, name: str) -> None:
+def create_namespace(name: str) -> None:
     """
     Creates a Kubernetes namespace.
 
@@ -298,9 +280,6 @@ def create_namespace(kubeconfig_name: str, name: str) -> None:
     Raises:
         ApiException: If an error occurs while creating the namespace.
     """
-    # Load the Kubernetes configuration
-    load_kubeconfig(kubeconfig_name)
-
     api = client.CoreV1Api()
     namespace = client.V1Namespace(metadata=client.V1ObjectMeta(name=name))
     try:
@@ -312,18 +291,15 @@ def create_namespace(kubeconfig_name: str, name: str) -> None:
             raise
 
 
-def create_service_account(
-    kubeconfig_name: str, namespace: str, account_name: str
-) -> None:
+def create_service_account(namespace: str, account_name: str) -> None:
     service_account = client.V1ServiceAccount(
         kind="ServiceAccount",
         metadata=client.V1ObjectMeta(name=account_name, namespace=namespace),
     )
-    apply_resource(kubeconfig_name, service_account)
+    apply_resource(service_account)
 
 
 def create_role_binding(
-    kubeconfig_name: str,
     binding_namespace: str,
     binding_name: str,
     role_name: str,
@@ -344,30 +320,26 @@ def create_role_binding(
             api_group="rbac.authorization.k8s.io", kind="Role", name=role_name
         ),
     )
-    apply_resource(kubeconfig_name, role_binding)
+    apply_resource(role_binding)
 
 
-def create_config_map(
-    kubeconfig_name: str, namespace: str, map_name: str, data: dict
-) -> None:
+def create_config_map(namespace: str, map_name: str, data: dict) -> None:
     config_map = client.V1ConfigMap(
         kind="ConfigMap",
         metadata=client.V1ObjectMeta(name=map_name, namespace=namespace),
         data=data,
     )
-    apply_resource(kubeconfig_name, config_map)
+    apply_resource(config_map)
 
 
-def create_role(
-    kubeconfig_name: str, namespace: str, role_name: str, rules: list
-) -> None:
+def create_role(namespace: str, role_name: str, rules: list) -> None:
     role = client.V1Role(
         api_version="rbac.authorization.k8s.io/v1",
         kind="Role",
         metadata=client.V1ObjectMeta(name=role_name, namespace=namespace),
         rules=rules,
     )
-    apply_resource(kubeconfig_name, role)
+    apply_resource(role)
 
 
 def is_ready_pod(pod: Any) -> bool:
@@ -384,14 +356,11 @@ def find_free_port() -> int:
 
 
 def run_port_forward(
-    kubeconfig_name: str,
     label_selector: str,
     local_port: int,
     container_port: int,
     namespace: Optional[str] = None,
 ) -> Tuple[threading.Event, Callable[[], None]]:
-    load_kubeconfig(kubeconfig_name)
-
     v1 = client.CoreV1Api()
 
     if namespace is None:
@@ -526,16 +495,14 @@ def run_port_forward(
 
 
 def setup_port_forward(
-    kubeconfig_name: str, label_selector: str, namespace: str, container_port: int
+    label_selector: str, namespace: str, container_port: int
 ) -> Tuple[str, Callable[[], None]]:
-    load_kubeconfig(kubeconfig_name)
-
     local_port = find_free_port()
 
     max_duration = 2
 
     ready_event, stop_forward = run_port_forward(
-        kubeconfig_name, label_selector, local_port, container_port, namespace
+        label_selector, local_port, container_port, namespace
     )
 
     ready_event.wait()

@@ -2,7 +2,6 @@ from kubernetes import client
 from light.k8s import (
     CustomResource,
     apply_resource,
-    load_kubeconfig,
     read_namespaced_custom_object,
     delete_namespaced_custom_object,
     list_namespaced_custom_object,
@@ -77,17 +76,15 @@ def upsert_env(
             },
         },
     )
-    apply_resource(kubeconfig_name, env_crd)
+    apply_resource(env_crd)
 
     return env_crd.metadata.to_dict()
 
 
 def get_env(
-    kubeconfig_name: str,
     env_name: str,
     env_namespace: str,
 ) -> dict:
-    load_kubeconfig(kubeconfig_name)
     env_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Environment",
@@ -102,11 +99,9 @@ def get_env(
 
 
 def delete_env(
-    kubeconfig_name: str,
     env_name: str,
     env_namespace: str,
 ) -> None:
-    load_kubeconfig(kubeconfig_name)
     env_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Environment",
@@ -119,10 +114,8 @@ def delete_env(
 
 
 def list_envs(
-    kubeconfig_name: str,
     env_namespace: str,
 ) -> dict:
-    load_kubeconfig(kubeconfig_name)
     env_crd = CustomResource(
         api_version="fission.io/v1",
         kind="Environment",

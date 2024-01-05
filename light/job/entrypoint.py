@@ -1,11 +1,10 @@
 from kubernetes import client
 from light.k8s import apply_resource
-from light.config import CloudConfig
 import json
 
 
 def write_entrypoint_script_to_cfgmap(
-    config: CloudConfig, namespace: str, runtime_command: str, json_body: str
+    namespace: str, runtime_command: str, json_body: str
 ) -> None:
     """
     Writes the entrypoint script to the given path.
@@ -17,7 +16,6 @@ def write_entrypoint_script_to_cfgmap(
     Returns:
         None
     """
-    project = config.cluster.name
     json_body_dict = json.loads(json_body)
     dst_name = json_body_dict["filename"]
 
@@ -87,4 +85,4 @@ done
         metadata=client.V1ObjectMeta(name="entrypoint-script", namespace=namespace),
         data=configmap_data,
     )
-    apply_resource(project, config_map)
+    apply_resource(config_map)

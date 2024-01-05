@@ -29,7 +29,7 @@ def function_upsert(
         help="The entrypoint of the function.",
     ),
 ) -> None:
-    upsert_fn("open-copilot", name, "default", package, entrypoint)
+    upsert_fn(name, "default", package, entrypoint)
 
 
 @function_app.command("delete")
@@ -39,13 +39,13 @@ def function_delete(
         help="The function name.",
     ),
 ) -> None:
-    delete_fn("open-copilot", name, "default")
+    delete_fn(name, "default")
     logger.info(f"Function '{name}' deleted successfully.")
 
 
 @function_app.command("list")
 def function_list() -> None:
-    functions = list_fns("open-copilot", "default")
+    functions = list_fns("default")
     for function in functions:
         logger.info(function["metadata"]["name"])
         logger.debug(to_yaml(function))

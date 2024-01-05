@@ -15,8 +15,7 @@ Checksum = namedtuple("Checksum", ["type", "sum"])
 
 
 class StorageClient:
-    def __init__(self, kubeconfig_name: str, namespace: str):
-        self.kubeconfig_name = kubeconfig_name
+    def __init__(self, namespace: str):
         self.namespace = namespace
         (
             self.storage_url,
@@ -38,7 +37,6 @@ class StorageClient:
         self,
     ) -> Tuple[str, Callable[[], None]]:
         local_port, stop_forward = setup_port_forward(
-            self.kubeconfig_name,
             "application=fission-storage",
             self.namespace,
             STORAGE_CONTAINER_PORT,
