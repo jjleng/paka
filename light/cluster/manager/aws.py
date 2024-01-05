@@ -1,9 +1,10 @@
-from light.config import Config, CloudConfig
-from pulumi import automation as auto
 import pulumi_eks as eks
-from light.cluster.aws.object_store import create_object_store
+from pulumi import automation as auto
+
 from light.cluster.aws.container_registry import create_container_registry
 from light.cluster.aws.eks import create_k8s_cluster
+from light.cluster.aws.object_store import create_object_store
+from light.config import CloudConfig, Config
 from light.model_group.service import create_model_group_service
 
 STACK_NAME = "default"

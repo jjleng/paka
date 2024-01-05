@@ -1,12 +1,13 @@
 from kubernetes import client
+
+from light.cli.fission.package import get_package
 from light.k8s import (
     CustomResource,
     apply_resource,
-    read_namespaced_custom_object,
     delete_namespaced_custom_object,
     list_namespaced_custom_object,
+    read_namespaced_custom_object,
 )
-from light.cli.fission.package import get_package
 
 ExecutorTypePoolmgr = "poolmgr"
 ExecutorTypeNewdeploy = "newdeploy"

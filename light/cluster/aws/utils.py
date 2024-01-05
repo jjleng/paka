@@ -1,6 +1,7 @@
-from light.config import CloudConfig
-import pulumi_eks as eks
 import pulumi_aws as aws
+import pulumi_eks as eks
+
+from light.config import CloudConfig
 
 
 def odic_role_for_sa(

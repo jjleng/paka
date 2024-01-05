@@ -1,17 +1,19 @@
+import json
+
 from kubernetes import client
-from light.k8s import (
-    create_namespace,
-    create_service_account,
-    create_role_binding,
-    create_role,
-    apply_resource,
-)
+
 from light.config import CloudConfig
+from light.constants import CELERY_WORKER_SA, FISSION_CRD_NS, JOBS_NS
+from light.job.autoscaler import create_autoscaler
 from light.job.entrypoint import write_entrypoint_script_to_cfgmap
 from light.job.utils import get_package_details
-import json
-from light.constants import JOBS_NS, CELERY_WORKER_SA, FISSION_CRD_NS
-from light.job.autoscaler import create_autoscaler
+from light.k8s import (
+    apply_resource,
+    create_namespace,
+    create_role,
+    create_role_binding,
+    create_service_account,
+)
 
 
 def create_deployment(

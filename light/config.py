@@ -1,6 +1,8 @@
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel, model_validator
-from typing import Dict, Optional, List
 from ruamel.yaml import YAML
+
 from light.utils import to_yaml
 
 

@@ -3,15 +3,16 @@ import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
-from light.config import CloudConfig
-from light.utils import kubify_name
-from light.k8s import save_kubeconfig
+
 from light.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
-from light.cluster.aws.service_account import create_service_account
-from light.cluster.redis import create_redis
 from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
-from light.cluster.keda import create_keda
+from light.cluster.aws.service_account import create_service_account
 from light.cluster.fission import create_fission
+from light.cluster.keda import create_keda
+from light.cluster.redis import create_redis
+from light.config import CloudConfig
+from light.k8s import save_kubeconfig
+from light.utils import kubify_name
 
 
 def _ignore_tags_transformation(

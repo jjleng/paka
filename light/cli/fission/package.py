@@ -1,15 +1,17 @@
-import uuid
 import datetime
-from typing import Dict, Any
+import uuid
+from typing import Any, Dict
+
 from kubernetes import client
+
+from light.cli.fission.archive import create_archive
 from light.k8s import (
     CustomResource,
     apply_resource,
-    read_namespaced_custom_object,
     delete_namespaced_custom_object,
     list_namespaced_custom_object,
+    read_namespaced_custom_object,
 )
-from light.cli.fission.archive import create_archive
 
 
 def upsert_package(

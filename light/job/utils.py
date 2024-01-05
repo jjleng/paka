@@ -1,8 +1,10 @@
+import json
+from typing import Any
+
 from kubernetes import client
 from kubernetes.dynamic import DynamicClient
-from typing import Any
+
 from light.job.entrypoint import write_entrypoint_script_to_cfgmap
-import json
 from light.k8s import create_namespace
 
 

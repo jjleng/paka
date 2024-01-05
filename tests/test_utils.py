@@ -1,8 +1,4 @@
-from light.utils import (
-    camel_to_kebab,
-    kubify_name,
-    call_once,
-)
+from light.utils import call_once, camel_to_kebab, kubify_name
 
 
 def test_camel_to_kebab() -> None:

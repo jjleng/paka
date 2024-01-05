@@ -1,7 +1,7 @@
 import typer
-from light.logger import logger
-from light.cli.fission.archive import list_archive_files, delete_archive
 
+from light.cli.fission.archive import delete_archive, list_archive_files
+from light.logger import logger
 
 archive_app = typer.Typer()
 

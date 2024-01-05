@@ -1,11 +1,11 @@
+import os
+
 import typer
 
-from light.logger import logger
-import os
+from light.cli.spec.schema import FunctionSpec, Resource, Resources, Settings
 from light.cli.utils import validate_name
+from light.logger import logger
 from light.utils import to_yaml
-from light.cli.spec.schema import FunctionSpec, Settings, Resources, Resource
-
 
 spec_app = typer.Typer()
 

@@ -1,5 +1,6 @@
-from light.config import CloudConfig
 import pulumi_aws as aws
+
+from light.config import CloudConfig
 from light.utils import call_once
 
 

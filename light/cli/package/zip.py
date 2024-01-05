@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
-from zipfile import ZipFile, ZIP_DEFLATED
 from typing import List, Optional
+from zipfile import ZIP_DEFLATED, ZipFile
+
 from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
 

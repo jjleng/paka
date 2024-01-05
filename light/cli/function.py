@@ -1,9 +1,9 @@
 import typer
-from light.logger import logger
-from light.cli.fission.function import upsert_fn, delete_fn, list_fns
-from light.cli.utils import validate_name
-from light.utils import to_yaml
 
+from light.cli.fission.function import delete_fn, list_fns, upsert_fn
+from light.cli.utils import validate_name
+from light.logger import logger
+from light.utils import to_yaml
 
 function_app = typer.Typer()
 

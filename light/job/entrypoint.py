@@ -1,6 +1,8 @@
-from kubernetes import client
-from light.k8s import apply_resource
 import json
+
+from kubernetes import client
+
+from light.k8s import apply_resource
 
 
 def write_entrypoint_script_to_cfgmap(

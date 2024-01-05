@@ -1,7 +1,8 @@
 import pulumi
-from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
-from light.utils import call_once
 import pulumi_kubernetes as k8s
+from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
+
+from light.utils import call_once
 
 
 @call_once

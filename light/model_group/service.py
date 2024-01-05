@@ -1,8 +1,9 @@
-from light.constants import SERVICE_ACCOUNT
-from light.config import CloudConfig, CloudModelGroup, Config
 from kubernetes import client
-from light.utils import kubify_name
+
+from light.config import CloudConfig, CloudModelGroup, Config
+from light.constants import SERVICE_ACCOUNT
 from light.k8s import apply_resource
+from light.utils import kubify_name
 
 # We hardcode the image here for now
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"

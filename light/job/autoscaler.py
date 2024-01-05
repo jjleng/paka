@@ -1,5 +1,6 @@
-from light.k8s import CustomResource, apply_resource
 from kubernetes import client
+
+from light.k8s import CustomResource, apply_resource
 
 
 def create_autoscaler(

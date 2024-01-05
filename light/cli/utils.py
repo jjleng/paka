@@ -1,7 +1,9 @@
-import re
 import functools
-import typer
+import re
 from typing import Any
+
+import typer
+
 from light.logger import logger
 
 

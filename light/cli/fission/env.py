@@ -1,13 +1,15 @@
+import re
+from typing import Optional
+
 from kubernetes import client
+
 from light.k8s import (
     CustomResource,
     apply_resource,
-    read_namespaced_custom_object,
     delete_namespaced_custom_object,
     list_namespaced_custom_object,
+    read_namespaced_custom_object,
 )
-from typing import Optional
-import re
 
 
 def validate_resource_format(resource: str, resource_type: str) -> None:

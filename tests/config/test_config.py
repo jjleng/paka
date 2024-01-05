@@ -1,24 +1,26 @@
-import pytest
 from typing import Any
+
+import pytest
+
 from light.config import (
-    Serve,
-    CloudServeConfig,
-    CloudServerless,
-    CloudServer,
-    CloudConfig,
-    Config,
-    LocalConfig,
-    ClusterConfig,
     BlobStore,
-    CloudModelGroup,
+    CloudConfig,
     CloudJobConfig,
+    CloudModelGroup,
+    CloudServeConfig,
+    CloudServer,
+    CloudServerless,
     CloudWorkerConfig,
+    ClusterConfig,
+    Config,
     LocalClusterConfig,
+    LocalConfig,
+    LocalJobConfig,
     LocalModelGroup,
     LocalServeConfig,
     LocalServer,
-    LocalJobConfig,
     LocalWorkerConfig,
+    Serve,
     generate_yaml,
     parse_yaml,
 )

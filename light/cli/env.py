@@ -1,10 +1,11 @@
-import typer
 from typing import Tuple
-from light.logger import logger
-from light.cli.fission.env import upsert_env, delete_env, list_envs
-from light.cli.utils import validate_name
-from light.utils import to_yaml
 
+import typer
+
+from light.cli.fission.env import delete_env, list_envs, upsert_env
+from light.cli.utils import validate_name
+from light.logger import logger
+from light.utils import to_yaml
 
 env_app = typer.Typer()
 
