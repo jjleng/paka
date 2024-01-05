@@ -84,7 +84,6 @@ def env_upsert(
     image, builder_image = pick_runtime(runtime)
 
     upsert_env(
-        "open-copilot",
         name,
         "default",
         image,

@@ -27,7 +27,6 @@ def validate_resource_format(resource: str, resource_type: str) -> None:
 
 
 def upsert_env(
-    kubeconfig_name: str,
     env_name: str,
     env_namespace: str,
     image: str,

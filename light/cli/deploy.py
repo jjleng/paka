@@ -25,7 +25,6 @@ def deploy_function(spec: FunctionSpec, build_command: str) -> None:
         build_command = r"sh -c 'pip3 install -r ${SRC_PKG}/requirements.txt -t ${SRC_PKG} && cp -r ${SRC_PKG} ${DEPLOY_PKG}'"
 
     upsert_env(
-        "open-copilot",
         spec.name,
         APP_NS,
         image=image,
