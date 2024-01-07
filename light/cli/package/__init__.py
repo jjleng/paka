@@ -42,6 +42,12 @@ def package_upsert(
         "-e",
         help="The environment to use for the package. Supported environments are 'python:3.12', 'node:18', etc.",
     ),
+    build_command: str = typer.Option(
+        "",
+        "--build-command",
+        "-b",
+        help="The command to build the package.",
+    ),
 ) -> None:
     try:
         get_env(env, FISSION_RESOURCE_NS)
@@ -57,7 +63,7 @@ def package_upsert(
         archive_directory(source_directory, archive_path, blacklist)
         logger.info(f"Archive '{archive_path}.zip' created successfully.")
         upsert_package(
-            name, FISSION_RESOURCE_NS, env, f"{archive_path}.zip", "./build.sh"
+            name, FISSION_RESOURCE_NS, env, f"{archive_path}.zip", build_command
         )
         package = get_package(name, FISSION_RESOURCE_NS)
         status = package["status"]

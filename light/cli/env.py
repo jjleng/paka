@@ -30,16 +30,16 @@ def pick_runtime(runtime: str) -> Tuple[str, str]:
         logger.info(f"Invalid language '{language}'. Only 'python' is supported.")
         raise typer.Exit(1)
 
-    # Only support version 3.12 for now
-    if version not in ["3.12"]:
+    # Only support version 3.11 for now
+    if version not in ["3.11"]:
         logger.info(
-            f"Invalid version '{version}'. Supported versions for language '{language}' are '3.12'."
+            f"Invalid version '{version}'. Supported versions for language '{language}' are '3.11'."
         )
         raise typer.Exit(1)
 
     return (
-        f"jijunleng/{language}-env-{version}:dev",
-        f"jijunleng/{language}-builder-{version}:dev",
+        f"jijunleng/{language}-env-{version}:bookworm-slim",
+        f"jijunleng/{language}-builder-{version}:bookworm-slim",
     )
 
 
