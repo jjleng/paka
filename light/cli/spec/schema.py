@@ -24,9 +24,14 @@ class Settings(BaseModel):
     requests_per_pod: Optional[int] = 1
 
 
+class Runtime(BaseModel):
+    image: str
+    builder_image: str
+
+
 class FunctionSpec(BaseModel):
     name: str
-    runtime: str
+    runtime: Runtime
     resources: Resources
     settings: Settings
     kind: str = APP_KIND_FUNCTION

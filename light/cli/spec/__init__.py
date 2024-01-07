@@ -2,8 +2,8 @@ import os
 
 import typer
 
-from light.cli.spec.schema import FunctionSpec, Resource, Resources, Settings
-from light.cli.utils import validate_name
+from light.cli.spec.schema import FunctionSpec, Resource, Resources, Runtime, Settings
+from light.cli.utils import pick_runtime, validate_name
 from light.logger import logger
 from light.utils import to_yaml
 
@@ -78,9 +78,10 @@ def create_function(
         idle_timeout=idle_timeout,
         requests_per_pod=requests_per_pod,
     )
+    image, builder_image = pick_runtime(runtime)
     function_spec = FunctionSpec(
         name=name,
-        runtime=runtime,
+        runtime=Runtime(image=image, builder_image=builder_image),
         resources=resources,
         settings=settings,
     )

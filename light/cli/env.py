@@ -1,46 +1,12 @@
-from typing import Tuple
-
 import typer
 
-from light.cli.utils import validate_name
+from light.cli.utils import pick_runtime, validate_name
 from light.constants import FISSION_RESOURCE_NS
 from light.fission.env import delete_env, list_envs, upsert_env
 from light.logger import logger
 from light.utils import to_yaml
 
 env_app = typer.Typer()
-
-
-def pick_runtime(runtime: str) -> Tuple[str, str]:
-    language, version = runtime.split(":")
-    if not language or not version:
-        logger.info(
-            "Invalid runtime. Runtime must be in the format of 'language:version'."
-        )
-        raise typer.Exit(1)
-
-    if language not in ["python", "node"]:
-        logger.info(
-            f"Invalid language '{language}'. Supported languages are 'python' and 'node'."
-        )
-        raise typer.Exit(1)
-
-    # Only support python for now
-    if language != "python":
-        logger.info(f"Invalid language '{language}'. Only 'python' is supported.")
-        raise typer.Exit(1)
-
-    # Only support version 3.11 for now
-    if version not in ["3.11"]:
-        logger.info(
-            f"Invalid version '{version}'. Supported versions for language '{language}' are '3.11'."
-        )
-        raise typer.Exit(1)
-
-    return (
-        f"jijunleng/{language}-env-{version}:bookworm-slim",
-        f"jijunleng/{language}-builder-{version}:bookworm-slim",
-    )
 
 
 @env_app.command("create")
