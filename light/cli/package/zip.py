@@ -3,30 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from pathspec import PathSpec
-from pathspec.patterns import GitWildMatchPattern
-
-
-def parse_gitignore(directory_path: str) -> PathSpec:
-    gitignore_path = Path(directory_path) / ".gitignore"
-    if not gitignore_path.exists():
-        return PathSpec.from_lines(GitWildMatchPattern, [])
-    with open(gitignore_path, "r") as file:
-        return PathSpec.from_lines(GitWildMatchPattern, file)
-
-
-def recursive_archive(
-    directory_path: str, ignore_spec: PathSpec, zipf: ZipFile
-) -> None:
-    gitignore = parse_gitignore(directory_path)
-    current_ignore_spec = ignore_spec + gitignore
-
-    for entry in os.scandir(directory_path):
-        if entry.is_file():
-            if not current_ignore_spec.match_file(entry.path):
-                zipf.write(entry.path, Path(entry.path).relative_to(directory_path))
-        elif entry.is_dir():
-            recursive_archive(entry.path, current_ignore_spec, zipf)
+from pathspec import GitIgnoreSpec, PathSpec
 
 
 def archive_directory(
@@ -35,15 +12,18 @@ def archive_directory(
     if blacklist is None:
         blacklist = []
 
-    # First pass: Check for .gitignore files
-    use_gitignore = any(
-        Path(root).joinpath(".gitignore").exists()
-        for root, dirs, files in os.walk(directory_path)
-    )
+    gitignore_path = Path(directory_path) / ".gitignore"
+    if gitignore_path.exists():
+        with open(gitignore_path, "r") as file:
+            blacklist += file.readlines()
 
-    if use_gitignore:
-        blacklist = []
+    blacklist_spec = GitIgnoreSpec.from_lines(blacklist)
 
     with ZipFile(f"{archive_path}.zip", "w", ZIP_DEFLATED) as zipf:
-        blacklist_spec = PathSpec.from_lines(GitWildMatchPattern, blacklist)
-        recursive_archive(directory_path, blacklist_spec, zipf)
+        for root, dirs, files in os.walk(directory_path):
+            relative_root = os.path.relpath(root, directory_path)
+            for f in files:
+                relative_file_path = os.path.join(relative_root, f)
+                if not blacklist_spec.match_file(relative_file_path):
+                    full_file_path = os.path.join(root, f)
+                    zipf.write(full_file_path, relative_file_path)
