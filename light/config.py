@@ -36,10 +36,10 @@ class BlobStore(BaseModel):
     Represents a blob store. Bucket name will be the same as the cluster name.
 
     Attributes:
-        skip (bool): Indicates whether to skip the blob store provision.
+        bucket (str): The name of the bucket.
     """
 
-    skip: bool = False
+    bucket: str
 
 
 class Serve(BaseModel):

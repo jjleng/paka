@@ -3,7 +3,7 @@ aws:
     name: test-cluster
     defaultRegion: us-east-1
   blobStore:
-    skip: false
+    bucket: test-bucket
   modelGroups:
     - nodeType: t2.micro
       minInstances: 1

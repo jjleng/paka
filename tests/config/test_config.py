@@ -29,7 +29,7 @@ serverless_config = CloudServerless(region="us-east-1", maxInstances=1, minInsta
 server_config = CloudServer(maxInstances=1, minInstances=1, nodeType="t2.micro")
 cloud_config = CloudConfig(
     cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
-    blobStore=BlobStore(),
+    blobStore=BlobStore(bucket="test-bucket"),
     modelGroups=[
         CloudModelGroup(
             name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
