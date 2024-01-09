@@ -134,6 +134,8 @@ def test_parse_yaml() -> None:
         cluster:
             name: test_cluster
             defaultRegion: us-west-2
+        blobStore:
+            bucket: test_bucket
     """
     config = parse_yaml(yaml_str)
     assert isinstance(config, Config)

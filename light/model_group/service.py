@@ -20,7 +20,7 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
     Returns:
         client.V1Container: The initialized AWS container.
     """
-    bucket = config.cluster.name
+    bucket = config.blobStore.bucket
     return client.V1Container(
         name="init-s3-model-download",
         image="amazon/aws-cli",

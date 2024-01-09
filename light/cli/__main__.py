@@ -7,7 +7,7 @@ from light.cli.function import function_app
 from light.cli.package import package_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
-from light.config import CloudConfig, CloudModelGroup, ClusterConfig, Config
+from light.config import BlobStore, CloudConfig, CloudModelGroup, ClusterConfig, Config
 from light.logger import setup_logger
 
 
@@ -25,7 +25,8 @@ cli.callback()(verbose_option)
 cluster_manager = AWSClusterManager(
     config=Config(
         aws=CloudConfig(
-            cluster=ClusterConfig(name="open-copilot", defaultRegion="us-west-2"),
+            cluster=ClusterConfig(name="lima", defaultRegion="us-west-2"),
+            blobStore=BlobStore(bucket="lima-ae3b"),
             modelGroups=[
                 CloudModelGroup(
                     name="llama-2-7b.Q4_0.gguf",

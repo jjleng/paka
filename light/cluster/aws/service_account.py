@@ -16,7 +16,7 @@ def create_service_account(
     k8s_provider: k8s.Provider,
 ) -> None:
     project = config.cluster.name
-    bucket = project
+    bucket = config.blobStore.bucket
 
     s3_policy = aws.iam.Policy(
         f"{project}-s3-access-policy",
