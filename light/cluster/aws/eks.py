@@ -7,8 +7,8 @@ import pulumi_kubernetes as k8s
 from light.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from light.cluster.aws.service_account import create_service_account
-from light.cluster.fission import create_fission
 from light.cluster.keda import create_keda
+from light.cluster.knative import create_knative
 from light.cluster.redis import create_redis
 from light.config import CloudConfig
 from light.k8s import save_kubeconfig
@@ -163,15 +163,15 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         f"{project}-default-group",
         node_group_name=f"{project}-default-group",
         cluster=cluster,
-        instance_types=["t2.small"],
+        instance_types=["t2.medium"],
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
             # Each t2.small node is bounded to a maximum 4 pods.
             # At least 2 t2.small nodes are required for the Cluster Autoscaler to work
             desired_size=2,
             min_size=2,
-            max_size=4,
+            max_size=3,
         ),
-        labels={"size": "t2.small", "group": "default"},
+        labels={"size": "t2.medium", "group": "default"},
         node_role_arn=worker_role.arn,
         subnet_ids=vpc.private_subnet_ids,
     )
@@ -199,7 +199,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     create_ebs_csi_driver(config, cluster, k8s_provider)
     create_redis(k8s_provider)
     create_keda(k8s_provider)
-    create_fission(k8s_provider)
+    create_knative(k8s_provider)
 
     create_service_account(config, cluster, k8s_provider)
 
