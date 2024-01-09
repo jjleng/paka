@@ -4,7 +4,7 @@ MODEL_GROUP_SA = "model-group-sa"
 # Celery worker service account
 CELERY_WORKER_SA = "celery-worker-sa"
 # Namespace for redis and workers
-JOB_NS = "jobs"
+JOB_NS = "default"
 # Namespace for functions, model groups, etc.
 APP_NS = "default"
 # Namespace for fission resources (CRDs), such as packages, functions, etc.
