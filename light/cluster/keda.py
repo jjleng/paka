@@ -13,6 +13,7 @@ def create_keda(k8s_provider: k8s.Provider) -> None:
     k8s.core.v1.Namespace(
         "keda",
         metadata={"name": "keda"},
+        opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
     Chart(
         "keda",
