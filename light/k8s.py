@@ -18,8 +18,6 @@ from ruamel.yaml import YAML
 from light.logger import logger
 from light.utils import get_project_data_dir
 
-config.load_config()
-
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
     "Service",
@@ -529,3 +527,16 @@ def setup_port_forward(
     logger.debug(f"Port forward from local port {local_port} started")
 
     return str(local_port), stop_forward
+
+
+def try_load_kubeconfig() -> bool:
+    try:
+        config.load_kube_config()
+        return True
+    except Exception as e:
+        logger.debug(f"Error loading kubeconfig: {e}")
+        return False
+
+
+# Load the kubeconfig when this module is imported
+try_load_kubeconfig()
