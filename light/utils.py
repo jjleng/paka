@@ -93,6 +93,44 @@ def to_yaml(obj: dict) -> str:
     return buf.getvalue()
 
 
+def set_current_cluster(name: str) -> None:
+    # Create symlink that points to the current cluster
+    target = get_cluster_data_dir(name)
+
+    # Path where the symlink should be created
+    link = os.path.join(get_project_data_dir(), "current_cluster")
+
+    # Remove the existing symlink if it exists
+    if os.path.islink(link):
+        os.unlink(link)
+
+    # Create a new symlink
+    os.symlink(target, link)
+
+
+def get_cluster_data_dir(name: str) -> str:
+    """
+    Get the cluster data directory.
+
+    Args:
+        name (str): The name of the cluster.
+
+    Returns:
+        str: The cluster data directory.
+    """
+    return os.path.join(get_project_data_dir(), "clusters", name)
+
+
+def get_pulumi_data_dir() -> str:
+    """
+    Get the pulumi data directory.
+
+    Returns:
+        str: The pulumi data directory.
+    """
+    return os.path.join(get_project_data_dir(), "pulumi")
+
+
 def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
     """
     Save the kubeconfig data as YAML file.
@@ -106,11 +144,13 @@ def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
     """
     kubeconfig_data = json.loads(kubeconfig_json)
 
-    kubeconfig_file_path = os.path.join(get_project_data_dir(), name, "kubeconfig.yaml")
+    kubeconfig_file_path = os.path.join(get_cluster_data_dir(name), "kubeconfig.yaml")
     os.makedirs(os.path.dirname(kubeconfig_file_path), exist_ok=True)
 
     with open(kubeconfig_file_path, "w") as f:
         f.write(to_yaml(kubeconfig_data))
+
+    set_current_cluster(name)
 
 
 def save_cluster_data(name: str, k: str, v: Any) -> None:
@@ -126,7 +166,7 @@ def save_cluster_data(name: str, k: str, v: Any) -> None:
     """
 
     yaml = YAML()
-    cluster_file_path = os.path.join(get_project_data_dir(), name, "cluster.yaml")
+    cluster_file_path = os.path.join(get_cluster_data_dir(name), "cluster.yaml")
     os.makedirs(os.path.dirname(cluster_file_path), exist_ok=True)
 
     # Load the existing data
@@ -154,7 +194,7 @@ def read_cluster_data(name: str, k: str) -> Any:
         Any: The value of the cluster data.
     """
     yaml = YAML()
-    cluster_file_path = os.path.join(get_project_data_dir(), name, "cluster.yaml")
+    cluster_file_path = os.path.join(get_cluster_data_dir(name), "cluster.yaml")
 
     # Load the existing data
     try:

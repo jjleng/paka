@@ -1,3 +1,5 @@
+import os
+
 import pulumi_eks as eks
 from pulumi import automation as auto
 
@@ -6,6 +8,7 @@ from light.cluster.aws.eks import create_k8s_cluster
 from light.cluster.aws.object_store import create_object_store
 from light.config import CloudConfig, Config
 from light.model_group.service import create_model_group_service
+from light.utils import get_pulumi_data_dir
 
 STACK_NAME = "default"
 
@@ -26,10 +29,16 @@ class AWSClusterManager:
         return create_k8s_cluster(self.config)
 
     def _stack_for_program(self, program: auto.PulumiFn) -> auto.Stack:
+        pulumi_home = get_pulumi_data_dir()
+        os.makedirs(pulumi_home, exist_ok=True)
+
         return auto.create_or_select_stack(
             stack_name=STACK_NAME,
             project_name=self.config.cluster.name,
             program=program,
+            opts=auto.LocalWorkspaceOptions(
+                pulumi_home=pulumi_home,
+            ),
         )
 
     @property
