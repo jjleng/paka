@@ -7,7 +7,3 @@ CELERY_WORKER_SA = "celery-worker-sa"
 JOB_NS = "default"
 # Namespace for functions, model groups, etc.
 APP_NS = "default"
-# Namespace for fission resources (CRDs), such as packages, functions, etc.
-FISSION_RESOURCE_NS = "default"
-# Namespace for fission controllers
-FISSION_RELEASE_NS = "fission"

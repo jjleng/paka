@@ -27,7 +27,6 @@ def camel_to_kebab(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1-\2", name).lower()
 
 
-# Port from Fission
 def kubify_name(old: str) -> str:
     max_len = 63
 

@@ -1,10 +1,6 @@
 import typer
 
-from light.cli.archive import archive_app
 from light.cli.deploy import deploy_app
-from light.cli.env import env_app
-from light.cli.function import function_app
-from light.cli.package import package_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
 from light.config import BlobStore, CloudConfig, CloudModelGroup, ClusterConfig, Config
@@ -75,14 +71,6 @@ def service_up() -> None:
 
 cli.add_typer(service_app, name="service")
 
-
-cli.add_typer(package_app, name="package")
-
-cli.add_typer(env_app, name="env")
-
-cli.add_typer(archive_app, name="archive")
-
-cli.add_typer(function_app, name="fn")
 
 cli.add_typer(spec_app, name="spec")
 
