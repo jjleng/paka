@@ -8,7 +8,7 @@ from light.cluster.aws.eks import create_k8s_cluster
 from light.cluster.aws.object_store import create_object_store
 from light.config import CloudConfig, Config
 from light.model_group.service import create_model_group_service
-from light.utils import get_pulumi_data_dir
+from light.utils import get_pulumi_data_dir, save_cluster_data
 
 STACK_NAME = "default"
 
@@ -52,6 +52,9 @@ class AWSClusterManager:
         # Set AWS region
         self._stack.set_config(
             "aws:region", auto.ConfigValue(value=self.config.cluster.defaultRegion)
+        )
+        save_cluster_data(
+            self.config.cluster.name, "region", self.config.cluster.defaultRegion
         )
 
         print("Creating resources...")
