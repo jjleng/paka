@@ -1,7 +1,7 @@
 import pulumi_aws as aws
 
 from light.config import CloudConfig
-from light.utils import call_once
+from light.utils import call_once, save_cluster_data
 
 
 @call_once
@@ -16,4 +16,8 @@ def create_container_registry(config: CloudConfig) -> None:
         None
     """
     project = config.cluster.name
-    aws.ecr.Repository(project, image_tag_mutability="MUTABLE")
+    repository = aws.ecr.Repository(project, image_tag_mutability="MUTABLE")
+
+    repository.repository_url.apply(
+        lambda url: save_cluster_data(project, "registry", url)
+    )
