@@ -1,7 +1,7 @@
 from kubernetes import client
 
 from light.config import CloudConfig, CloudModelGroup, Config
-from light.constants import MODEL_GROUP_SA
+from light.constants import ACCESS_ALL_SA
 from light.k8s import apply_resource
 from light.utils import kubify_name, read_cluster_data
 
@@ -68,7 +68,7 @@ def create_pod(
             },
         ),
         spec=client.V1PodSpec(
-            service_account_name=MODEL_GROUP_SA,
+            service_account_name=ACCESS_ALL_SA,
             volumes=[
                 client.V1Volume(
                     name="model-data",

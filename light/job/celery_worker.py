@@ -3,14 +3,9 @@ import time
 
 from kubernetes import client
 
-from light.constants import CELERY_WORKER_SA, JOB_NS
+from light.constants import ACCESS_ALL_SA, APP_NS
 from light.job.autoscaler import create_autoscaler
-from light.k8s import (
-    apply_resource,
-    create_namespace,
-    create_service_account,
-    try_load_kubeconfig,
-)
+from light.k8s import apply_resource, create_namespace, try_load_kubeconfig
 from light.logger import logger
 
 try_load_kubeconfig()
@@ -77,12 +72,10 @@ def create_celery_workers(
     image: str,
     drain_existing_task: bool = True,
 ) -> None:
-    namespace = JOB_NS
-    service_account_name = CELERY_WORKER_SA
+    namespace = APP_NS
 
     # Create the namespace and service account for celery workers
     create_namespace(namespace)
-    create_service_account(namespace, service_account_name)
 
     deployment_name = task_name
 
@@ -96,7 +89,7 @@ def create_celery_workers(
         runtime_command,
         namespace,
         deployment_name,
-        service_account_name,
+        ACCESS_ALL_SA,
         image,
     )
 
