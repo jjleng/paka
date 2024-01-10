@@ -1,5 +1,6 @@
 import typer
 
+from light.cli.build import build_app
 from light.cli.deploy import deploy_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
@@ -75,6 +76,8 @@ cli.add_typer(service_app, name="service")
 cli.add_typer(spec_app, name="spec")
 
 cli.add_typer(deploy_app, name="deploy")
+
+cli.add_typer(build_app, name="build")
 
 
 def main() -> None:
