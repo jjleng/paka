@@ -1,7 +1,7 @@
 import pulumi_aws as aws
 
 from light.config import CloudConfig
-from light.utils import call_once
+from light.utils import call_once, save_cluster_data
 
 
 @call_once
@@ -17,6 +17,5 @@ def create_object_store(config: CloudConfig) -> None:
     """
     # `bucket` is the name of the bucket. It will avoid pulumi appending a random string to the name
     # `force_destroy`` is needed to delete the bucket when it's not empty
-    aws.s3.Bucket(
-        config.cluster.name, bucket=config.blobStore.bucket, force_destroy=True
-    )
+    bucket = aws.s3.Bucket(config.cluster.name, force_destroy=True)
+    bucket.id.apply(lambda id: save_cluster_data(config.cluster.name, "bucket", id))

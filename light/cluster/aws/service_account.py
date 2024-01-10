@@ -6,7 +6,7 @@ import pulumi_kubernetes as k8s
 from light.cluster.aws.utils import odic_role_for_sa
 from light.config import CloudConfig
 from light.constants import APP_NS, MODEL_GROUP_SA
-from light.utils import call_once
+from light.utils import call_once, read_cluster_data
 
 
 @call_once
@@ -16,7 +16,7 @@ def create_service_account(
     k8s_provider: k8s.Provider,
 ) -> None:
     project = config.cluster.name
-    bucket = config.blobStore.bucket
+    bucket = read_cluster_data(project, "bucket")
 
     s3_policy = aws.iam.Policy(
         f"{project}-s3-access-policy",

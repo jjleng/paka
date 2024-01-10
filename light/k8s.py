@@ -1,6 +1,4 @@
 import contextlib
-import json
-import os
 import re
 import select
 import socket
@@ -14,7 +12,6 @@ from kubernetes.client.rest import ApiException
 from kubernetes.stream import portforward
 
 from light.logger import logger
-from light.utils import get_project_data_dir, to_yaml
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -31,26 +28,6 @@ KubernetesResourceKind: TypeAlias = Literal[
     "Environment",
     "Function",
 ]
-
-
-def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
-    """
-    Save the kubeconfig data as YAML file.
-
-    Args:
-        name (str): The name of the kubeconfig file.
-        kubeconfig_json (str): The kubeconfig data in JSON format.
-
-    Returns:
-        None
-    """
-    kubeconfig_data = json.loads(kubeconfig_json)
-
-    kubeconfig_file_path = os.path.join(get_project_data_dir(), name)
-    os.makedirs(os.path.dirname(kubeconfig_file_path), exist_ok=True)
-
-    with open(kubeconfig_file_path, "w") as f:
-        f.write(to_yaml(kubeconfig_data))
 
 
 class CustomResource:

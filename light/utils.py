@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from io import StringIO
@@ -90,3 +91,76 @@ def to_yaml(obj: dict) -> str:
     buf = StringIO()
     yaml.dump(obj, buf)
     return buf.getvalue()
+
+
+def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
+    """
+    Save the kubeconfig data as YAML file.
+
+    Args:
+        name (str): The name of the cluster.
+        kubeconfig_json (str): The kubeconfig data in JSON format.
+
+    Returns:
+        None
+    """
+    kubeconfig_data = json.loads(kubeconfig_json)
+
+    kubeconfig_file_path = os.path.join(get_project_data_dir(), name, "kubeconfig.yaml")
+    os.makedirs(os.path.dirname(kubeconfig_file_path), exist_ok=True)
+
+    with open(kubeconfig_file_path, "w") as f:
+        f.write(to_yaml(kubeconfig_data))
+
+
+def save_cluster_data(name: str, k: str, v: Any) -> None:
+    """
+    Save the cluster data as YAML file.
+
+    Args:
+        name (str): The name of the cluster.
+        k (str): The key of the cluster data.
+        v (Any): The value of the cluster data.
+    Returns:
+        None
+    """
+
+    yaml = YAML()
+    cluster_file_path = os.path.join(get_project_data_dir(), name, "cluster.yaml")
+    os.makedirs(os.path.dirname(cluster_file_path), exist_ok=True)
+
+    # Load the existing data
+    try:
+        with open(cluster_file_path, "r") as file:
+            data = yaml.load(file)
+    except FileNotFoundError:
+        data = {}
+
+    data[k] = v
+
+    with open(cluster_file_path, "w") as file:
+        yaml.dump(data, file)
+
+
+def read_cluster_data(name: str, k: str) -> Any:
+    """
+    Read the cluster data.
+
+    Args:
+        name (str): The name of the cluster.
+        k (str): The key of the cluster data.
+
+    Returns:
+        Any: The value of the cluster data.
+    """
+    yaml = YAML()
+    cluster_file_path = os.path.join(get_project_data_dir(), name, "cluster.yaml")
+
+    # Load the existing data
+    try:
+        with open(cluster_file_path, "r") as file:
+            data = yaml.load(file)
+    except FileNotFoundError:
+        return None
+
+    return data.get(k)

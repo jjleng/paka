@@ -23,7 +23,6 @@ cluster_manager = AWSClusterManager(
     config=Config(
         aws=CloudConfig(
             cluster=ClusterConfig(name="lima", defaultRegion="us-west-2"),
-            blobStore=BlobStore(bucket="lima-ae3b"),
             modelGroups=[
                 CloudModelGroup(
                     name="llama-2-7b.Q4_0.gguf",

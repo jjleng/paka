@@ -3,7 +3,7 @@ from kubernetes import client
 from light.config import CloudConfig, CloudModelGroup, Config
 from light.constants import MODEL_GROUP_SA
 from light.k8s import apply_resource
-from light.utils import kubify_name
+from light.utils import kubify_name, read_cluster_data
 
 # We hardcode the image here for now
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
@@ -20,7 +20,8 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
     Returns:
         client.V1Container: The initialized AWS container.
     """
-    bucket = config.blobStore.bucket
+    bucket = read_cluster_data(config.cluster.name, "bucket")
+
     return client.V1Container(
         name="init-s3-model-download",
         image="amazon/aws-cli",

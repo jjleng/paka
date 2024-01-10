@@ -11,8 +11,7 @@ from light.cluster.keda import create_keda
 from light.cluster.knative import create_knative
 from light.cluster.redis import create_redis
 from light.config import CloudConfig
-from light.k8s import save_kubeconfig
-from light.utils import kubify_name
+from light.utils import kubify_name, save_kubeconfig
 
 
 def _ignore_tags_transformation(

@@ -308,7 +308,7 @@ class CloudConfig(BaseModel):
     """
 
     cluster: ClusterConfig
-    blobStore: BlobStore
+    blobStore: Optional[BlobStore] = None
     modelGroups: Optional[List[CloudModelGroup]] = None
     serve: Optional[CloudServeConfig] = None
     job: Optional[CloudJobConfig] = None
