@@ -182,6 +182,18 @@ def save_cluster_data(name: str, k: str, v: Any) -> None:
         yaml.dump(data, file)
 
 
+def read_cluster_data_by_path(path: str, k: str) -> Any:
+    yaml = YAML()
+    # Load the existing data
+    try:
+        with open(path, "r") as file:
+            data = yaml.load(file)
+    except FileNotFoundError:
+        return None
+
+    return data.get(k)
+
+
 def read_cluster_data(name: str, k: str) -> Any:
     """
     Read the cluster data.
@@ -193,14 +205,22 @@ def read_cluster_data(name: str, k: str) -> Any:
     Returns:
         Any: The value of the cluster data.
     """
-    yaml = YAML()
     cluster_file_path = os.path.join(get_cluster_data_dir(name), "cluster.yaml")
+    return read_cluster_data_by_path(cluster_file_path, k)
 
-    # Load the existing data
-    try:
-        with open(cluster_file_path, "r") as file:
-            data = yaml.load(file)
-    except FileNotFoundError:
-        return None
 
-    return data.get(k)
+def read_current_cluster_data(k: str) -> Any:
+    """
+    Read the cluster data.
+
+    Args:
+        name (str): The name of the cluster.
+        k (str): The key of the cluster data.
+
+    Returns:
+        Any: The value of the cluster data.
+    """
+    cluster_file_path = os.path.join(
+        get_project_data_dir(), "current_cluster", "cluster.yaml"
+    )
+    return read_cluster_data_by_path(cluster_file_path, k)

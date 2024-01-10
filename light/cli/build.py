@@ -5,7 +5,7 @@ import typer
 from light.container.ecr import push_to_ecr
 from light.container.pack import install_pack
 from light.logger import logger
-from light.utils import read_cluster_data
+from light.utils import read_current_cluster_data
 
 build_app = typer.Typer()
 
@@ -36,6 +36,12 @@ def build(
         )
         logger.info(f"Successfully built {image_name}")
 
-        registry_uri = read_cluster_data("lima", "registry")
+        push_to_ecr(
+            image_name,
+            read_current_cluster_data("registry"),
+            read_current_cluster_data("region"),
+            image_name,
+        )
+
     except subprocess.CalledProcessError as e:
         logger.error(f"An error occurred: {e}")
