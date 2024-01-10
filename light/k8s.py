@@ -7,16 +7,14 @@ import socket
 import threading
 import time
 from functools import partial
-from io import StringIO
 from typing import Any, Callable, Dict, Literal, Optional, Protocol, Tuple, TypeAlias
 
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import portforward
-from ruamel.yaml import YAML
 
 from light.logger import logger
-from light.utils import get_project_data_dir
+from light.utils import get_project_data_dir, to_yaml
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -48,17 +46,11 @@ def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
     """
     kubeconfig_data = json.loads(kubeconfig_json)
 
-    yaml = YAML()
-
-    buf = StringIO()
-    yaml.dump(kubeconfig_data, buf)
-    kubeconfig_yaml = buf.getvalue()
-
     kubeconfig_file_path = os.path.join(get_project_data_dir(), name)
     os.makedirs(os.path.dirname(kubeconfig_file_path), exist_ok=True)
 
     with open(kubeconfig_file_path, "w") as f:
-        f.write(kubeconfig_yaml)
+        f.write(to_yaml(kubeconfig_data))
 
 
 class CustomResource:
