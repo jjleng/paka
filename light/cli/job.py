@@ -3,6 +3,7 @@ from typing import Optional
 
 import typer
 
+from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.job.worker import create_workers, delete_workers
 from light.logger import logger
 from light.utils import read_current_cluster_data
@@ -64,12 +65,13 @@ def deploy(
     registry_uri = read_current_cluster_data("registry")
 
     create_workers(
-        entrypoint,
-        typed_job_name(job_name),
-        f"{registry_uri}:{image_name or job_name}",
-        tasks_per_worker,
-        max_workers,
-        wait_existing_tasks,
+        namespace=APP_NS,
+        job_name=typed_job_name(job_name),
+        image=f"{registry_uri}:{image_name or job_name}",
+        entrypoint=entrypoint,
+        tasks_per_worker=tasks_per_worker,
+        max_replicas=max_workers,
+        drain_existing_job=wait_existing_tasks,
     )
 
 
@@ -79,7 +81,12 @@ def delete(
         ...,
         help="The job name.",
     ),
+    wait_existing_tasks: bool = typer.Option(
+        True,
+        "--wait-existing-tasks",
+        help="Wait for existing tasks to drain before deleting.",
+    ),
 ) -> None:
     logger.info(f"Deleting job {job_name}")
-    delete_workers(typed_job_name(job_name))
+    delete_workers(APP_NS, typed_job_name(job_name), wait_existing_tasks)
     logger.info(f"Successfully deleted job {job_name}")

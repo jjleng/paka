@@ -3,7 +3,7 @@ import time
 
 from kubernetes import client
 
-from light.constants import ACCESS_ALL_SA, APP_NS
+from light.constants import ACCESS_ALL_SA
 from light.job.autoscaler import create_autoscaler, delete_autoscaler
 from light.k8s import apply_resource, create_namespace, try_load_kubeconfig
 from light.logger import logger
@@ -26,7 +26,7 @@ def wait_for_pods_to_drain(namespace: str, deployment_name: str) -> None:
 # k8s job is another option to run a task. We are using k8s deployment here.
 # The advantage of using k8s deployment is that we retrigger the workers without creating a new deployment.
 def create_deployment(
-    runtime_command: str,
+    entrypoint: str,
     namespace: str,
     deployment_name: str,
     service_account_name: str,
@@ -36,7 +36,7 @@ def create_deployment(
         client.V1Container(
             name="worker",
             image=image_name,
-            command=shlex.split(runtime_command),
+            command=shlex.split(entrypoint),
             env=[
                 client.V1EnvVar(
                     name="REDIS_PASSWORD",
@@ -80,27 +80,26 @@ def create_deployment(
 
 
 def create_workers(
-    runtime_command: str,
+    namespace: str,
     job_name: str,
     image: str,
+    entrypoint: str,
     tasks_per_worker: int = 5,
     max_replicas: int = 5,
-    drain_existing_task: bool = True,
+    drain_existing_job: bool = True,
 ) -> None:
-    namespace = APP_NS
-
     create_namespace(namespace)
 
     deployment_name = job_name
 
-    if drain_existing_task:
+    if drain_existing_job:
         # Check if the deployment already exists
         # Wait for pods to drain
         wait_for_pods_to_drain(namespace, deployment_name)
 
     # Otherwise, upsert the deployment. This will update the deployment if it already exists.
     create_deployment(
-        runtime_command,
+        entrypoint,
         namespace,
         deployment_name,
         ACCESS_ALL_SA,
@@ -119,13 +118,13 @@ def create_workers(
 
 
 def delete_workers(
+    namespace: str,
     job_name: str,
-    drain_existing_task: bool = True,
+    drain_existing_job: bool = True,
 ) -> None:
-    namespace = APP_NS
     deployment_name = job_name
 
-    if drain_existing_task:
+    if drain_existing_job:
         wait_for_pods_to_drain(namespace, deployment_name)
 
     delete_autoscaler(namespace, deployment_name)
