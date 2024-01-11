@@ -10,6 +10,12 @@ from light.utils import read_current_cluster_data
 job_app = typer.Typer()
 
 
+def typed_job_name(job_name: str) -> str:
+    if not job_name.endswith("-job"):
+        return f"{job_name}-job"
+    return job_name
+
+
 @job_app.command(help="Deploy a job.")
 def deploy(
     entrypoint: str = typer.Option(
@@ -49,18 +55,18 @@ def deploy(
         )
         raise typer.Exit(1)
     elif image_name:
-        task_name = image_name
+        job_name = image_name
     elif source_dir:
         source_dir = os.path.abspath(source_dir)
         image_name = os.path.basename(source_dir)
-        task_name = image_name
+        job_name = image_name
 
     registry_uri = read_current_cluster_data("registry")
 
     create_workers(
         entrypoint,
-        task_name,
-        f"{registry_uri}:{image_name or task_name}",
+        typed_job_name(job_name),
+        f"{registry_uri}:{image_name or job_name}",
         tasks_per_worker,
         max_workers,
         wait_existing_tasks,
@@ -75,5 +81,5 @@ def delete(
     ),
 ) -> None:
     logger.info(f"Deleting job {job_name}")
-    delete_workers(job_name)
+    delete_workers(typed_job_name(job_name))
     logger.info(f"Successfully deleted job {job_name}")

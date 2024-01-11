@@ -14,7 +14,8 @@ try_load_kubeconfig()
 def wait_for_pods_to_drain(namespace: str, deployment_name: str) -> None:
     while True:
         pods = client.CoreV1Api().list_namespaced_pod(
-            namespace, label_selector=f"app={deployment_name},role=worker"
+            namespace,
+            label_selector=f"app={deployment_name},role=worker",
         )
         if not pods.items:
             break
@@ -56,11 +57,17 @@ def create_deployment(
         spec=client.V1DeploymentSpec(
             replicas=0,
             selector=client.V1LabelSelector(
-                match_labels={"app": deployment_name, "role": "worker"}
+                match_labels={
+                    "app": deployment_name,
+                    "role": "worker",
+                }
             ),
             template=client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(
-                    labels={"app": deployment_name, "role": "worker"}
+                    labels={
+                        "app": deployment_name,
+                        "role": "worker",
+                    }
                 ),
                 spec=client.V1PodSpec(
                     service_account_name=service_account_name,
@@ -74,7 +81,7 @@ def create_deployment(
 
 def create_workers(
     runtime_command: str,
-    task_name: str,
+    job_name: str,
     image: str,
     tasks_per_worker: int = 5,
     max_replicas: int = 5,
@@ -84,7 +91,7 @@ def create_workers(
 
     create_namespace(namespace)
 
-    deployment_name = task_name
+    deployment_name = job_name
 
     if drain_existing_task:
         # Check if the deployment already exists
@@ -116,10 +123,11 @@ def delete_workers(
     drain_existing_task: bool = True,
 ) -> None:
     namespace = APP_NS
+    deployment_name = job_name
 
     if drain_existing_task:
-        wait_for_pods_to_drain(namespace, job_name)
+        wait_for_pods_to_drain(namespace, deployment_name)
 
-    delete_autoscaler(namespace, job_name)
+    delete_autoscaler(namespace, deployment_name)
 
-    client.AppsV1Api().delete_namespaced_deployment(job_name, namespace)
+    client.AppsV1Api().delete_namespaced_deployment(deployment_name, namespace)
