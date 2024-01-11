@@ -1,6 +1,8 @@
 import json
 import os
+import random
 import re
+import string
 from io import StringIO
 from pathlib import Path
 from typing import Any, Callable
@@ -221,3 +223,8 @@ def read_current_cluster_data(k: str) -> Any:
         get_project_data_dir(), "current_cluster", "cluster.yaml"
     )
     return read_cluster_data_by_path(cluster_file_path, k)
+
+
+def random_str(length: int = 5) -> str:
+    # Generate a random string of the specified length
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))

@@ -1,14 +1,8 @@
-import random
 import shlex
-import string
 import subprocess
 
 from light.logger import logger
-
-
-def generate_random_version(length: int = 5) -> str:
-    # Generate a random string of the specified length
-    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+from light.utils import random_str
 
 
 def push_to_ecr(
@@ -25,7 +19,7 @@ def push_to_ecr(
         )
 
         # Generate a random version number
-        version = generate_random_version()
+        version = random_str()
 
         # Tag the image with the repository URI and the version tag
         version_tag = f"{app_name}-v{version}"
