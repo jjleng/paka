@@ -14,7 +14,7 @@ from kubernetes.stream import portforward
 from ruamel.yaml import YAML
 
 from light.logger import logger
-from light.utils import get_project_data_dir
+from light.utils import get_project_data_dir, read_yaml_file
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -554,16 +554,6 @@ class KubeconfigMerger:
         for key in new_config.keys():
             if key not in ["clusters", "users", "contexts", "current-context"]:
                 self.config[key] = new_config[key]
-
-
-def read_yaml_file(path: str) -> dict:
-    yaml = YAML()
-    try:
-        with open(path, "r") as file:
-            data = yaml.load(file)
-    except FileNotFoundError:
-        data = {}
-    return data
 
 
 def merge_kubeconfig() -> None:

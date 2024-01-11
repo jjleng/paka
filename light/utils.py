@@ -93,6 +93,16 @@ def to_yaml(obj: dict) -> str:
     return buf.getvalue()
 
 
+def read_yaml_file(path: str) -> dict:
+    yaml = YAML()
+    try:
+        with open(path, "r") as file:
+            data = yaml.load(file)
+    except FileNotFoundError:
+        data = {}
+    return data
+
+
 def set_current_cluster(name: str) -> None:
     # Create symlink that points to the current cluster
     target = get_cluster_data_dir(name)
@@ -165,32 +175,19 @@ def save_cluster_data(name: str, k: str, v: Any) -> None:
         None
     """
 
-    yaml = YAML()
     cluster_file_path = os.path.join(get_cluster_data_dir(name), "cluster.yaml")
     os.makedirs(os.path.dirname(cluster_file_path), exist_ok=True)
 
-    # Load the existing data
-    try:
-        with open(cluster_file_path, "r") as file:
-            data = yaml.load(file)
-    except FileNotFoundError:
-        data = {}
-
+    data = read_yaml_file(cluster_file_path)
     data[k] = v
 
+    yaml = YAML()
     with open(cluster_file_path, "w") as file:
         yaml.dump(data, file)
 
 
 def read_cluster_data_by_path(path: str, k: str) -> Any:
-    yaml = YAML()
-    # Load the existing data
-    try:
-        with open(path, "r") as file:
-            data = yaml.load(file)
-    except FileNotFoundError:
-        return None
-
+    data = read_yaml_file(path)
     return data.get(k)
 
 
