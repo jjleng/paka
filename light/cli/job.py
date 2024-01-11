@@ -68,7 +68,7 @@ def deploy(
     elif image:
         job_name = image
     elif source_dir:
-        source_dir = os.path.abspath(source_dir)
+        source_dir = os.path.abspath(os.path.expanduser(source_dir))
         image = os.path.basename(source_dir)
         job_name = image
         # Always build and deploy the latest image

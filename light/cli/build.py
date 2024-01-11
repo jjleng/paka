@@ -33,6 +33,8 @@ def build(
     if not image_name:
         image_name = os.path.basename(source_dir)
 
+    logger.info(f"Building image {image_name}...")
+
     try:
         # Navigate to the application directory
         # (This step may be optional depending on your setup)
