@@ -97,22 +97,21 @@ def create_workers(
         redis_svc_name="redis-master",
         queue_name="0",
         trigger_queue_length=5,
-        deployment_name=deployment_name,
+        job_name=deployment_name,
         min_replicas=0,  # Hard coded, scale to 0
         max_replicas=5,
     )
 
 
 def delete_workers(
-    task_name: str,
+    job_name: str,
     drain_existing_task: bool = True,
 ) -> None:
     namespace = APP_NS
-    deployment_name = task_name
 
     if drain_existing_task:
-        wait_for_pods_to_drain(namespace, deployment_name)
+        wait_for_pods_to_drain(namespace, job_name)
 
-    delete_autoscaler(namespace)
+    delete_autoscaler(namespace, job_name)
 
-    client.AppsV1Api().delete_namespaced_deployment(deployment_name, namespace)
+    client.AppsV1Api().delete_namespaced_deployment(job_name, namespace)

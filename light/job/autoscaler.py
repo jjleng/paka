@@ -8,7 +8,7 @@ def create_autoscaler(
     redis_svc_name: str,
     queue_name: str,
     trigger_queue_length: int,
-    deployment_name: str,
+    job_name: str,
     min_replicas: int,
     max_replicas: int,
 ) -> None:
@@ -29,11 +29,11 @@ def create_autoscaler(
         api_version="keda.sh/v1alpha1",
         kind="ScaledObject",
         plural="scaledobjects",
-        metadata=client.V1ObjectMeta(name="redis-worker-scaler", namespace=namespace),
+        metadata=client.V1ObjectMeta(name=job_name, namespace=namespace),
         spec={
             "scaleTargetRef": {
                 "kind": "Deployment",
-                "name": deployment_name,
+                "name": job_name,
             },
             "minReplicaCount": min_replicas,
             "maxReplicaCount": max_replicas,
@@ -54,21 +54,12 @@ def create_autoscaler(
     apply_resource(scaled_object)
 
 
-def delete_autoscaler(namespace: str) -> None:
-    trigger_auth = CustomResource(
-        api_version="keda.sh/v1alpha1",
-        kind="TriggerAuthentication",
-        plural="triggerauthentications",
-        metadata=client.V1ObjectMeta(name="redis-auth-trigger", namespace=namespace),
-        spec={},
-    )
-    delete_namespaced_custom_object("redis-auth-trigger", namespace, trigger_auth)
-
+def delete_autoscaler(namespace: str, job_name: str) -> None:
     scaled_object = CustomResource(
         api_version="keda.sh/v1alpha1",
         kind="ScaledObject",
         plural="scaledobjects",
-        metadata=client.V1ObjectMeta(name="redis-worker-scaler", namespace=namespace),
+        metadata=client.V1ObjectMeta(job_name, namespace=namespace),
         spec={},
     )
-    delete_namespaced_custom_object("redis-worker-scaler", namespace, scaled_object)
+    delete_namespaced_custom_object(job_name, namespace, scaled_object)
