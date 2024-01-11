@@ -23,6 +23,11 @@ def typed_job_name(job_name: str) -> str:
 
 @job_app.command(help="Deploy a job.")
 def deploy(
+    name: str = typer.Option(
+        "",
+        "--name",
+        help="The name of the job.",
+    ),
     entrypoint: str = typer.Option(
         ...,
         "--entrypoint",
@@ -33,7 +38,7 @@ def deploy(
         "--source",
         help="Source directory of the application.",
     ),
-    image_name: Optional[str] = typer.Option(
+    image: Optional[str] = typer.Option(
         None,
         "--image",
         help="The name of the image to deploy.",
@@ -54,24 +59,24 @@ def deploy(
         help="Wait for existing tasks to drain before deploying.",
     ),
 ) -> None:
-    if not source_dir and not image_name:
+    if not source_dir and not image:
         logger.error(
             "Either --source or --image must be provided. Please see --help for more information."
         )
         raise typer.Exit(1)
-    elif image_name:
-        job_name = image_name
+    elif image:
+        job_name = image
     elif source_dir:
         source_dir = os.path.abspath(source_dir)
-        image_name = os.path.basename(source_dir)
-        job_name = image_name
+        image = os.path.basename(source_dir)
+        job_name = image
 
     registry_uri = read_current_cluster_data("registry")
 
     create_workers(
         namespace=APP_NS,
-        job_name=typed_job_name(job_name),
-        image=f"{registry_uri}:{image_name or job_name}",
+        job_name=name or typed_job_name(job_name),
+        image=f"{registry_uri}:{image or job_name}",
         entrypoint=entrypoint,
         tasks_per_worker=tasks_per_worker,
         max_replicas=max_workers,
@@ -81,7 +86,7 @@ def deploy(
 
 @job_app.command(help="Delete a job.")
 def delete(
-    job_name: str = typer.Argument(
+    name: str = typer.Argument(
         ...,
         help="The job name.",
     ),
@@ -91,17 +96,15 @@ def delete(
         help="Wait for existing tasks to drain before deleting.",
     ),
 ) -> None:
-    logger.info(f"Deleting job {job_name}")
-    delete_workers(APP_NS, typed_job_name(job_name), wait_existing_tasks)
-    logger.info(f"Successfully deleted job {job_name}")
+    logger.info(f"Deleting job {name}")
+    delete_workers(APP_NS, typed_job_name(name), wait_existing_tasks)
+    logger.info(f"Successfully deleted job {name}")
 
 
 @job_app.command(help="List jobs.")
 def list() -> None:
-    # Create an instance of the AppsV1Api class
     api_instance = client.AppsV1Api()
 
-    # Specify the field selector
     label_selector = "role=worker"
 
     # List the deployments in the specified namespace that match the field selector
@@ -109,7 +112,6 @@ def list() -> None:
         namespace=APP_NS, label_selector=label_selector
     )
 
-    # Print the names of the deployments
     for deployment in deployments.items:
         logger.info(deployment.metadata.name)
 
