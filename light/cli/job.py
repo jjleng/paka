@@ -2,11 +2,15 @@ import os
 from typing import Optional
 
 import typer
+from kubernetes import client
 
 from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.job.worker import create_workers, delete_workers
+from light.k8s import try_load_kubeconfig
 from light.logger import logger
 from light.utils import read_current_cluster_data
+
+try_load_kubeconfig()
 
 job_app = typer.Typer()
 
@@ -90,3 +94,24 @@ def delete(
     logger.info(f"Deleting job {job_name}")
     delete_workers(APP_NS, typed_job_name(job_name), wait_existing_tasks)
     logger.info(f"Successfully deleted job {job_name}")
+
+
+@job_app.command(help="List jobs.")
+def list() -> None:
+    # Create an instance of the AppsV1Api class
+    api_instance = client.AppsV1Api()
+
+    # Specify the field selector
+    label_selector = "role=worker"
+
+    # List the deployments in the specified namespace that match the field selector
+    deployments = api_instance.list_namespaced_deployment(
+        namespace=APP_NS, label_selector=label_selector
+    )
+
+    # Print the names of the deployments
+    for deployment in deployments.items:
+        logger.info(deployment.metadata.name)
+
+    if not deployments.items:
+        logger.info("No jobs found.")
