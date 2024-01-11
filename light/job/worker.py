@@ -31,7 +31,7 @@ def create_deployment(
 ) -> None:
     containers = [
         client.V1Container(
-            name="celery-worker",
+            name="worker",
             image=image_name,
             command=shlex.split(runtime_command),
             env=[
@@ -66,7 +66,7 @@ def create_deployment(
     apply_resource(deployment)
 
 
-def create_celery_workers(
+def create_workers(
     runtime_command: str,
     task_name: str,
     image: str,
@@ -74,7 +74,6 @@ def create_celery_workers(
 ) -> None:
     namespace = APP_NS
 
-    # Create the namespace and service account for celery workers
     create_namespace(namespace)
 
     deployment_name = task_name

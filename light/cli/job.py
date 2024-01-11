@@ -3,7 +3,7 @@ from typing import Optional
 
 import typer
 
-from light.job.celery_worker import create_celery_workers, delete_workers
+from light.job.worker import create_workers, delete_workers
 from light.logger import logger
 from light.utils import read_current_cluster_data
 
@@ -42,9 +42,7 @@ def deploy(
 
     registry_uri = read_current_cluster_data("registry")
 
-    create_celery_workers(
-        entrypoint, task_name, f"{registry_uri}:{image_name or task_name}"
-    )
+    create_workers(entrypoint, task_name, f"{registry_uri}:{image_name or task_name}")
 
 
 @job_app.command(help="Delete a job.")
