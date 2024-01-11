@@ -556,7 +556,7 @@ class KubeconfigMerger:
                 self.config[key] = new_config[key]
 
 
-def merge_kubeconfig() -> None:
+def update_kubeconfig() -> None:
     system_kubeconfig_path = os.path.expanduser("~/.kube/config")
     current_config = read_yaml_file(system_kubeconfig_path)
     merger = KubeconfigMerger(current_config)

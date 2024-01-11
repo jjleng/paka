@@ -2,10 +2,11 @@ import typer
 
 from light.cli.build import build_app
 from light.cli.job import job_app
+from light.cli.kubeconfig import kube_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
 from light.config import CloudConfig, CloudModelGroup, ClusterConfig, Config
-from light.k8s import merge_kubeconfig
+from light.k8s import update_kubeconfig as merge_update_kubeconfig
 from light.logger import logger, setup_logger
 
 
@@ -51,7 +52,7 @@ def up(
     cluster_manager.create()
     if update_kubeconfig:
         logger.info("Updating kubeconfig...")
-        merge_kubeconfig()
+        merge_update_kubeconfig()
         logger.info("Successfully updated kubeconfig.")
 
 
@@ -88,6 +89,8 @@ cli.add_typer(spec_app, name="spec")
 cli.add_typer(job_app, name="job")
 
 cli.add_typer(build_app, name="build")
+
+cli.add_typer(kube_app, name="kubeconfig")
 
 
 def main() -> None:
