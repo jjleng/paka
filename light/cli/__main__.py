@@ -71,7 +71,6 @@ def service_up() -> None:
 
 cli.add_typer(service_app, name="service")
 
-
 cli.add_typer(spec_app, name="spec")
 
 cli.add_typer(job_app, name="job")

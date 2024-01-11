@@ -1,6 +1,6 @@
 from kubernetes import client
 
-from light.k8s import CustomResource, apply_resource
+from light.k8s import CustomResource, apply_resource, delete_namespaced_custom_object
 
 
 def create_autoscaler(
@@ -52,3 +52,23 @@ def create_autoscaler(
         },
     )
     apply_resource(scaled_object)
+
+
+def delete_autoscaler(namespace: str) -> None:
+    trigger_auth = CustomResource(
+        api_version="keda.sh/v1alpha1",
+        kind="TriggerAuthentication",
+        plural="triggerauthentications",
+        metadata=client.V1ObjectMeta(name="redis-auth-trigger", namespace=namespace),
+        spec={},
+    )
+    delete_namespaced_custom_object("redis-auth-trigger", namespace, trigger_auth)
+
+    scaled_object = CustomResource(
+        api_version="keda.sh/v1alpha1",
+        kind="ScaledObject",
+        plural="scaledobjects",
+        metadata=client.V1ObjectMeta(name="redis-worker-scaler", namespace=namespace),
+        spec={},
+    )
+    delete_namespaced_custom_object("redis-worker-scaler", namespace, scaled_object)

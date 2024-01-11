@@ -4,7 +4,7 @@ import time
 from kubernetes import client
 
 from light.constants import ACCESS_ALL_SA, APP_NS
-from light.job.autoscaler import create_autoscaler
+from light.job.autoscaler import create_autoscaler, delete_autoscaler
 from light.k8s import apply_resource, create_namespace, try_load_kubeconfig
 from light.logger import logger
 
@@ -102,3 +102,18 @@ def create_celery_workers(
         min_replicas=0,  # Hard coded, scale to 0
         max_replicas=5,
     )
+
+
+def delete_workers(
+    task_name: str,
+    drain_existing_task: bool = True,
+) -> None:
+    namespace = APP_NS
+    deployment_name = task_name
+
+    if drain_existing_task:
+        wait_for_pods_to_drain(namespace, deployment_name)
+
+    delete_autoscaler(namespace)
+
+    client.AppsV1Api().delete_namespaced_deployment(deployment_name, namespace)

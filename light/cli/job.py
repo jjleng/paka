@@ -3,14 +3,14 @@ from typing import Optional
 
 import typer
 
-from light.job.celery_worker import create_celery_workers
+from light.job.celery_worker import create_celery_workers, delete_workers
 from light.logger import logger
 from light.utils import read_current_cluster_data
 
 job_app = typer.Typer()
 
 
-@job_app.command()
+@job_app.command(help="Deploy a job.")
 def deploy(
     entrypoint: str = typer.Option(
         ...,
@@ -45,3 +45,15 @@ def deploy(
     create_celery_workers(
         entrypoint, task_name, f"{registry_uri}:{image_name or task_name}"
     )
+
+
+@job_app.command(help="Delete a job.")
+def delete(
+    job_name: str = typer.Argument(
+        ...,
+        help="The job name.",
+    ),
+) -> None:
+    logger.info(f"Deleting job {job_name}")
+    delete_workers(job_name)
+    logger.info(f"Successfully deleted job {job_name}")
