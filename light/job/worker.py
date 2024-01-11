@@ -22,6 +22,8 @@ def wait_for_pods_to_drain(namespace: str, deployment_name: str) -> None:
         time.sleep(10)
 
 
+# k8s job is another option to run a task. We are using k8s deployment here.
+# The advantage of using k8s deployment is that we retrigger the workers without creating a new deployment.
 def create_deployment(
     runtime_command: str,
     namespace: str,
@@ -70,6 +72,8 @@ def create_workers(
     runtime_command: str,
     task_name: str,
     image: str,
+    tasks_per_worker: int = 5,
+    max_replicas: int = 5,
     drain_existing_task: bool = True,
 ) -> None:
     namespace = APP_NS
@@ -96,10 +100,10 @@ def create_workers(
         namespace=namespace,
         redis_svc_name="redis-master",
         queue_name="0",
-        trigger_queue_length=5,
+        trigger_queue_length=tasks_per_worker,
         job_name=deployment_name,
         min_replicas=0,  # Hard coded, scale to 0
-        max_replicas=5,
+        max_replicas=max_replicas,
     )
 
 

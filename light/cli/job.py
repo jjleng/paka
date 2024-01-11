@@ -27,6 +27,21 @@ def deploy(
         "--image",
         help="The name of the image to deploy.",
     ),
+    max_workers: int = typer.Option(
+        5,
+        "--max-workers",
+        help="The maximum number of workers.",
+    ),
+    tasks_per_worker: int = typer.Option(
+        5,
+        "--tasks-per-worker",
+        help="The number of tasks each worker should handle before a new worker is created.",
+    ),
+    wait_existing_tasks: bool = typer.Option(
+        True,
+        "--wait-existing-tasks",
+        help="Wait for existing tasks to drain before deploying.",
+    ),
 ) -> None:
     if not source_dir and not image_name:
         logger.error(
@@ -42,7 +57,14 @@ def deploy(
 
     registry_uri = read_current_cluster_data("registry")
 
-    create_workers(entrypoint, task_name, f"{registry_uri}:{image_name or task_name}")
+    create_workers(
+        entrypoint,
+        task_name,
+        f"{registry_uri}:{image_name or task_name}",
+        tasks_per_worker,
+        max_workers,
+        wait_existing_tasks,
+    )
 
 
 @job_app.command(help="Delete a job.")
