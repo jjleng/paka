@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 import typer
@@ -17,13 +18,21 @@ def build(
         help="Source directory of the application.",
     ),
     image_name: str = typer.Option(
-        ...,
+        "",
         "--image-name",
         help="The name of the image to build.",
     ),
 ) -> None:
     # Install pack first
     install_pack()
+
+    # Expand the source_dir path
+    source_dir = os.path.abspath(source_dir)
+
+    # If image_name is empty, use the directory name of source_dir
+    if not image_name:
+        image_name = os.path.basename(source_dir)
+
     try:
         # Navigate to the application directory
         # (This step may be optional depending on your setup)

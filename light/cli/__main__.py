@@ -1,10 +1,10 @@
 import typer
 
 from light.cli.build import build_app
-from light.cli.deploy import deploy_app
+from light.cli.job import job_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
-from light.config import BlobStore, CloudConfig, CloudModelGroup, ClusterConfig, Config
+from light.config import CloudConfig, CloudModelGroup, ClusterConfig, Config
 from light.logger import setup_logger
 
 
@@ -74,7 +74,7 @@ cli.add_typer(service_app, name="service")
 
 cli.add_typer(spec_app, name="spec")
 
-cli.add_typer(deploy_app, name="deploy")
+cli.add_typer(job_app, name="job")
 
 cli.add_typer(build_app, name="build")
 
