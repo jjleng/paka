@@ -4,6 +4,7 @@ from typing import Optional
 import typer
 from kubernetes import client
 
+from light.cli.build import build
 from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.job.worker import create_workers, delete_workers
 from light.k8s import try_load_kubeconfig
@@ -70,6 +71,9 @@ def deploy(
         source_dir = os.path.abspath(source_dir)
         image = os.path.basename(source_dir)
         job_name = image
+        # Always build and deploy the latest image
+        build(source_dir, image)
+        image = f"{image}-latest"
 
     registry_uri = read_current_cluster_data("registry")
 
