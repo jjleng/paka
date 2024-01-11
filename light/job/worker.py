@@ -14,7 +14,7 @@ try_load_kubeconfig()
 def wait_for_pods_to_drain(namespace: str, deployment_name: str) -> None:
     while True:
         pods = client.CoreV1Api().list_namespaced_pod(
-            namespace, label_selector=f"app={deployment_name}"
+            namespace, label_selector=f"app={deployment_name},role=worker"
         )
         if not pods.items:
             break
@@ -55,9 +55,13 @@ def create_deployment(
         metadata=client.V1ObjectMeta(name=deployment_name, namespace=namespace),
         spec=client.V1DeploymentSpec(
             replicas=0,
-            selector=client.V1LabelSelector(match_labels={"app": deployment_name}),
+            selector=client.V1LabelSelector(
+                match_labels={"app": deployment_name, "role": "worker"}
+            ),
             template=client.V1PodTemplateSpec(
-                metadata=client.V1ObjectMeta(labels={"app": deployment_name}),
+                metadata=client.V1ObjectMeta(
+                    labels={"app": deployment_name, "role": "worker"}
+                ),
                 spec=client.V1PodSpec(
                     service_account_name=service_account_name,
                     containers=containers,
