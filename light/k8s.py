@@ -1,4 +1,5 @@
 import contextlib
+import os
 import re
 import select
 import socket
@@ -10,8 +11,10 @@ from typing import Any, Callable, Dict, Literal, Optional, Protocol, Tuple, Type
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import portforward
+from ruamel.yaml import YAML
 
 from light.logger import logger
+from light.utils import get_project_data_dir
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -505,6 +508,82 @@ def try_load_kubeconfig() -> bool:
     except Exception as e:
         logger.debug(f"Error loading kubeconfig: {e}")
         return False
+
+
+class KubeconfigMerger:
+    def __init__(self, config: Optional[dict] = None) -> None:
+        self.config = config or {}
+
+    def _entries_by_key(self, key: str) -> list:
+        self.config[key] = self.config.get(key) or []
+        entries = self.config[key]
+        if not isinstance(entries, list):
+            raise Exception(
+                f"Tried to insert into {key}, "
+                f"which is a {type(entries)} "
+                f"not a list."
+            )
+        return entries
+
+    def _index_same_name(self, entries: list, new_entry: dict) -> Optional[int]:
+        if "name" in new_entry:
+            name_to_search = new_entry["name"]
+            for i, entry in enumerate(entries):
+                if "name" in entry and entry["name"] == name_to_search:
+                    return i
+        return None
+
+    def insert_entry(self, key: str, new_entry: Any) -> None:
+        entries = self._entries_by_key(key)
+        same_name_index = self._index_same_name(entries, new_entry)
+        if same_name_index is None:
+            entries.append(new_entry)
+        else:
+            entries[same_name_index] = new_entry
+
+    def merge(self, new_config: dict) -> None:
+        for cluster in new_config.get("clusters", []):
+            self.insert_entry("clusters", cluster)
+        for user in new_config.get("users", []):
+            self.insert_entry("users", user)
+        for context in new_config.get("contexts", []):
+            self.insert_entry("contexts", context)
+
+        self.config["current-context"] = new_config["current-context"]
+
+        for key in new_config.keys():
+            if key not in ["clusters", "users", "contexts", "current-context"]:
+                self.config[key] = new_config[key]
+
+
+def read_yaml_file(path: str) -> dict:
+    yaml = YAML()
+    try:
+        with open(path, "r") as file:
+            data = yaml.load(file)
+    except FileNotFoundError:
+        data = {}
+    return data
+
+
+def merge_kubeconfig() -> None:
+    system_kubeconfig_path = os.path.expanduser("~/.kube/config")
+    current_config = read_yaml_file(system_kubeconfig_path)
+    merger = KubeconfigMerger(current_config)
+
+    cluster_kubeconfig_path = os.path.join(
+        get_project_data_dir(), "current_cluster", "kubeconfig.yaml"
+    )
+    new_config = read_yaml_file(cluster_kubeconfig_path)
+    merger.merge(new_config)
+
+    # Convert OrderedDict to dict and sort keys
+    sorted_config = {k: merger.config[k] for k in sorted(merger.config)}
+
+    # Dump the sorted config to a YAML-formatted string
+    with open(system_kubeconfig_path, "w") as file:
+        yaml = YAML()
+        yaml.dump(sorted_config, file)
 
 
 # Load the kubeconfig when this module is imported

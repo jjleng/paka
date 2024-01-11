@@ -5,7 +5,8 @@ from light.cli.job import job_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
 from light.config import CloudConfig, CloudModelGroup, ClusterConfig, Config
-from light.logger import setup_logger
+from light.k8s import merge_kubeconfig
+from light.logger import logger, setup_logger
 
 
 def verbose_option(
@@ -39,8 +40,19 @@ cluster_app = typer.Typer()
 
 
 @cluster_app.command()
-def up() -> None:
+def up(
+    update_kubeconfig: bool = typer.Option(
+        False,
+        "--update-kubeconfig",
+        "-u",
+        help="Update kubeconfig with the new cluster.",
+    ),
+) -> None:
     cluster_manager.create()
+    if update_kubeconfig:
+        logger.info("Updating kubeconfig...")
+        merge_kubeconfig()
+        logger.info("Successfully updated kubeconfig.")
 
 
 @cluster_app.command()
