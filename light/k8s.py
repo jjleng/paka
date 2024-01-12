@@ -8,7 +8,7 @@ import time
 from functools import partial
 from typing import Any, Callable, Dict, Literal, Optional, Protocol, Tuple, TypeAlias
 
-from kubernetes import client, config
+from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import portforward
 from ruamel.yaml import YAML
@@ -574,6 +574,28 @@ def update_kubeconfig() -> None:
     with open(system_kubeconfig_path, "w") as file:
         yaml = YAML()
         yaml.dump(sorted_config, file)
+
+
+def tail_logs(namespace: str, pod_name: str) -> None:
+    v1 = client.CoreV1Api()
+    w = watch.Watch()
+
+    while True:
+        pod = v1.read_namespaced_pod(name=pod_name, namespace=namespace)
+        if pod.status.phase == "Running":
+            break
+        elif pod.status.phase in ["Failed", "Succeeded"]:
+            logger.info(f"Pod {pod_name} is in phase {pod.status.phase}")
+            return
+        else:
+            # print dot on the same line
+            print(".", end="", flush=True)
+            time.sleep(1)
+
+    for event in w.stream(
+        v1.read_namespaced_pod_log, namespace=namespace, name=pod_name
+    ):
+        logger.info(event)
 
 
 # Load the kubeconfig when this module is imported

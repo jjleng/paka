@@ -3,6 +3,7 @@ import typer
 from light.cli.build import build_app
 from light.cli.job import job_app
 from light.cli.kubeconfig import kube_app
+from light.cli.run import run_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
 from light.config import CloudConfig, CloudModelGroup, ClusterConfig, Config
@@ -91,6 +92,8 @@ cli.add_typer(job_app, name="job")
 cli.add_typer(build_app, name="build")
 
 cli.add_typer(kube_app, name="kubeconfig")
+
+cli.add_typer(run_app, name="run")
 
 
 def main() -> None:
