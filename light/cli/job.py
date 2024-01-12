@@ -17,8 +17,8 @@ job_app = typer.Typer()
 
 
 def typed_job_name(job_name: str) -> str:
-    if not job_name.endswith("-job"):
-        return f"{job_name}-job"
+    if not job_name.startswith("job-"):
+        return f"job-{job_name}"
     return job_name
 
 

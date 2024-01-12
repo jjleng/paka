@@ -43,7 +43,7 @@ def one_off_script(
         raise typer.Exit(1)
 
     # Generate a job name which is the hash of the command
-    job_name = f"{kubify_name(random_str(10))}-one-off-script"
+    job_name = f"run-{kubify_name(random_str(10))}"
 
     if not image and source_dir:
         source_dir = os.path.abspath(os.path.expanduser(source_dir))
