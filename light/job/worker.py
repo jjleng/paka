@@ -54,7 +54,13 @@ def create_deployment(
 
     deployment = client.V1Deployment(
         kind="Deployment",
-        metadata=client.V1ObjectMeta(name=deployment_name, namespace=namespace),
+        metadata=client.V1ObjectMeta(
+            name=deployment_name,
+            namespace=namespace,
+            labels={
+                "role": "worker",
+            },
+        ),
         spec=client.V1DeploymentSpec(
             replicas=0,
             selector=client.V1LabelSelector(

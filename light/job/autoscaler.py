@@ -55,15 +55,6 @@ def create_autoscaler(
 
 
 def delete_autoscaler(namespace: str, job_name: str) -> None:
-    trigger_auth = CustomResource(
-        api_version="keda.sh/v1alpha1",
-        kind="TriggerAuthentication",
-        plural="triggerauthentications",
-        metadata=client.V1ObjectMeta(name="redis-auth-trigger", namespace=namespace),
-        spec={},
-    )
-    delete_namespaced_custom_object("redis-auth-trigger", namespace, trigger_auth)
-
     scaled_object = CustomResource(
         api_version="keda.sh/v1alpha1",
         kind="ScaledObject",
