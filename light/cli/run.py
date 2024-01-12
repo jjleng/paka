@@ -11,6 +11,8 @@ from light.k8s import tail_logs, try_load_kubeconfig
 from light.logger import logger
 from light.utils import kubify_name, random_str, read_current_cluster_data
 
+CLEANUP_TIMEOUT = 600  # 10 minutes
+
 run_app = typer.Typer()
 
 try_load_kubeconfig()
@@ -81,6 +83,7 @@ def one_off_script(
                 )
             ),
             backoff_limit=0,
+            ttl_seconds_after_finished=CLEANUP_TIMEOUT,
         ),
     )
 
