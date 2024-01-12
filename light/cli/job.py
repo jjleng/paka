@@ -9,7 +9,7 @@ from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.job.worker import create_workers, delete_workers
 from light.k8s import try_load_kubeconfig
 from light.logger import logger
-from light.utils import read_current_cluster_data
+from light.utils import kubify_name, read_current_cluster_data
 
 try_load_kubeconfig()
 
@@ -79,7 +79,7 @@ def deploy(
 
     create_workers(
         namespace=APP_NS,
-        job_name=name or typed_job_name(job_name),
+        job_name=kubify_name(name or typed_job_name(job_name)),
         image=f"{registry_uri}:{image or job_name}",
         entrypoint=entrypoint,
         tasks_per_worker=tasks_per_worker,
