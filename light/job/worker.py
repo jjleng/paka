@@ -110,7 +110,7 @@ def create_workers(
     create_autoscaler(
         namespace=namespace,
         redis_svc_name="redis-master",
-        queue_name="0",
+        queue_name="celery",
         trigger_queue_length=tasks_per_worker,
         job_name=deployment_name,
         min_replicas=0,  # Hard coded, scale to 0
