@@ -585,13 +585,14 @@ def tail_logs(namespace: str, pod_name: str) -> None:
         if pod.status.phase == "Running":
             break
         elif pod.status.phase in ["Failed", "Succeeded"]:
-            logger.info(f"Pod {pod_name} is in phase {pod.status.phase}")
+            logger.info(f"\nPod {pod_name} is in phase {pod.status.phase}")
             return
         else:
             # print dot on the same line
             print(".", end="", flush=True)
             time.sleep(1)
 
+    print("\n")
     for event in w.stream(
         v1.read_namespaced_pod_log, namespace=namespace, name=pod_name
     ):

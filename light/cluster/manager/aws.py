@@ -7,6 +7,7 @@ from light.cluster.aws.container_registry import create_container_registry
 from light.cluster.aws.eks import create_k8s_cluster
 from light.cluster.aws.object_store import create_object_store
 from light.config import CloudConfig, Config
+from light.logger import logger
 from light.model_group.service import create_model_group_service
 from light.utils import get_pulumi_data_dir, save_cluster_data
 
@@ -57,19 +58,19 @@ class AWSClusterManager:
             self.config.cluster.name, "region", self.config.cluster.defaultRegion
         )
 
-        print("Creating resources...")
-        self._stack.up(on_output=print)
+        logger.info("Creating resources...")
+        self._stack.up(on_output=logger.info)
 
     def destroy(self) -> None:
-        print("Destroying resources...")
-        self._stack.destroy(on_output=print)
+        logger.info("Destroying resources...")
+        self._stack.destroy(on_output=logger.info)
 
     def refresh(self) -> None:
-        print("Refreshing the stack...")
-        self._stack.refresh(on_output=print)
+        logger.info("Refreshing the stack...")
+        self._stack.refresh(on_output=logger.info)
 
     def preview(self) -> None:
-        self._stack.preview(on_output=print)
+        self._stack.preview(on_output=logger.info)
 
     def service_up(self) -> None:
         if self.config.modelGroups is None:
