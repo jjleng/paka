@@ -6,8 +6,8 @@ from kubernetes import client
 
 from light.cli.build import build
 from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
-from light.job.worker import create_workers, delete_workers
 from light.k8s import try_load_kubeconfig
+from light.kube_resources.job.worker import create_workers, delete_workers
 from light.logger import logger
 from light.utils import kubify_name, read_current_cluster_data
 

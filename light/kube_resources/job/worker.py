@@ -4,8 +4,8 @@ import time
 from kubernetes import client
 
 from light.constants import ACCESS_ALL_SA
-from light.job.autoscaler import create_autoscaler, delete_autoscaler
 from light.k8s import apply_resource, create_namespace, try_load_kubeconfig
+from light.kube_resources.job.autoscaler import create_autoscaler, delete_autoscaler
 from light.logger import logger
 
 try_load_kubeconfig()
