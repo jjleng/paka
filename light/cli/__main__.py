@@ -1,6 +1,7 @@
 import typer
 
 from light.cli.build import build_app
+from light.cli.function import function_app
 from light.cli.job import job_app
 from light.cli.kubeconfig import kube_app
 from light.cli.run import run_app
@@ -94,6 +95,8 @@ cli.add_typer(build_app, name="build")
 cli.add_typer(kube_app, name="kubeconfig")
 
 cli.add_typer(run_app, name="run")
+
+cli.add_typer(function_app, name="function")
 
 
 def main() -> None:
