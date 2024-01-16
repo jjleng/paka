@@ -30,7 +30,7 @@ cluster_manager = AWSClusterManager(
             modelGroups=[
                 CloudModelGroup(
                     name="llama-2-7b.Q4_0.gguf",
-                    maxInstances=2,
+                    maxInstances=3,
                     minInstances=0,
                     nodeType="m5.xlarge",
                 ),
