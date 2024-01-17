@@ -29,6 +29,19 @@ def limit_resources(args: Any, opts: pulumi.ResourceOptions) -> None:
                 }
 
 
+def limit_deployment_replicas(args: Any, opts: pulumi.ResourceOptions) -> None:
+    if (
+        args["kind"] == "Deployment"
+        and args["metadata"]["name"] == "istio-ingressgateway"
+    ):
+        args["spec"]["replicas"] = 2
+        for container in args["spec"]["template"]["spec"]["containers"]:
+            if container["name"] == "istio-proxy":
+                container["resources"] = {
+                    "requests": {"cpu": "500m", "memory": "500Mi"},
+                }
+
+
 def crd_resources(labels: dict) -> bool:
     return labels.get("knative.dev/crd-install") == "true"
 
@@ -75,7 +88,12 @@ def create_knative(k8s_provider: k8s.Provider) -> None:
     istio_full_install = ConfigFile(
         "istio-non-crd-install",
         file=yaml_file,
-        transformations=[non_crd_transform, limit_resources, limit_hpa_min_replicas],
+        transformations=[
+            non_crd_transform,
+            limit_resources,
+            limit_hpa_min_replicas,
+            limit_deployment_replicas,
+        ],
         opts=pulumi.ResourceOptions(
             provider=k8s_provider, depends_on=[istio_crd_install]
         ),
