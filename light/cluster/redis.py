@@ -13,11 +13,12 @@ def create_redis(k8s_provider: k8s.Provider) -> None:
     """
     Installs redis with a helm chart.
     """
-    k8s.core.v1.Namespace(
-        "redis-ns",
-        metadata={"name": APP_NS},
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
+    if APP_NS != "default":
+        k8s.core.v1.Namespace(
+            "redis-ns",
+            metadata={"name": APP_NS},
+            opts=pulumi.ResourceOptions(provider=k8s_provider),
+        )
 
     # Generate a 32-character random password
     password = secrets.token_hex(16)
