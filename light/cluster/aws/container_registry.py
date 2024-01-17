@@ -16,8 +16,13 @@ def create_container_registry(config: CloudConfig) -> None:
         None
     """
     project = config.cluster.name
-    repository = aws.ecr.Repository(project, image_tag_mutability="MUTABLE")
+    repository = aws.ecr.Repository(
+        project,
+        force_delete=True,
+        image_tag_mutability="MUTABLE",
+    )
 
+    # Save the repository URL to the cluster data file
     repository.repository_url.apply(
         lambda url: save_cluster_data(project, "registry", url)
     )
