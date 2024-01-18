@@ -65,7 +65,7 @@ def create_pod(
 
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
-            name=f"{kubify_name(model_group.name)}-pod",
+            name=f"{kubify_name(model_group.name)}",
             namespace=namespace,
             labels={
                 "app": "model-group",
@@ -83,7 +83,7 @@ def create_pod(
             init_containers=[init_aws(config.aws, model_group)],
             containers=[
                 client.V1Container(
-                    name=f"{kubify_name(model_group.name)}-container",
+                    name=f"{kubify_name(model_group.name)}",
                     image=runtime_image,
                     volume_mounts=[
                         client.V1VolumeMount(
@@ -198,7 +198,7 @@ def create_deployment(
         api_version="apps/v1",
         kind="Deployment",
         metadata=client.V1ObjectMeta(
-            name=f"{kubify_name(model_group.name)}-deployment",
+            name=f"{kubify_name(model_group.name)}",
             namespace=namespace,
         ),
         spec=client.V1DeploymentSpec(
@@ -231,7 +231,7 @@ def create_service(
         api_version="v1",
         kind="Service",
         metadata=client.V1ObjectMeta(
-            name=f"{kubify_name(model_group.name)}-service",
+            name=f"{kubify_name(model_group.name)}",
             namespace=namespace,
         ),
         spec=client.V1ServiceSpec(
@@ -266,7 +266,7 @@ def create_hpa(
         api_version="autoscaling/v2",
         kind="HorizontalPodAutoscaler",
         metadata=client.V1ObjectMeta(
-            name=f"{kubify_name(model_group.name)}-hpa",
+            name=f"{kubify_name(model_group.name)}",
             namespace=namespace,
         ),
         spec=client.V2HorizontalPodAutoscalerSpec(
