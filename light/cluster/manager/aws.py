@@ -7,6 +7,11 @@ from light.cluster.aws.container_registry import create_container_registry
 from light.cluster.aws.eks import create_k8s_cluster
 from light.cluster.aws.object_store import create_object_store
 from light.config import CloudConfig, Config
+from light.constants import APP_NS
+from light.kube_resources.model_group.ingress import (
+    create_model_group_ingress,
+    create_model_vservice,
+)
 from light.kube_resources.model_group.service import create_model_group_service
 from light.logger import logger
 from light.utils import get_pulumi_data_dir, save_cluster_data
@@ -76,5 +81,7 @@ class AWSClusterManager:
         if self.config.modelGroups is None:
             raise ValueError("Model group config not found")
 
+        create_model_group_ingress(APP_NS)
         for model_group in self.config.modelGroups:
-            create_model_group_service(self._orig_config, model_group)
+            create_model_group_service(APP_NS, self._orig_config, model_group)
+            create_model_vservice(APP_NS, model_group.name)

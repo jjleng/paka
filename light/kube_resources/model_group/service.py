@@ -42,7 +42,11 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
 
 
 def create_pod(
-    config: Config, model_group: CloudModelGroup, runtime_image: str, port: int
+    namespace: str,
+    config: Config,
+    model_group: CloudModelGroup,
+    runtime_image: str,
+    port: int,
 ) -> client.V1Pod:
     """
     Creates a Kubernetes pod for a model group.
@@ -62,6 +66,7 @@ def create_pod(
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}-pod",
+            namespace=namespace,
             labels={
                 "app": "model-group",
                 "model": model_group.name,
@@ -104,8 +109,8 @@ def create_pod(
                     # This will make the pod's QoS to be `Burstable`
                     resources=client.V1ResourceRequirements(
                         requests={
-                            "cpu": "1900m",  # 1.9 CPU core
-                            "memory": "8Gi",  # 8 GB RAM
+                            "cpu": "3500m",  # 3.5 CPU core
+                            "memory": "6Gi",  # 6 GB RAM
                         },
                     ),
                     readiness_probe=client.V1Probe(
@@ -176,7 +181,7 @@ def create_pod(
 
 
 def create_deployment(
-    model_group: CloudModelGroup, pod: client.V1Pod
+    namespace: str, model_group: CloudModelGroup, pod: client.V1Pod
 ) -> client.V1Deployment:
     """
     Create a deployment for a model group.
@@ -194,6 +199,7 @@ def create_deployment(
         kind="Deployment",
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}-deployment",
+            namespace=namespace,
         ),
         spec=client.V1DeploymentSpec(
             replicas=model_group.minInstances,
@@ -208,7 +214,9 @@ def create_deployment(
     )
 
 
-def create_service(model_group: CloudModelGroup, port: int) -> client.V1Service:
+def create_service(
+    namespace: str, model_group: CloudModelGroup, port: int
+) -> client.V1Service:
     """
     Creates a Kubernetes service for a given model group.
 
@@ -224,6 +232,7 @@ def create_service(model_group: CloudModelGroup, port: int) -> client.V1Service:
         kind="Service",
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}-service",
+            namespace=namespace,
         ),
         spec=client.V1ServiceSpec(
             selector={
@@ -241,7 +250,7 @@ def create_service(model_group: CloudModelGroup, port: int) -> client.V1Service:
 
 
 def create_hpa(
-    model_group: CloudModelGroup, deployment: client.V1Deployment
+    namespace: str, model_group: CloudModelGroup, deployment: client.V1Deployment
 ) -> client.V2HorizontalPodAutoscaler:
     """
     Create a HorizontalPodAutoscaler for a given model group and deployment.
@@ -258,6 +267,7 @@ def create_hpa(
         kind="HorizontalPodAutoscaler",
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}-hpa",
+            namespace=namespace,
         ),
         spec=client.V2HorizontalPodAutoscalerSpec(
             scale_target_ref=client.V2CrossVersionObjectReference(
@@ -274,7 +284,7 @@ def create_hpa(
                         name="cpu",
                         target=client.V2MetricTarget(
                             type="Utilization",
-                            average_utilization=50,
+                            average_utilization=95,
                         ),
                     ),
                 )
@@ -284,6 +294,7 @@ def create_hpa(
 
 
 def create_model_group_service(
+    namespace: str,
     config: Config,
     model_group: CloudModelGroup,
 ) -> None:
@@ -300,17 +311,16 @@ def create_model_group_service(
     """
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
-    kubeconfig_name = config.aws.cluster.name
 
     port = 8000
 
-    pod = create_pod(config, model_group, LLAMA_CPP_PYTHON_IMAGE, port)
+    pod = create_pod(namespace, config, model_group, LLAMA_CPP_PYTHON_IMAGE, port)
 
-    deployment = create_deployment(model_group, pod)
+    deployment = create_deployment(namespace, model_group, pod)
     apply_resource(deployment)
 
-    svc = create_service(model_group, port)
+    svc = create_service(namespace, model_group, port)
     apply_resource(svc)
 
-    hpa = create_hpa(model_group, deployment)
+    hpa = create_hpa(namespace, model_group, deployment)
     apply_resource(hpa)

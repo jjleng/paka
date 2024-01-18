@@ -30,6 +30,8 @@ KubernetesResourceKind: TypeAlias = Literal[
     "Package",
     "Environment",
     "Function",
+    "Gateway",
+    "VirtualService",
 ]
 
 
@@ -193,6 +195,8 @@ def apply_resource(
         "Package",
         "Environment",
         "Function",
+        "Gateway",
+        "VirtualService",
     ]:
         create_method = create_namespaced_custom_object
         replace_method = replace_namespaced_custom_object
