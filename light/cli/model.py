@@ -4,6 +4,7 @@ import typer
 from botocore.exceptions import ClientError, NoCredentialsError
 
 from light.k8s import try_load_kubeconfig
+from light.kube_resources.model_group.service import MODEL_PATH_PREFIX
 from light.logger import logger
 from light.utils import read_current_cluster_data
 
@@ -16,8 +17,6 @@ SUPPORTED_MODELS = {
     "mistral-7b": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_0.gguf",
     "codellama-7b": "https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_0.gguf",
 }
-
-MODEL_PATH_PREFIX = "models"
 
 
 def s3_file_exists(bucket_name: str, s3_file_name: str) -> bool:
@@ -113,20 +112,3 @@ def list_downloaded() -> None:
             logger.info(key)
     else:
         logger.info("No models found.")
-
-
-@model_app.command(help="Delete a model from object store.")
-def delete(
-    name: str = typer.Argument(
-        ...,
-        help="The model name.",
-    ),
-) -> None:
-    bucket = read_current_cluster_data("bucket")
-    s3 = boto3.client("s3")
-    model_path = f"{MODEL_PATH_PREFIX}/{name}"
-    if s3_file_exists(bucket, model_path):
-        s3.delete_object(Bucket=bucket, Key=model_path)
-        logger.info(f"Model {name} deleted.")
-    else:
-        logger.info(f"Model {name} not found.")

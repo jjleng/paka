@@ -7,6 +7,7 @@ from light.utils import kubify_name, read_cluster_data
 
 # We hardcode the image here for now
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
+MODEL_PATH_PREFIX = "models"
 
 
 def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Container:
@@ -29,7 +30,7 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
             "aws",
             "s3",
             "cp",
-            f"s3://{bucket}/models/{model_group.name}",
+            f"s3://{bucket}/{MODEL_PATH_PREFIX}/{model_group.name}",
             f"/data/{model_group.name}",
         ],
         volume_mounts=[
