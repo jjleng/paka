@@ -30,6 +30,8 @@ class AWSClusterManager:
         self.config = config.aws
 
     def _provision_k8s(self) -> eks.Cluster:
+        # TODO: Hardcoded provider value `aws` should be defined in config
+        save_cluster_data(self.config.cluster.name, "provider", "aws")
         create_object_store(self.config)
         create_container_registry(self.config)
         return create_k8s_cluster(self.config)
