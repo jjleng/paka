@@ -81,7 +81,7 @@ def download(
             raise typer.Exit(1)
         url = SUPPORTED_MODELS[name]
 
-    logger.info("Downloading model...")
+    logger.info(f"Downloading model from {url}...")
     # Get the model name from the URL
     model_name = url.split("/")[-1]
     full_model_path = f"{MODEL_PATH_PREFIX}/{model_name}"
@@ -98,3 +98,35 @@ def download(
 def list() -> None:
     for model_name in SUPPORTED_MODELS:
         logger.info(model_name)
+
+
+@model_app.command(help="List the models downloaded to object store.")
+def list_downloaded() -> None:
+    bucket = read_current_cluster_data("bucket")
+    s3 = boto3.client("s3")
+    response = s3.list_objects_v2(Bucket=bucket, Prefix=MODEL_PATH_PREFIX)
+    if "Contents" in response:
+        for obj in response["Contents"]:
+            key = obj["Key"]
+            if key.startswith(f"{MODEL_PATH_PREFIX}/"):
+                key = key[len(f"{MODEL_PATH_PREFIX}/") :]
+            logger.info(key)
+    else:
+        logger.info("No models found.")
+
+
+@model_app.command(help="Delete a model from object store.")
+def delete(
+    name: str = typer.Argument(
+        ...,
+        help="The model name.",
+    ),
+) -> None:
+    bucket = read_current_cluster_data("bucket")
+    s3 = boto3.client("s3")
+    model_path = f"{MODEL_PATH_PREFIX}/{name}"
+    if s3_file_exists(bucket, model_path):
+        s3.delete_object(Bucket=bucket, Key=model_path)
+        logger.info(f"Model {name} deleted.")
+    else:
+        logger.info(f"Model {name} not found.")
