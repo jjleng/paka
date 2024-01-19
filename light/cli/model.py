@@ -1,17 +1,11 @@
-import os
-from typing import Optional
-
 import boto3
 import requests
 import typer
-from botocore.exceptions import NoCredentialsError
-from kubernetes import client
+from botocore.exceptions import ClientError, NoCredentialsError
 
-from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.k8s import try_load_kubeconfig
-from light.kube_resources.job.worker import create_workers, delete_workers
 from light.logger import logger
-from light.utils import kubify_name, read_current_cluster_data
+from light.utils import read_current_cluster_data
 
 try_load_kubeconfig()
 
@@ -22,6 +16,20 @@ SUPPORTED_MODELS = {
     "mistral-7b": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_0.gguf",
     "codellama-7b": "https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_0.gguf",
 }
+
+MODEL_PATH_PREFIX = "models"
+
+
+def s3_file_exists(bucket_name: str, s3_file_name: str) -> bool:
+    s3 = boto3.client("s3")
+    try:
+        s3.head_object(Bucket=bucket_name, Key=s3_file_name)
+        return True
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return False
+        else:
+            raise  # some other error occurred
 
 
 def download_file_to_s3(url: str, bucket_name: str, s3_file_name: str) -> None:
@@ -45,7 +53,7 @@ def download_file_to_s3(url: str, bucket_name: str, s3_file_name: str) -> None:
         print("Credentials not available")
 
 
-@model_app.command(help="Download a model and save it to blob storage.")
+@model_app.command(help="Download a model and save it to object store.")
 def download(
     url: str = typer.Option(
         "",
@@ -76,10 +84,14 @@ def download(
     logger.info("Downloading model...")
     # Get the model name from the URL
     model_name = url.split("/")[-1]
-
+    full_model_path = f"{MODEL_PATH_PREFIX}/{model_name}"
     bucket = read_current_cluster_data("bucket")
 
-    download_file_to_s3(url, bucket, f"models/{model_name}")
+    if s3_file_exists(bucket, full_model_path):
+        logger.info(f"Model {model_name} already exists.")
+        return
+
+    download_file_to_s3(url, bucket, full_model_path)
 
 
 @model_app.command(help="List the models available for download.")
