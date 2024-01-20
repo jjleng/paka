@@ -70,7 +70,7 @@ def download_file_to_s3(
     bucket_name: str,
     s3_file_name: str,
     chunk_size: int = 5 * 1024 * 1024,
-    max_parallel_uploads: int = 10,
+    max_parallel_uploads: int = 20,
 ) -> str:
     """
     Download a file from a URL and upload it to S3 using multipart upload.
@@ -182,7 +182,7 @@ def download_model(name: str) -> None:
     full_model_file_path = f"{model_path}/{model_file_name}"
     bucket = read_current_cluster_data("bucket")
 
-    if s3_file_prefix_exists(bucket, model_path):
+    if s3_file_prefix_exists(bucket, f"{model_path}/"):
         logger.info(f"Model {name} already exists.")
         return
 
@@ -198,8 +198,8 @@ def download_model(name: str) -> None:
         name=name,
         sha256=model.sha256,
         url=model.url,
-        model_type="gguf",  # TODO: hard-coded for now
-        model_file=model_file_name,
+        type="gguf",  # TODO: hard-coded for now
+        file=model_file_name,
     )
 
     manifest_yaml = to_yaml(manifest.model_dump(exclude_none=True))
