@@ -3,11 +3,7 @@ from kubernetes import client
 from light.config import CloudConfig, CloudModelGroup, Config
 from light.constants import ACCESS_ALL_SA
 from light.k8s import apply_resource
-from light.kube_resources.model_group.model import (
-    MODEL_PATH_PREFIX,
-    download_model,
-    get_model_file_name,
-)
+from light.kube_resources.model_group.model import MODEL_PATH_PREFIX, download_model
 from light.utils import kubify_name, read_cluster_data
 
 # We hardcode the image here for now
@@ -34,8 +30,36 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
             "aws",
             "s3",
             "cp",
-            f"s3://{bucket}/{MODEL_PATH_PREFIX}/{get_model_file_name(model_group.name)}",
-            f"/data/{model_group.name}",
+            f"s3://{bucket}/{MODEL_PATH_PREFIX}/{model_group.name}/",
+            f"/data/{model_group.name}/",
+            "--recursive",
+        ],
+        volume_mounts=[
+            client.V1VolumeMount(
+                name="model-data",
+                mount_path="/data",
+            )
+        ],
+    )
+
+
+def init_parse_manifest() -> client.V1Container:
+    """
+    Initializes a container for creating a symbolic link to the model file.
+
+    Returns:
+        client.V1Container: The initialized container for handling the manifest.
+    """
+    return client.V1Container(
+        name="init-parse-manifest",
+        image="busybox",
+        command=[
+            "sh",
+            "-c",
+            "model_type=$(cat /data/manifest.yaml | grep 'type' | cut -d ':' -f2 | tr -d ' '); "
+            'if [ "$model_type" != "gguf" ]; then echo \'Invalid model type\' && exit 1; fi; '
+            "model_file=$(cat /data/manifest.yaml | grep 'file' | cut -d ':' -f2 | tr -d ' '); "
+            "ln -s /data/${model_file} /data/my_model.gguf",
         ],
         volume_mounts=[
             client.V1VolumeMount(
@@ -85,7 +109,7 @@ def create_pod(
                     empty_dir=client.V1EmptyDirVolumeSource(),
                 )
             ],
-            init_containers=[init_aws(config.aws, model_group)],
+            init_containers=[init_aws(config.aws, model_group), init_parse_manifest()],
             containers=[
                 client.V1Container(
                     name=f"{kubify_name(model_group.name)}",
@@ -103,7 +127,7 @@ def create_pod(
                         ),
                         client.V1EnvVar(
                             name="MODEL",
-                            value=f"/data/{model_group.name}",
+                            value=f"/data/my_model.gguf",
                         ),
                         client.V1EnvVar(
                             name="PORT",
