@@ -31,7 +31,7 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
             "s3",
             "cp",
             f"s3://{bucket}/{MODEL_PATH_PREFIX}/{model_group.name}/",
-            f"/data/{model_group.name}/",
+            "/data/",
             "--recursive",
         ],
         volume_mounts=[

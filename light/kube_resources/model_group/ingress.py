@@ -53,7 +53,7 @@ def create_model_vservice(
                     "route": [
                         {
                             "destination": {
-                                "host": f"{kubify_name(model_name)}-service.{namespace}.svc.cluster.local",
+                                "host": f"{kubify_name(model_name)}.{namespace}.svc.cluster.local",
                                 "port": {"number": 80},
                             }
                         }
