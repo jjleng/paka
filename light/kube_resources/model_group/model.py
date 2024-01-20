@@ -36,6 +36,12 @@ def s3_file_exists(bucket_name: str, s3_file_name: str) -> bool:
             raise  # some other error occurred
 
 
+def s3_file_prefix_exists(bucket_name: str, s3_file_name: str) -> bool:
+    s3 = boto3.resource("s3")
+    bucket = s3.Bucket(bucket_name)
+    return any(bucket.objects.filter(Prefix=s3_file_name))
+
+
 def save_string_to_s3(bucket_name: str, file_name: str, data: str) -> None:
     s3 = boto3.resource("s3")
     s3.Object(bucket_name, file_name).put(Body=data)
@@ -176,7 +182,7 @@ def download_model(name: str) -> None:
     full_model_file_path = f"{model_path}/{model_file_name}"
     bucket = read_current_cluster_data("bucket")
 
-    if s3_file_exists(bucket, full_model_file_path):
+    if s3_file_prefix_exists(bucket, model_path):
         logger.info(f"Model {name} already exists.")
         return
 
