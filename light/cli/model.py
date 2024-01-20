@@ -4,6 +4,7 @@ import typer
 from botocore.exceptions import ClientError, NoCredentialsError
 
 from light.k8s import try_load_kubeconfig
+from light.kube_resources.model_group.model import download_file_to_s3
 from light.kube_resources.model_group.service import MODEL_PATH_PREFIX
 from light.logger import logger
 from light.utils import read_current_cluster_data
@@ -29,27 +30,6 @@ def s3_file_exists(bucket_name: str, s3_file_name: str) -> bool:
             return False
         else:
             raise  # some other error occurred
-
-
-def download_file_to_s3(url: str, bucket_name: str, s3_file_name: str) -> None:
-    s3 = boto3.client("s3")
-
-    try:
-        response = requests.get(url, stream=True)
-
-        if response.status_code == 200:
-            # Upload file in chunks
-            s3.upload_fileobj(
-                Fileobj=response.raw, Bucket=bucket_name, Key=s3_file_name
-            )
-            print(f"File uploaded to S3: {s3_file_name}")
-        else:
-            print(
-                f"Unable to download the file. HTTP Status Code: {response.status_code}"
-            )
-
-    except NoCredentialsError:
-        print("Credentials not available")
 
 
 @model_app.command(help="Download a model and save it to object store.")

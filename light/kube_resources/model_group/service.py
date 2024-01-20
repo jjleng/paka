@@ -3,11 +3,15 @@ from kubernetes import client
 from light.config import CloudConfig, CloudModelGroup, Config
 from light.constants import ACCESS_ALL_SA
 from light.k8s import apply_resource
+from light.kube_resources.model_group.model import (
+    MODEL_PATH_PREFIX,
+    download_model,
+    get_model_file_name,
+)
 from light.utils import kubify_name, read_cluster_data
 
 # We hardcode the image here for now
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
-MODEL_PATH_PREFIX = "models"
 
 
 def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Container:
@@ -30,7 +34,7 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
             "aws",
             "s3",
             "cp",
-            f"s3://{bucket}/{MODEL_PATH_PREFIX}/{model_group.name}",
+            f"s3://{bucket}/{MODEL_PATH_PREFIX}/{get_model_file_name(model_group.name)}",
             f"/data/{model_group.name}",
         ],
         volume_mounts=[
@@ -312,6 +316,9 @@ def create_model_group_service(
     """
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
+
+    # Download the model to S3 first
+    download_model(model_group.name)
 
     port = 8000
 
