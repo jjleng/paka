@@ -1,5 +1,6 @@
 import concurrent.futures
 import hashlib
+from collections import namedtuple
 from typing import List
 
 import boto3
@@ -12,11 +13,34 @@ from light.utils import read_current_cluster_data
 
 MODEL_PATH_PREFIX = "models"
 
+Model = namedtuple("Model", ["name", "url", "sha256"])
+
 SUPPORTED_MODELS = {
-    "llama2-7b": "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_0.gguf",
-    "mistral-7b": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_0.gguf",
-    "codellama-7b": "https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_0.gguf",
+    "llama2-7b": Model(
+        name="llama2-7b",
+        url="https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_0.gguf",
+        sha256="9958ee9b670594147b750bbc7d0540b928fa12dcc5dd4c58cc56ed2eb85e371b",
+    ),
+    "mistral-7b": Model(
+        name="mistral-7b",
+        url="https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_0.gguf",
+        sha256="25d80b918e4432661726ef408b248005bebefe3f8e1ac722d55d0c5dcf2893e0",
+    ),
+    "codellama-7b": Model(
+        name="codellama-7b",
+        url="https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_0.gguf",
+        sha256="33052f6dd41436db2f83bd48017b6fff8ce0184e15a8a227368b4230f1da97b5",
+    ),
 }
+
+
+def delete_s3_file(bucket_name: str, s3_file_name: str) -> None:
+    s3 = boto3.client("s3")
+    if s3_file_exists(bucket_name, s3_file_name):
+        s3.delete_object(Bucket=bucket_name, Key=s3_file_name)
+        logger.info(f"{s3_file_name} deleted.")
+    else:
+        logger.info(f"{s3_file_name} not found.")
 
 
 def s3_file_exists(bucket_name: str, s3_file_name: str) -> bool:
@@ -55,7 +79,7 @@ def download_file_to_s3(
     s3_file_name: str,
     chunk_size: int = 5 * 1024 * 1024,
     max_parallel_uploads: int = 10,
-) -> None:
+) -> str:
     """
     Download a file from a URL and upload it to S3 using multipart upload.
 
@@ -129,7 +153,8 @@ def download_file_to_s3(
                 upload_completed = True
                 logger.info(f"File uploaded to S3: {s3_file_name}")
                 sha256_value = sha256.hexdigest()
-                logger.info(f"SHA2-256 hash of the file: {sha256_value}")
+                logger.info(f"SHA256 hash of the file: {sha256_value}")
+                return sha256_value
             else:
                 error_message = f"Unable to download the file. HTTP Status Code: {response.status_code}"
                 logger.error(error_message)
@@ -155,19 +180,28 @@ def download_model(name: str) -> None:
         )
         raise Exception(f"Model {name} is not supported.")
 
-    url = SUPPORTED_MODELS[name]
+    model = SUPPORTED_MODELS[name]
 
-    logger.info(f"Downloading model from {url}...")
+    logger.info(f"Downloading model from {model.url}...")
     # Get the model name from the URL
-    model_name = url.split("/")[-1]
-    full_model_path = f"{MODEL_PATH_PREFIX}/{model_name}"
+    model_file_name = model.url.split("/")[-1]
+    model_path = f"{MODEL_PATH_PREFIX}/{name}"
+
+    full_model_file_path = f"{model_path}/{model_file_name}"
     bucket = read_current_cluster_data("bucket")
 
-    if s3_file_exists(bucket, full_model_path):
-        logger.info(f"Model {model_name} already exists.")
+    if s3_file_exists(bucket, full_model_file_path):
+        logger.info(f"Model {name} already exists.")
         return
 
-    download_file_to_s3(url, bucket, full_model_path)
+    sha256 = download_file_to_s3(model.url, bucket, full_model_file_path)
+    if sha256 != model.sha256:
+        logger.error(f"SHA256 hash of the downloaded file does not match.")
+        # Delete the file
+        delete_s3_file(bucket, full_model_file_path)
+        raise Exception(f"SHA256 hash of the downloaded file does not match.")
+
+    logger.info(f"Model {name} downloaded successfully.")
 
 
 def get_model_file_name(model_name: str) -> str:
@@ -178,8 +212,8 @@ def get_model_file_name(model_name: str) -> str:
         )
         raise Exception(f"Model {model_name} is not supported.")
 
-    url = SUPPORTED_MODELS[model_name]
+    model = SUPPORTED_MODELS[model_name]
 
     # Get the model name from the URL
-    model_name = url.split("/")[-1]
+    model_name = model.url.split("/")[-1]
     return model_name
