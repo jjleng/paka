@@ -1,8 +1,10 @@
+import concurrent.futures
 import hashlib
+from typing import List
 
 import boto3
 import requests
-from botocore.client import Config
+from botocore.client import BaseClient, Config
 from botocore.exceptions import ClientError
 
 from light.logger import logger
@@ -29,8 +31,30 @@ def s3_file_exists(bucket_name: str, s3_file_name: str) -> bool:
             raise  # some other error occurred
 
 
+def upload_part(
+    s3: BaseClient,
+    bucket_name: str,
+    s3_file_name: str,
+    upload_id: str,
+    part_number: int,
+    chunk: bytes,
+) -> dict:
+    part = s3.upload_part(
+        Body=chunk,
+        Bucket=bucket_name,
+        Key=s3_file_name,
+        UploadId=upload_id,
+        PartNumber=part_number,
+    )
+    return {"PartNumber": part_number, "ETag": part["ETag"]}
+
+
 def download_file_to_s3(
-    url: str, bucket_name: str, s3_file_name: str, chunk_size: int = 5 * 1024 * 1024
+    url: str,
+    bucket_name: str,
+    s3_file_name: str,
+    chunk_size: int = 5 * 1024 * 1024,
+    max_parallel_uploads: int = 10,
 ) -> None:
     """
     Download a file from a URL and upload it to S3 using multipart upload.
@@ -48,7 +72,6 @@ def download_file_to_s3(
         with requests.get(url, stream=True) as response:
             if response.status_code == 200:
                 sha256 = hashlib.sha256()
-
                 total_size = int(response.headers.get("content-length", 0))
                 processed_size = 0
 
@@ -57,30 +80,52 @@ def download_file_to_s3(
                 )
                 upload_id = upload["UploadId"]
                 parts = []
-                part_number = 1
 
-                for chunk in response.iter_content(chunk_size=chunk_size):
-                    sha256.update(chunk)
-                    part = s3.upload_part(
-                        Body=chunk,
-                        Bucket=bucket_name,
-                        Key=s3_file_name,
-                        UploadId=upload_id,
-                        PartNumber=part_number,
-                    )
-                    parts.append({"PartNumber": part_number, "ETag": part["ETag"]})
-                    part_number += 1
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=max_parallel_uploads
+                ) as executor:
+                    futures: List[concurrent.futures.Future] = []
+                    part_number = 1
 
-                    processed_size += len(chunk)
-                    progress = (processed_size / total_size) * 100
-                    logger.info(f"Progress: {progress:.2f}%")
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        sha256.update(chunk)
+                        while len(futures) >= max_parallel_uploads:
+                            # Wait for one of the uploads to complete
+                            done, _ = concurrent.futures.wait(
+                                futures, return_when=concurrent.futures.FIRST_COMPLETED
+                            )
+                            for future in done:
+                                parts.append(future.result())
+                                futures.remove(future)
 
+                        # Submit new chunk for upload
+                        future = executor.submit(
+                            upload_part,
+                            s3,
+                            bucket_name,
+                            s3_file_name,
+                            upload_id,
+                            part_number,
+                            chunk,
+                        )
+                        futures.append(future)
+                        part_number += 1
+                        processed_size += len(chunk)
+                        progress = (processed_size / total_size) * 100
+                        logger.info(f"Progress: {progress:.2f}%")
+
+                    # Wait for all remaining uploads to complete
+                    for future in concurrent.futures.as_completed(futures):
+                        parts.append(future.result())
+
+                parts.sort(key=lambda part: part["PartNumber"])
                 s3.complete_multipart_upload(
                     Bucket=bucket_name,
                     Key=s3_file_name,
                     UploadId=upload_id,
                     MultipartUpload={"Parts": parts},
                 )
+
                 upload_completed = True
                 logger.info(f"File uploaded to S3: {s3_file_name}")
                 sha256_value = sha256.hexdigest()
