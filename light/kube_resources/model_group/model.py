@@ -7,9 +7,10 @@ import requests
 from botocore.client import BaseClient, Config
 from botocore.exceptions import ClientError
 
+from light.kube_resources.model_group.manifest import Manifest
 from light.kube_resources.model_group.supported_models import SUPPORTED_MODELS
 from light.logger import logger
-from light.utils import read_current_cluster_data
+from light.utils import read_current_cluster_data, to_yaml
 
 MODEL_PATH_PREFIX = "models"
 
@@ -33,6 +34,11 @@ def s3_file_exists(bucket_name: str, s3_file_name: str) -> bool:
             return False
         else:
             raise  # some other error occurred
+
+
+def save_string_to_s3(bucket_name: str, file_name: str, data: str) -> None:
+    s3 = boto3.resource("s3")
+    s3.Object(bucket_name, file_name).put(Body=data)
 
 
 def upload_part(
@@ -180,6 +186,18 @@ def download_model(name: str) -> None:
         # Delete the file
         delete_s3_file(bucket, full_model_file_path)
         raise Exception(f"SHA256 hash of the downloaded file does not match.")
+
+    # Save model manifest
+    manifest = Manifest(
+        name=name,
+        sha256=model.sha256,
+        url=model.url,
+        model_type="gguf",  # TODO: hard-coded for now
+        model_file=model_file_name,
+    )
+
+    manifest_yaml = to_yaml(manifest.model_dump(exclude_none=True))
+    save_string_to_s3(bucket, f"{model_path}/manifest.yaml", manifest_yaml)
 
     logger.info(f"Model {name} downloaded successfully.")
 
