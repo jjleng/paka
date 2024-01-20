@@ -128,7 +128,7 @@ def download_file_to_s3(
                         part_number += 1
                         processed_size += len(chunk)
                         progress = (processed_size / total_size) * 100
-                        logger.info(f"Progress: {progress:.2f}%")
+                        print(f"Progress: {progress:.2f}%", end="\r")
 
                     # Wait for all remaining uploads to complete
                     for future in concurrent.futures.as_completed(futures):
