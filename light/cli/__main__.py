@@ -7,8 +7,7 @@ from light.cli.kubeconfig import kube_app
 from light.cli.model_group import model_group_app
 from light.cli.run import run_app
 from light.cli.spec import spec_app
-from light.cluster.manager.aws import AWSClusterManager
-from light.config import CloudConfig, CloudModelGroup, ClusterConfig, Config
+from light.cli.utils import load_cluster_manager
 from light.k8s import update_kubeconfig as merge_update_kubeconfig
 from light.logger import logger, setup_logger
 
@@ -24,27 +23,18 @@ def verbose_option(
 cli = typer.Typer()
 cli.callback()(verbose_option)
 
-cluster_manager = AWSClusterManager(
-    config=Config(
-        aws=CloudConfig(
-            cluster=ClusterConfig(name="chile", defaultRegion="us-west-2"),
-            modelGroups=[
-                CloudModelGroup(
-                    name="llama2-7b",
-                    maxInstances=1,
-                    minInstances=1,
-                    nodeType="c7a.xlarge",
-                ),
-            ],
-        )
-    )
-)
 
 cluster_app = typer.Typer()
 
 
 @cluster_app.command()
 def up(
+    cluster_config: str = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="Path to the cluster config file.",
+    ),
     update_kubeconfig: bool = typer.Option(
         False,
         "--update-kubeconfig",
@@ -52,6 +42,7 @@ def up(
         help="Update kubeconfig with the new cluster.",
     ),
 ) -> None:
+    cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.create()
     if update_kubeconfig:
         logger.info("Updating kubeconfig...")
@@ -60,17 +51,41 @@ def up(
 
 
 @cluster_app.command()
-def down() -> None:
+def down(
+    cluster_config: str = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="Path to the cluster config file.",
+    ),
+) -> None:
+    cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.destroy()
 
 
 @cluster_app.command()
-def refresh() -> None:
+def refresh(
+    cluster_config: str = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="Path to the cluster config file.",
+    ),
+) -> None:
+    cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.refresh()
 
 
 @cluster_app.command()
-def preview() -> None:
+def preview(
+    cluster_config: str = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="Path to the cluster config file.",
+    ),
+) -> None:
+    cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.preview()
 
 
@@ -81,7 +96,15 @@ service_app = typer.Typer()
 
 
 @service_app.command("up")
-def service_up() -> None:
+def service_up(
+    cluster_config: str = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="Path to the cluster config file.",
+    ),
+) -> None:
+    cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.service_up()
 
 

@@ -1,10 +1,33 @@
 import functools
+import os
 import re
 from typing import Any, Tuple
 
 import typer
 
+from light.cluster.manager.aws import AWSClusterManager
+from light.cluster.manager.base import ClusterManager
+from light.config import parse_yaml
 from light.logger import logger
+
+
+def load_cluster_manager(cluster_config: str) -> ClusterManager:
+    if not cluster_config:
+        cluster_config = "./cluster.yaml"
+
+    cluster_config = os.path.expanduser(cluster_config)
+    cluster_config = os.path.abspath(cluster_config)
+
+    if not os.path.exists(cluster_config):
+        raise FileNotFoundError(f"The cluster config file does not exist")
+
+    with open(cluster_config, "r") as file:
+        config_data = parse_yaml(file.read())
+
+        if config_data.aws:
+            return AWSClusterManager(config=config_data)
+        else:
+            raise ValueError("Unsupported cloud provider")
 
 
 def validate_name(func: Any) -> Any:
