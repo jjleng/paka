@@ -4,7 +4,7 @@ from light.cli.build import build_app
 from light.cli.function import function_app
 from light.cli.job import job_app
 from light.cli.kubeconfig import kube_app
-from light.cli.model import model_app
+from light.cli.model_group import model_group_app
 from light.cli.run import run_app
 from light.cli.spec import spec_app
 from light.cluster.manager.aws import AWSClusterManager
@@ -30,9 +30,9 @@ cluster_manager = AWSClusterManager(
             cluster=ClusterConfig(name="chile", defaultRegion="us-west-2"),
             modelGroups=[
                 CloudModelGroup(
-                    name="llama-2-7b.Q4_0.gguf",
-                    maxInstances=3,
-                    minInstances=0,
+                    name="llama2-7b",
+                    maxInstances=1,
+                    minInstances=1,
                     nodeType="c7a.xlarge",
                 ),
             ],
@@ -99,7 +99,7 @@ cli.add_typer(run_app, name="run")
 
 cli.add_typer(function_app, name="function")
 
-cli.add_typer(model_app, name="model")
+cli.add_typer(model_group_app, name="model-group")
 
 
 def main() -> None:

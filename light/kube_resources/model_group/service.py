@@ -2,12 +2,14 @@ from kubernetes import client
 
 from light.config import CloudConfig, CloudModelGroup, Config
 from light.constants import ACCESS_ALL_SA
-from light.k8s import apply_resource
+from light.k8s import apply_resource, try_load_kubeconfig
 from light.kube_resources.model_group.model import MODEL_PATH_PREFIX, download_model
 from light.utils import kubify_name, read_cluster_data
 
 # We hardcode the image here for now
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
+
+try_load_kubeconfig()
 
 
 def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Container:
@@ -276,6 +278,30 @@ def create_service(
             ],
         ),
     )
+
+
+def filter_services(namespace: str) -> list:
+    """
+    Filters Kubernetes services in a given namespace that have a selector with "app": "model-group".
+
+    Args:
+        namespace (str): The namespace in which to filter services.
+
+    Returns:
+        list: The filtered Kubernetes services.
+    """
+    v1 = client.CoreV1Api()
+
+    services = v1.list_namespaced_service(namespace)
+    filtered_services = [
+        service
+        for service in services.items
+        if service.spec.selector
+        and service.spec.selector.get("app") == "model-group"
+        and service.spec.selector.get("model")
+    ]
+
+    return filtered_services
 
 
 def create_hpa(

@@ -15,6 +15,7 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-requests
+          - types-tabulate
   - repo: https://github.com/pre-commit/mirrors-isort
     rev: 'v5.10.1'
     hooks:
