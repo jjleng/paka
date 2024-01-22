@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pulumi
 import pulumi_aws as aws
 import pulumi_awsx as awsx
@@ -17,7 +19,7 @@ from light.utils import kubify_name, save_kubeconfig
 
 def _ignore_tags_transformation(
     args: pulumi.ResourceTransformationArgs,
-) -> pulumi.ResourceTransformationResult | None:
+) -> Optional[pulumi.ResourceTransformationResult]:
     """
     EKS adds tags to VPC and Subnet resources that are not managed by Pulumi. This function ignores those tags so that Pulumi does not try to remove them.
 

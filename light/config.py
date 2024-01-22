@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel, model_validator
 from ruamel.yaml import YAML
@@ -173,8 +173,8 @@ class CloudServeConfig(BaseModel):
 
     @model_validator(mode="before")
     def check_one_field(
-        cls, values: Dict[str, CloudServerless | CloudServer | None]
-    ) -> Dict[str, CloudServerless | CloudServer | None]:
+        cls, values: Dict[str, Union[CloudServerless, CloudServer, None]]
+    ) -> Dict[str, Union[CloudServerless, CloudServer, None]]:
         """
         Validates that exactly one field is set in the configuration.
 
@@ -369,8 +369,8 @@ class Config(BaseModel):
 
     @model_validator(mode="before")
     def check_one_field(
-        cls, values: Dict[str, CloudConfig | LocalConfig]
-    ) -> Dict[str, CloudConfig | LocalConfig]:
+        cls, values: Dict[str, Union[CloudConfig, LocalConfig]]
+    ) -> Dict[str, Union[CloudConfig, LocalConfig]]:
         """
         Validates that exactly one field is set.
 
