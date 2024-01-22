@@ -27,7 +27,15 @@ def build(
     install_pack()
 
     # Expand the source_dir path
-    source_dir = os.path.abspath(source_dir)
+    source_dir = os.path.abspath(os.path.expanduser(source_dir))
+
+    if not os.path.exists(os.path.join(source_dir, ".cnignore")):
+        logger.error(".cnignore file does not exist in the source directory.")
+        raise typer.Exit(1)
+
+    if not os.path.exists(os.path.join(source_dir, "Procfile")):
+        logger.error("Procfile does not exist in the source directory.")
+        raise typer.Exit(1)
 
     # If image_name is empty, use the directory name of source_dir
     if not image_name:
