@@ -1,6 +1,6 @@
 import concurrent.futures
 import hashlib
-from typing import List
+from typing import Any, Dict, List
 
 import boto3
 import requests
@@ -54,7 +54,7 @@ def upload_part(
     upload_id: str,
     part_number: int,
     chunk: bytes,
-) -> dict:
+) -> Dict[str, Any]:
     part = s3.upload_part(
         Body=chunk,
         Bucket=bucket_name,

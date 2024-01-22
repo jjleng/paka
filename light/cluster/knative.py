@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
 import pulumi
 import pulumi_kubernetes as k8s
@@ -42,11 +42,11 @@ def limit_deployment_replicas(args: Any, opts: pulumi.ResourceOptions) -> None:
                 }
 
 
-def crd_resources(labels: dict) -> bool:
+def crd_resources(labels: Dict[str, Any]) -> bool:
     return labels.get("knative.dev/crd-install") == "true"
 
 
-def non_crd_resources(labels: dict) -> bool:
+def non_crd_resources(labels: Dict[str, Any]) -> bool:
     return labels.get("knative.dev/crd-install") != "true"
 
 

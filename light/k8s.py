@@ -6,7 +6,17 @@ import socket
 import threading
 import time
 from functools import partial
-from typing import Any, Callable, Dict, Literal, Optional, Protocol, Tuple, TypeAlias
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeAlias,
+)
 
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
@@ -300,7 +310,7 @@ def create_role_binding(
     apply_resource(role_binding)
 
 
-def create_config_map(namespace: str, map_name: str, data: dict) -> None:
+def create_config_map(namespace: str, map_name: str, data: Dict[str, Any]) -> None:
     config_map = client.V1ConfigMap(
         kind="ConfigMap",
         metadata=client.V1ObjectMeta(name=map_name, namespace=namespace),
@@ -309,7 +319,9 @@ def create_config_map(namespace: str, map_name: str, data: dict) -> None:
     apply_resource(config_map)
 
 
-def create_role(namespace: str, role_name: str, rules: list) -> None:
+def create_role(
+    namespace: str, role_name: str, rules: List[client.V1PolicyRule]
+) -> None:
     role = client.V1Role(
         api_version="rbac.authorization.k8s.io/v1",
         kind="Role",
@@ -515,10 +527,10 @@ def try_load_kubeconfig() -> bool:
 
 
 class KubeconfigMerger:
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
         self.config = config or {}
 
-    def _entries_by_key(self, key: str) -> list:
+    def _entries_by_key(self, key: str) -> List[Any]:
         self.config[key] = self.config.get(key) or []
         entries = self.config[key]
         if not isinstance(entries, list):
@@ -529,7 +541,9 @@ class KubeconfigMerger:
             )
         return entries
 
-    def _index_same_name(self, entries: list, new_entry: dict) -> Optional[int]:
+    def _index_same_name(
+        self, entries: List[Any], new_entry: Dict[str, Any]
+    ) -> Optional[int]:
         if "name" in new_entry:
             name_to_search = new_entry["name"]
             for i, entry in enumerate(entries):
@@ -545,7 +559,7 @@ class KubeconfigMerger:
         else:
             entries[same_name_index] = new_entry
 
-    def merge(self, new_config: dict) -> None:
+    def merge(self, new_config: Dict[str, Any]) -> None:
         for cluster in new_config.get("clusters", []):
             self.insert_entry("clusters", cluster)
         for user in new_config.get("users", []):

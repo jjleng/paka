@@ -5,7 +5,7 @@ import re
 import string
 from io import StringIO
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
 from ruamel.yaml import YAML
 
@@ -78,7 +78,7 @@ def call_once(func: Callable) -> Callable:
     return wrapper
 
 
-def to_yaml(obj: dict) -> str:
+def to_yaml(obj: Dict[str, Any]) -> str:
     """
     Converts an object to a YAML string.
 
@@ -95,7 +95,7 @@ def to_yaml(obj: dict) -> str:
     return buf.getvalue()
 
 
-def read_yaml_file(path: str) -> dict:
+def read_yaml_file(path: str) -> Dict[str, Any]:
     yaml = YAML()
     try:
         with open(path, "r") as file:

@@ -1,3 +1,5 @@
+from typing import Any, List
+
 from kubernetes import client
 
 from light.config import CloudConfig, CloudModelGroup, Config
@@ -280,7 +282,7 @@ def create_service(
     )
 
 
-def filter_services(namespace: str) -> list:
+def filter_services(namespace: str) -> List[Any]:
     """
     Filters Kubernetes services in a given namespace that have a selector with "app": "model-group".
 
