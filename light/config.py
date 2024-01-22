@@ -295,6 +295,12 @@ class ClusterConfig(BaseModel):
     defaultRegion: str
 
 
+class CloudVectorStore(CloudNode):
+    replicas: int = 1
+    storage_size: str = "10Gi"
+    public: bool = False
+
+
 class CloudConfig(BaseModel):
     """
     Represents the configuration for the cloud environment.
@@ -312,6 +318,7 @@ class CloudConfig(BaseModel):
     modelGroups: Optional[List[CloudModelGroup]] = None
     serve: Optional[CloudServeConfig] = None
     job: Optional[CloudJobConfig] = None
+    vectorStore: Optional[CloudVectorStore] = None
 
 
 class LocalClusterConfig(BaseModel):

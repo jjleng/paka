@@ -9,6 +9,7 @@ from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from light.cluster.aws.service_account import create_service_accounts
 from light.cluster.keda import create_keda
 from light.cluster.knative import create_knative
+from light.cluster.qdrant import create_qdrant
 from light.cluster.redis import create_redis
 from light.config import CloudConfig
 from light.utils import kubify_name, save_kubeconfig
@@ -76,6 +77,42 @@ def create_node_group_for_model_group(
                 ),
             ],
         )
+
+
+def create_node_group_for_qdrant(
+    config: CloudConfig,
+    cluster: eks.Cluster,
+    vpc: awsx.ec2.Vpc,
+    worker_role: aws.iam.Role,
+) -> None:
+    if config.vectorStore is None:
+        return
+
+    project = config.cluster.name
+
+    vectorStore = config.vectorStore
+
+    # Create a managed node group for our cluster
+    eks.ManagedNodeGroup(
+        f"{project}-qdrant-group",
+        node_group_name=f"{project}-qdrant-group",
+        cluster=cluster,
+        instance_types=[vectorStore.nodeType],
+        scaling_config=aws.eks.NodeGroupScalingConfigArgs(
+            desired_size=vectorStore.replicas,
+            min_size=vectorStore.replicas,
+            max_size=vectorStore.replicas,
+        ),
+        labels={
+            "size": vectorStore.nodeType,
+            "app": "qdrant",
+        },
+        node_role_arn=worker_role.arn,
+        subnet_ids=vpc.private_subnet_ids,
+        taints=[
+            aws.eks.NodeGroupTaintArgs(effect="NO_SCHEDULE", key="app", value="qdrant"),
+        ],
+    )
 
 
 def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
@@ -178,6 +215,9 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     # Create a managed node group for each model group
     create_node_group_for_model_group(config, cluster, vpc, worker_role)
 
+    # Create a managed node group for Qdrant
+    create_node_group_for_qdrant(config, cluster, vpc, worker_role)
+
     k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
 
     # Deploy the metrics server. This is required for the Horizontal Pod Autoscaler to work.
@@ -199,6 +239,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     create_redis(k8s_provider)
     create_keda(k8s_provider)
     create_knative(k8s_provider)
+    create_qdrant(config, k8s_provider)
 
     create_service_accounts(config, cluster, k8s_provider)
 
