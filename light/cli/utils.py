@@ -12,7 +12,7 @@ from light.config import parse_yaml
 from light.container.ecr import push_to_ecr
 from light.container.pack import install_pack
 from light.logger import logger
-from light.utils import read_current_cluster_data
+from light.utils import get_pulumi_root, read_current_cluster_data
 
 
 def build(
@@ -122,3 +122,12 @@ def resolve_image(image: Optional[str], source_dir: Optional[str]) -> str:
         result_image = f"{registry_uri}:{result_image}"
 
     return result_image
+
+
+def init_pulumi() -> None:
+    os.environ["PULUMI_CONFIG_PASSPHRASE"] = ""
+    os.environ["PULUMI_ACCESS_TOKEN"] = "NOT_NEEDED"
+
+    pulumi_root = get_pulumi_root()
+    os.makedirs(pulumi_root, exist_ok=True)
+    os.environ["PULUMI_ROOT"] = f"file://{pulumi_root}"

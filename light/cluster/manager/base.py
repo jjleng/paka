@@ -1,4 +1,3 @@
-import os
 from abc import ABC, abstractmethod
 
 from pulumi import automation as auto
@@ -11,7 +10,7 @@ from light.kube_resources.model_group.ingress import (
 )
 from light.kube_resources.model_group.service import create_model_group_service
 from light.logger import logger
-from light.utils import get_pulumi_data_dir, save_cluster_data
+from light.utils import save_cluster_data
 
 STACK_NAME = "default"
 
@@ -30,16 +29,10 @@ class ClusterManager(ABC):
         pass
 
     def _stack_for_program(self, program: auto.PulumiFn) -> auto.Stack:
-        pulumi_home = get_pulumi_data_dir()
-        os.makedirs(pulumi_home, exist_ok=True)
-
         return auto.create_or_select_stack(
             stack_name=STACK_NAME,
             project_name=self.config.cluster.name,
             program=program,
-            opts=auto.LocalWorkspaceOptions(
-                pulumi_home=pulumi_home,
-            ),
         )
 
     @property

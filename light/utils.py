@@ -133,7 +133,7 @@ def get_cluster_data_dir(name: str) -> str:
     return os.path.join(get_project_data_dir(), "clusters", name)
 
 
-def get_pulumi_data_dir() -> str:
+def get_pulumi_root() -> str:
     """
     Get the pulumi data directory.
 

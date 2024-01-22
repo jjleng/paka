@@ -7,7 +7,10 @@ from light.cli.job import job_app
 from light.cli.kubeconfig import kube_app
 from light.cli.model_group import model_group_app
 from light.cli.run import run_app
+from light.cli.utils import init_pulumi
 from light.logger import setup_logger
+
+init_pulumi()
 
 
 def verbose_option(
