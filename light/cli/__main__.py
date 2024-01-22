@@ -90,25 +90,6 @@ def preview(
 
 cli.add_typer(cluster_app, name="cluster")
 
-
-service_app = typer.Typer()
-
-
-@service_app.command("up")
-def service_up(
-    cluster_config: str = typer.Option(
-        "",
-        "--file",
-        "-f",
-        help="Path to the cluster config file.",
-    ),
-) -> None:
-    cluster_manager = load_cluster_manager(cluster_config)
-    cluster_manager.service_up()
-
-
-cli.add_typer(service_app, name="service")
-
 cli.add_typer(job_app, name="job")
 
 cli.add_typer(build_app, name="build")

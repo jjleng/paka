@@ -62,6 +62,14 @@ class ClusterManager(ABC):
         logger.info("Creating resources...")
         self._stack.up(on_output=logger.info)
 
+        if self.config.modelGroups is None:
+            return
+
+        create_model_group_ingress(APP_NS)
+        for model_group in self.config.modelGroups:
+            create_model_group_service(APP_NS, self._orig_config, model_group)
+            create_model_vservice(APP_NS, model_group.name)
+
     def destroy(self) -> None:
         logger.info("Destroying resources...")
         self._stack.destroy(on_output=logger.info)
@@ -72,12 +80,3 @@ class ClusterManager(ABC):
 
     def preview(self) -> None:
         self._stack.preview(on_output=logger.info)
-
-    def service_up(self) -> None:
-        if self.config.modelGroups is None:
-            raise ValueError("Model group config not found")
-
-        create_model_group_ingress(APP_NS)
-        for model_group in self.config.modelGroups:
-            create_model_group_service(APP_NS, self._orig_config, model_group)
-            create_model_vservice(APP_NS, model_group.name)
