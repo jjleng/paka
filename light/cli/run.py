@@ -5,7 +5,7 @@ from typing import Optional
 import typer
 from kubernetes import client
 
-from light.cli.build import build
+from light.cli.utils import resolve_image
 from light.constants import APP_NS
 from light.k8s import tail_logs, try_load_kubeconfig
 from light.logger import logger
@@ -36,22 +36,10 @@ def one_off_script(
         help="The name of the image to deploy.",
     ),
 ) -> None:
-    if bool(source_dir) == bool(image):
-        logger.error(
-            "Exactly one of --source or --image must be provided. Please see --help for more information."
-        )
-        raise typer.Exit(1)
+    resolved_image = resolve_image(image, source_dir)
 
     # Generate a job name which is the hash of the command
     job_name = f"run-{kubify_name(random_str(10))}"
-
-    if not image and source_dir:
-        source_dir = os.path.abspath(os.path.expanduser(source_dir))
-        image = os.path.basename(source_dir)
-        build(source_dir, image)
-        image = f"{image}-latest"
-
-    registry_uri = read_current_cluster_data("registry")
 
     job = client.V1Job(
         api_version="batch/v1",
@@ -63,7 +51,7 @@ def one_off_script(
                     containers=[
                         client.V1Container(
                             name="one-off-script",
-                            image=f"{registry_uri}:{image}",
+                            image=resolved_image,
                             image_pull_policy="Always",
                             command=shlex.split(entrypoint),
                             env=[

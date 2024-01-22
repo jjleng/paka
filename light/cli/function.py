@@ -1,15 +1,14 @@
-import os
 from typing import Literal, Optional
 
 import click
 import typer
 
-from light.cli.build import build
+from light.cli.utils import resolve_image
 from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.k8s import try_load_kubeconfig
 from light.kube_resources.function.service import create_knative_service
 from light.logger import logger
-from light.utils import kubify_name, read_current_cluster_data
+from light.utils import kubify_name
 
 try_load_kubeconfig()
 
@@ -69,31 +68,18 @@ def deploy(
         help="The scale down delay (e.g. 0s, 1m, 1h). Must be 0s <= value <= 1h",
     ),
 ) -> None:
-    if not source_dir and not image:
-        logger.error(
-            "Either --source or --image must be provided. Please see --help for more information."
-        )
-        raise typer.Exit(1)
-    elif source_dir:
-        source_dir = os.path.abspath(os.path.expanduser(source_dir))
-        image = os.path.basename(source_dir)
-        # Always build and deploy the latest image
-        build(source_dir, image)
-        # We always use the latest image
-        image = f"{image}-latest"
-
-    registry_uri = read_current_cluster_data("registry")
+    resolved_image = resolve_image(image, source_dir)
 
     logger.info(f"Deploying {name}...")
 
     create_knative_service(
-        kubify_name(name),
-        APP_NS,
-        f"{registry_uri}:{image}",
-        min_instances,
-        max_instances,
-        (scaling_metric, str(metric_target)),
-        scale_down_delay,
+        service_name=kubify_name(name),
+        namespace=APP_NS,
+        image=resolved_image,
+        min_instances=min_instances,
+        max_instances=max_instances,
+        scaling_metric=(scaling_metric, str(metric_target)),
+        scale_down_delay=scale_down_delay,
     )
 
     logger.info(f"Successfully deployed {name}")

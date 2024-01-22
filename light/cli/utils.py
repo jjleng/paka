@@ -1,14 +1,65 @@
 import functools
 import os
 import re
-from typing import Any
+import subprocess
+from typing import Any, Optional
 
 import typer
 
 from light.cluster.manager.aws import AWSClusterManager
 from light.cluster.manager.base import ClusterManager
 from light.config import parse_yaml
+from light.container.ecr import push_to_ecr
+from light.container.pack import install_pack
 from light.logger import logger
+from light.utils import read_current_cluster_data
+
+
+def build(
+    source_dir: str,
+    image_name: str,
+) -> None:
+    # Install pack first
+    install_pack()
+
+    # Expand the source_dir path
+    source_dir = os.path.abspath(os.path.expanduser(source_dir))
+
+    if not os.path.exists(os.path.join(source_dir, ".cnignore")):
+        logger.error(".cnignore file does not exist in the source directory.")
+        raise typer.Exit(1)
+
+    if not os.path.exists(os.path.join(source_dir, "Procfile")):
+        logger.error("Procfile does not exist in the source directory.")
+        raise typer.Exit(1)
+
+    # If image_name is empty, use the directory name of source_dir
+    if not image_name:
+        image_name = os.path.basename(source_dir)
+
+    logger.info(f"Building image {image_name}...")
+
+    try:
+        # Navigate to the application directory
+        # (This step may be optional depending on your setup)
+        subprocess.run(["cd", source_dir], check=True)
+
+        # Build the application using pack
+        subprocess.run(
+            ["pack", "build", image_name, "--builder", "paketobuildpacks/builder:base"],
+            check=True,
+        )
+        logger.info(f"Successfully built {image_name}")
+
+        push_to_ecr(
+            image_name,
+            read_current_cluster_data("registry"),
+            read_current_cluster_data("region"),
+            image_name,
+        )
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"An error occurred: {e}")
 
 
 def load_cluster_manager(cluster_config: str) -> ClusterManager:
@@ -47,3 +98,27 @@ def validate_name(func: Any) -> Any:
         return func(name, *args, **kwargs)
 
     return wrapper
+
+
+def resolve_image(image: Optional[str], source_dir: Optional[str]) -> str:
+    if bool(source_dir) == bool(image):
+        logger.error(
+            "Exactly one of --source or --image must be provided. Please see --help for more information."
+        )
+        raise typer.Exit(1)
+
+    result_image = ""
+
+    if not image and source_dir:
+        source_dir = os.path.abspath(os.path.expanduser(source_dir))
+        result_image = os.path.basename(source_dir)
+        build(source_dir, result_image)
+        result_image = f"{result_image}-latest"
+    elif image:
+        result_image = image
+
+    if ":" not in result_image:
+        registry_uri = read_current_cluster_data("registry")
+        result_image = f"{registry_uri}:{result_image}"
+
+    return result_image

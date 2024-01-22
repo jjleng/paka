@@ -4,12 +4,12 @@ from typing import Optional
 import typer
 from kubernetes import client
 
-from light.cli.build import build
+from light.cli.utils import resolve_image
 from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.k8s import try_load_kubeconfig
 from light.kube_resources.job.worker import create_workers, delete_workers
 from light.logger import logger
-from light.utils import kubify_name, read_current_cluster_data
+from light.utils import kubify_name
 
 try_load_kubeconfig()
 
@@ -60,27 +60,17 @@ def deploy(
         help="Wait for existing tasks to drain before deploying.",
     ),
 ) -> None:
-    if not source_dir and not image:
-        logger.error(
-            "Either --source or --image must be provided. Please see --help for more information."
-        )
-        raise typer.Exit(1)
-    elif image:
+    resolved_image = resolve_image(image, source_dir)
+
+    if image:
         job_name = image
     elif source_dir:
-        source_dir = os.path.abspath(os.path.expanduser(source_dir))
-        image = os.path.basename(source_dir)
-        job_name = image
-        # Always build and deploy the latest image
-        build(source_dir, image)
-        image = f"{image}-latest"
-
-    registry_uri = read_current_cluster_data("registry")
+        job_name = os.path.basename(source_dir)
 
     create_workers(
         namespace=APP_NS,
-        job_name=kubify_name(name or typed_job_name(job_name)),
-        image=f"{registry_uri}:{image or job_name}",
+        job_name=kubify_name(typed_job_name(name or job_name)),
+        image=resolved_image,
         entrypoint=entrypoint,
         tasks_per_worker=tasks_per_worker,
         max_replicas=max_workers,
