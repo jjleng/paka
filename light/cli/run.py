@@ -18,7 +18,7 @@ run_app = typer.Typer()
 try_load_kubeconfig()
 
 
-@run_app.command(help="Run a one-off script.")
+@run_app.callback(invoke_without_command=True)
 def one_off_script(
     entrypoint: str = typer.Option(
         ...,
@@ -36,9 +36,9 @@ def one_off_script(
         help="The name of the image to deploy.",
     ),
 ) -> None:
-    if not source_dir and not image:
+    if bool(source_dir) == bool(image):
         logger.error(
-            "Either --source or --image must be provided. Please see --help for more information."
+            "Exactly one of --source or --image must be provided. Please see --help for more information."
         )
         raise typer.Exit(1)
 
