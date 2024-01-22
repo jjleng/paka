@@ -6,7 +6,6 @@ from light.cli.job import job_app
 from light.cli.kubeconfig import kube_app
 from light.cli.model_group import model_group_app
 from light.cli.run import run_app
-from light.cli.spec import spec_app
 from light.cli.utils import load_cluster_manager
 from light.k8s import update_kubeconfig as merge_update_kubeconfig
 from light.logger import logger, setup_logger
@@ -109,8 +108,6 @@ def service_up(
 
 
 cli.add_typer(service_app, name="service")
-
-cli.add_typer(spec_app, name="spec")
 
 cli.add_typer(job_app, name="job")
 
