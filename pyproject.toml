@@ -16,6 +16,12 @@ check_untyped_defs = true
 [tool.isort]
 profile = "black"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore:pkg_resources is deprecated:DeprecationWarning",
+  "ignore:Waiting for.*:DeprecationWarning",
+]
+
 [tool.poetry.scripts]
 light-cli = "light.cli.__main__:main"
 
