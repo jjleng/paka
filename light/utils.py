@@ -102,12 +102,12 @@ def read_yaml_file(path: str) -> Dict[str, Any]:
             data = yaml.load(file)
     except FileNotFoundError:
         data = {}
-    return data
+    return data or {}
 
 
-def set_current_cluster(name: str) -> None:
+def set_current_cluster(cluster_name: str) -> None:
     # Create symlink that points to the current cluster
-    target = get_cluster_data_dir(name)
+    target = get_cluster_data_dir(cluster_name)
 
     # Path where the symlink should be created
     link = os.path.join(get_project_data_dir(), "current_cluster")
@@ -120,7 +120,7 @@ def set_current_cluster(name: str) -> None:
     os.symlink(target, link)
 
 
-def get_cluster_data_dir(name: str) -> str:
+def get_cluster_data_dir(cluster_name: str) -> str:
     """
     Get the cluster data directory.
 
@@ -130,7 +130,7 @@ def get_cluster_data_dir(name: str) -> str:
     Returns:
         str: The cluster data directory.
     """
-    return os.path.join(get_project_data_dir(), "clusters", name)
+    return os.path.join(get_project_data_dir(), "clusters", cluster_name)
 
 
 def get_pulumi_root() -> str:
@@ -143,7 +143,7 @@ def get_pulumi_root() -> str:
     return os.path.join(get_project_data_dir(), "pulumi")
 
 
-def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
+def save_kubeconfig(cluster_name: str, kubeconfig_json: str) -> None:
     """
     Save the kubeconfig data as YAML file.
 
@@ -156,16 +156,18 @@ def save_kubeconfig(name: str, kubeconfig_json: str) -> None:
     """
     kubeconfig_data = json.loads(kubeconfig_json)
 
-    kubeconfig_file_path = os.path.join(get_cluster_data_dir(name), "kubeconfig.yaml")
+    kubeconfig_file_path = os.path.join(
+        get_cluster_data_dir(cluster_name), "kubeconfig.yaml"
+    )
     os.makedirs(os.path.dirname(kubeconfig_file_path), exist_ok=True)
 
     with open(kubeconfig_file_path, "w") as f:
         f.write(to_yaml(kubeconfig_data))
 
-    set_current_cluster(name)
+    set_current_cluster(cluster_name)
 
 
-def save_cluster_data(name: str, k: str, v: Any) -> None:
+def save_cluster_data(cluster_name: str, k: str, v: Any) -> None:
     """
     Save the cluster data as YAML file.
 
@@ -177,7 +179,7 @@ def save_cluster_data(name: str, k: str, v: Any) -> None:
         None
     """
 
-    cluster_file_path = os.path.join(get_cluster_data_dir(name), "cluster.yaml")
+    cluster_file_path = os.path.join(get_cluster_data_dir(cluster_name), "cluster.yaml")
     os.makedirs(os.path.dirname(cluster_file_path), exist_ok=True)
 
     data = read_yaml_file(cluster_file_path)

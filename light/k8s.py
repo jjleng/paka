@@ -250,7 +250,6 @@ def apply_resource(
             logger.info(f"{kind} '{resource.metadata.name}' created.")
         else:
             raise e
-
     return response
 
 

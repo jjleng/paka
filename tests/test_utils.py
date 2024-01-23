@@ -1,4 +1,19 @@
-from light.utils import call_once, camel_to_kebab, kubify_name
+import json
+import os
+from unittest.mock import mock_open, patch
+
+from ruamel.yaml import YAML
+
+from light.utils import (
+    call_once,
+    camel_to_kebab,
+    get_cluster_data_dir,
+    get_project_data_dir,
+    kubify_name,
+    save_cluster_data,
+    save_kubeconfig,
+    to_yaml,
+)
 
 
 def test_camel_to_kebab() -> None:
@@ -33,3 +48,47 @@ def test_call_once() -> None:
 
     # Check that the counter was only incremented once
     assert counter == 1
+
+
+def test_to_yaml() -> None:
+    obj = {"key": "value"}
+    yaml_str = to_yaml(obj)
+    assert yaml_str == "key: value\n"
+
+    obj1 = {"key": {"nested_key": "nested_value"}}
+    yaml_str = to_yaml(obj1)
+    assert yaml_str == "key:\n  nested_key: nested_value\n"
+
+    obj2 = {"key": ["value1", "value2"]}
+    yaml_str = to_yaml(obj2)
+    assert yaml_str == "key:\n  - value1\n  - value2\n"
+
+
+def test_save_kubeconfig() -> None:
+    m = mock_open()
+    # Replace the built-in open function with the mock object
+    with patch("builtins.open", m):
+        kubeconfig_json = json.dumps({"apiVersion": "v1"})
+        save_kubeconfig("test", kubeconfig_json)
+    f = os.path.join(get_cluster_data_dir("test"), "kubeconfig.yaml")
+    m.assert_called_once_with(f, "w")
+    handle = m()
+    handle.write.assert_called_once()
+
+
+def test_save_cluster_data() -> None:
+    m = mock_open()
+    # Mock the built-in open function and YAML's dump method
+    with patch("builtins.open", m), patch("ruamel.yaml.YAML.dump") as mock_dump:
+        cluster_name = "test"
+        k = "key"
+        v = "value"
+
+        save_cluster_data(cluster_name, k, v)
+
+    f = os.path.join(get_cluster_data_dir(cluster_name), "cluster.yaml")
+
+    m.assert_called_with(f, "w")
+
+    handle = m()
+    mock_dump.assert_called_once_with({k: v}, handle)
