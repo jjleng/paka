@@ -1,4 +1,3 @@
-import os
 import shlex
 from typing import Optional
 
