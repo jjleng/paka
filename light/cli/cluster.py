@@ -1,3 +1,5 @@
+from typing import List
+
 import typer
 
 from light.cli.utils import load_cluster_manager
@@ -64,15 +66,15 @@ def preview(
         "-f",
         help="Path to the cluster config file.",
     ),
-    policy_pack: str = typer.Option(
-        "",
+    policy_packs: List[str] = typer.Option(
+        [],
         "--policy-pack",
         "-p",
         help="Path to the policy pack.",
     ),
 ) -> None:
     cluster_manager = load_cluster_manager(cluster_config)
-    if policy_pack:
-        cluster_manager.preview(policy_packs=[policy_pack])
+    if policy_packs:
+        cluster_manager.preview(policy_packs=policy_packs)
     else:
         cluster_manager.preview()
