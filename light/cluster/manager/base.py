@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from pulumi import automation as auto
 
@@ -71,5 +72,7 @@ class ClusterManager(ABC):
         logger.info("Refreshing the stack...")
         self._stack.refresh(on_output=logger.info)
 
-    def preview(self) -> None:
-        self._stack.preview(on_output=logger.info)
+    def preview(self, *args: Any, **kwargs: Any) -> None:
+        if not "on_output" in kwargs:
+            kwargs["on_output"] = logger.info
+        self._stack.preview(*args, **kwargs)
