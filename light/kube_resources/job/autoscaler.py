@@ -44,7 +44,9 @@ def create_autoscaler(
                         "type": "list",
                         "listName": queue_name,
                         "listLength": f"{trigger_queue_length}",
-                        "address": f"{redis_svc_name}.{namespace}.svc.cluster.local:6379",
+                        "address": (
+                            f"{redis_svc_name}.{namespace}.svc.cluster.local:6379"
+                        ),
                     },
                     "authenticationRef": {"name": "redis-auth-trigger"},
                 }
