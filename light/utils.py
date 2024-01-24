@@ -5,7 +5,7 @@ import re
 import string
 from io import StringIO
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from ruamel.yaml import YAML
 
@@ -143,7 +143,7 @@ def get_pulumi_root() -> str:
     return os.path.join(get_project_data_dir(), "pulumi")
 
 
-def save_kubeconfig(cluster_name: str, kubeconfig_json: str) -> None:
+def save_kubeconfig(cluster_name: str, kubeconfig_json: Optional[str]) -> None:
     """
     Save the kubeconfig data as YAML file.
 
@@ -154,6 +154,9 @@ def save_kubeconfig(cluster_name: str, kubeconfig_json: str) -> None:
     Returns:
         None
     """
+    if kubeconfig_json is None:
+        return
+
     kubeconfig_data = json.loads(kubeconfig_json)
 
     kubeconfig_file_path = os.path.join(
