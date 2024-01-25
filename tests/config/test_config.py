@@ -6,15 +6,12 @@ from light.config import (
     BlobStore,
     CloudConfig,
     CloudModelGroup,
-    CloudServe,
     ClusterConfig,
     Config,
-    Serve,
     generate_yaml,
     parse_yaml,
 )
 
-cloud_serve_config = CloudServe(maxInstances=1, minInstances=1)
 cloud_config = CloudConfig(
     cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
     blobStore=BlobStore(bucket="test-bucket"),
@@ -23,23 +20,7 @@ cloud_config = CloudConfig(
             name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
         )
     ],
-    serve=cloud_serve_config,
 )
-
-
-def test_serve_min_instances_less_than_max_instances() -> None:
-    serve: Serve = Serve(minInstances=1, maxInstances=5)
-    assert serve.minInstances < serve.maxInstances
-
-
-def test_serve_min_instances_greater_than_max_instances() -> None:
-    with pytest.raises(ValueError):
-        Serve(minInstances=5, maxInstances=1)
-
-
-def test_serve_min_instances_equal_to_max_instances() -> None:
-    serve: Serve = Serve(minInstances=3, maxInstances=3)
-    assert serve.minInstances == serve.maxInstances
 
 
 def test_config_only_aws_set() -> None:

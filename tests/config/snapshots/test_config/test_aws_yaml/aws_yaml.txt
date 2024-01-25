@@ -6,9 +6,6 @@ aws:
     bucket: test-bucket
   modelGroups:
     - nodeType: t2.micro
+      name: test-model-group
       minInstances: 1
       maxInstances: 2
-      name: test-model-group
-  serve:
-    minInstances: 1
-    maxInstances: 1

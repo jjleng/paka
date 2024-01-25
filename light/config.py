@@ -29,15 +29,17 @@ class BlobStore(BaseModel):
     bucket: str
 
 
-class Serve(BaseModel):
+class ModelGroup(BaseModel):
     """
-    Represents the configuration for serving instances.
+    Represents a group of VMs that serve the inference for a specific type of model.
 
     Attributes:
+        name (str): The name of the model group.
         minInstances (int): The minimum number of instances to provision.
         maxInstances (int): The maximum number of instances to provision.
     """
 
+    name: str
     minInstances: int
     maxInstances: int
 
@@ -53,21 +55,6 @@ class Serve(BaseModel):
         return values
 
 
-class ModelGroup(Serve):
-    """
-    Represents a group of VMs that serve the inference for a specific type of model.
-
-    Attributes:
-        name (str): The name of the model group.
-
-    Inherited Attributes:
-        minInstances (int): The min number of replicas for the model group.
-        maxInstances (int): The max number of replicas for the model group.
-    """
-
-    name: str
-
-
 class CloudModelGroup(ModelGroup, CloudNode):
     """
     Represents a group of cloud models.
@@ -79,20 +66,6 @@ class CloudModelGroup(ModelGroup, CloudNode):
         minInstances (int): The min number of replicas for the model group.
         maxInstances (int): The max number of replicas for the model group.
         nodeType (str): The type of the node.
-    """
-
-    pass
-
-
-class CloudServe(Serve):
-    """
-    Represents a cloud serverless resource.
-
-    This class inherits from the Serve class.
-
-    Inherited Attributes:
-        minInstances (int): The minimum number of instances to provision.
-        maxInstances (int): The maximum number of instances to provision.
     """
 
     pass
@@ -140,7 +113,6 @@ class CloudConfig(BaseModel):
     cluster: ClusterConfig
     blobStore: Optional[BlobStore] = None
     modelGroups: Optional[List[CloudModelGroup]] = None
-    serve: Optional[CloudServe] = None
     vectorStore: Optional[CloudVectorStore] = None
 
 
