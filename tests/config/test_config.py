@@ -13,13 +13,6 @@ from light.config import (
     CloudWorkerConfig,
     ClusterConfig,
     Config,
-    LocalClusterConfig,
-    LocalConfig,
-    LocalJobConfig,
-    LocalModelGroup,
-    LocalServeConfig,
-    LocalServer,
-    LocalWorkerConfig,
     Serve,
     generate_yaml,
     parse_yaml,
@@ -40,12 +33,6 @@ cloud_config = CloudConfig(
         queue="test-queue",
         workers=CloudWorkerConfig(nodeType="t2.micro", instances=2),
     ),
-)
-local_config = LocalConfig(
-    cluster=LocalClusterConfig(name="mycluster"),
-    modelGroups=[LocalModelGroup(name="llama2", minInstances=1, maxInstances=2)],
-    serve=LocalServeConfig(server=LocalServer(minInstances=1, maxInstances=2)),
-    job=LocalJobConfig(queue="redis", workers=LocalWorkerConfig(instances=2)),
 )
 
 
@@ -91,7 +78,6 @@ def test_config_only_aws_set() -> None:
     config = Config(aws=aws_config)
     assert config.aws is not None
     assert config.gcp is None
-    assert config.local is None
 
 
 def test_config_only_gcp_set() -> None:
@@ -99,14 +85,6 @@ def test_config_only_gcp_set() -> None:
     config = Config(gcp=gcp_config)
     assert config.aws is None
     assert config.gcp is not None
-    assert config.local is None
-
-
-def test_config_only_local_set() -> None:
-    config = Config(local=local_config)
-    assert config.aws is None
-    assert config.gcp is None
-    assert config.local is not None
 
 
 def test_config_multiple_fields_set() -> None:

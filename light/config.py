@@ -98,21 +98,6 @@ class CloudModelGroup(ModelGroup, CloudNode):
     pass
 
 
-class LocalModelGroup(ModelGroup):
-    """
-    Represents a group of local models.
-
-    This class is a subclass of ModelGroup and can be used to manage a group of local models.
-
-    Inherited Attributes:
-        name (str): The name of the model group.
-        minInstances (int): The min number of replicas for the model group.
-        maxInstances (int): The max number of replicas for the model group.
-    """
-
-    pass
-
-
 class CloudServerless(Serve, CloudResource):
     """
     Represents a cloud serverless resource.
@@ -143,20 +128,6 @@ class CloudServer(Serve, CloudNode):
     """
 
     loadBalancer: bool = True
-
-
-class LocalServer(Serve):
-    """
-    Represents a app server config for local deployment.
-
-    This class inherits from the Serve class.
-
-    Inherited Attributes:
-        minInstances (int): The minimum number of instances to run.
-        maxInstances (int): The maximum number of instances to run.
-    """
-
-    pass
 
 
 class CloudServeConfig(BaseModel):
@@ -194,17 +165,6 @@ class CloudServeConfig(BaseModel):
         return values
 
 
-class LocalServeConfig(BaseModel):
-    """
-    Configuration for local server.
-
-    Attributes:
-        server (LocalServer): The local server configuration.
-    """
-
-    server: LocalServer
-
-
 class Worker(BaseModel):
     """
     Represents a worker in the cluster.
@@ -224,16 +184,6 @@ class CloudWorkerConfig(Worker, CloudNode):
         nodeType (str): The type of the node.
         maxInstances (int): The maximum number of instances to run.
         region (str): The region where the cloud resource is located.
-    """
-
-    pass
-
-
-class LocalWorkerConfig(Worker):
-    """
-    Configuration class for local worker.
-    Inherited Attributes:
-        instances (int): The number of instances of the worker to launch.
     """
 
     pass
@@ -267,21 +217,6 @@ class CloudJobConfig(JobConfig):
     workers: CloudWorkerConfig
 
 
-class LocalJobConfig(JobConfig):
-    """
-    Configuration for local job execution.
-
-    Attributes:
-        workers (LocalWorkerConfig): Configuration for local workers.
-
-    Inherited Attributes:
-        queue (str): The name of the queue.
-        lazyCreate (bool, optional): Whether to lazily create the job. Defaults to True.
-    """
-
-    workers: LocalWorkerConfig
-
-
 class ClusterConfig(BaseModel):
     """
     Represents the configuration for a cluster.
@@ -296,9 +231,16 @@ class ClusterConfig(BaseModel):
 
 
 class CloudVectorStore(CloudNode):
+    """
+    Represents a cloud vector store.
+
+    Attributes:
+        replicas (int): The number of replicas for the vector store.
+        storage_size (str): The size of the storage of one node for the vector store.
+    """
+
     replicas: int = 1
     storage_size: str = "10Gi"
-    public: bool = False
 
 
 class CloudConfig(BaseModel):
@@ -311,6 +253,7 @@ class CloudConfig(BaseModel):
         ModelGroups (List[CloudModelGroup]): The list of cloud model groups.
         serve (CloudServeConfig): The configuration for serving models in the cloud.
         job (CloudJobConfig): The configuration for cloud jobs.
+        vectorStore (CloudVectorStore): The configuration for the cloud vector store.
     """
 
     cluster: ClusterConfig
@@ -321,72 +264,38 @@ class CloudConfig(BaseModel):
     vectorStore: Optional[CloudVectorStore] = None
 
 
-class LocalClusterConfig(BaseModel):
-    """
-    Configuration class for local cluster.
-
-    Attributes:
-        name (str): The name of the local cluster.
-    """
-
-    name: str
-
-
-class LocalConfig(BaseModel):
-    """
-    Configuration class for local cluster settings.
-
-    Attributes:
-        cluster (LocalClusterConfig): Configuration for the local cluster.
-        ModelGroups (List[LocalModelGroup]): List of local model groups.
-        serve (LocalServeConfig): Configuration for local serving.
-        job (LocalJobConfig): Configuration for local jobs.
-    """
-
-    cluster: LocalClusterConfig
-    modelGroups: Optional[List[LocalModelGroup]] = None
-    serve: Optional[LocalServeConfig] = None
-    job: Optional[LocalJobConfig] = None
-
-
 class Config(BaseModel):
     """
-    Configuration class for managing cluster settings.
+    Configuration class for managing cloud cluster settings.
 
     Attributes:
         aws (Optional[CloudConfig]): AWS cloud configuration.
         gcp (Optional[CloudConfig]): GCP cloud configuration.
-        local (Optional[LocalConfig]): Local configuration.
 
     Methods:
-        check_one_field: Validates that exactly one field (aws|gcp|local) is set.
-
+        check_one_field: Validates that exactly one cloud configuration (aws or gcp) is provided.
     """
 
     aws: Optional[CloudConfig] = None
     gcp: Optional[CloudConfig] = None
-    local: Optional[LocalConfig] = None
 
     @model_validator(mode="before")
-    def check_one_field(
-        cls, values: Dict[str, Union[CloudConfig, LocalConfig]]
-    ) -> Dict[str, Union[CloudConfig, LocalConfig]]:
+    def check_one_field(cls, values: Dict[str, CloudConfig]) -> Dict[str, CloudConfig]:
         """
-        Validates that exactly one field is set.
+        Validates that exactly one cloud configuration is provided.
 
         Args:
-            values (Dict[str, CloudConfig | LocalConfig]): Dictionary of field values.
+            values (Dict[str, CloudConfig]): Dictionary of field values, where keys are the cloud providers (aws, gcp) and values are the corresponding cloud configurations.
 
         Returns:
-            Dict[str, CloudConfig | LocalConfig]: The input values.
+            Dict[str, CloudConfig]: The input values if validation is successful.
 
         Raises:
-            ValueError: If more or less than one field is set.
-
+            ValueError: If more or less than one cloud configuration is provided.
         """
         non_none_fields = sum(value is not None for value in values.values())
         if non_none_fields != 1:
-            raise ValueError("Exactly one field must be set")
+            raise ValueError("Exactly one cloud configuration must be provided")
 
         return values
 
