@@ -1,0 +1,12 @@
+aws:
+  cluster:
+    name: chile
+    defaultRegion: us-west-2
+  modelGroups:
+    - nodeType: c7a.xlarge
+      minInstances: 0
+      maxInstances: 1
+      name: llama2-7b
+  vectorStore:
+     nodeType: t2.small
+     replicas: 2
