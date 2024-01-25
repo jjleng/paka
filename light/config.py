@@ -18,17 +18,6 @@ class CloudNode(BaseModel):
     nodeType: str
 
 
-class BlobStore(BaseModel):
-    """
-    Represents a blob store. Bucket name will be the same as the cluster name.
-
-    Attributes:
-        bucket (str): The name of the bucket.
-    """
-
-    bucket: str
-
-
 class ModelGroup(BaseModel):
     """
     Represents a group of VMs that serve the inference for a specific type of model.
@@ -103,15 +92,11 @@ class CloudConfig(BaseModel):
 
     Attributes:
         cluster (ClusterConfig): The configuration for the cluster.
-        blobStore (BlobStore): The configuration for the blob store.
         ModelGroups (List[CloudModelGroup]): The list of cloud model groups.
-        serve (CloudServeConfig): The configuration for serving models in the cloud.
-        job (CloudJobConfig): The configuration for cloud jobs.
         vectorStore (CloudVectorStore): The configuration for the cloud vector store.
     """
 
     cluster: ClusterConfig
-    blobStore: Optional[BlobStore] = None
     modelGroups: Optional[List[CloudModelGroup]] = None
     vectorStore: Optional[CloudVectorStore] = None
 

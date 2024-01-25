@@ -2,8 +2,6 @@ aws:
   cluster:
     name: test-cluster
     defaultRegion: us-east-1
-  blobStore:
-    bucket: test-bucket
   modelGroups:
     - nodeType: t2.micro
       name: test-model-group

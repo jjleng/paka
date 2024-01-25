@@ -3,7 +3,6 @@ from typing import Any
 import pytest
 
 from light.config import (
-    BlobStore,
     CloudConfig,
     CloudModelGroup,
     ClusterConfig,
@@ -14,7 +13,6 @@ from light.config import (
 
 cloud_config = CloudConfig(
     cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
-    blobStore=BlobStore(bucket="test-bucket"),
     modelGroups=[
         CloudModelGroup(
             name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
