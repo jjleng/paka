@@ -1,6 +1,6 @@
 aws:
   cluster:
-    name: chile
+    name: test-cluster
     defaultRegion: us-west-2
   modelGroups:
     - nodeType: c7a.xlarge
