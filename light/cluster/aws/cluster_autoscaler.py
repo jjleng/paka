@@ -72,7 +72,7 @@ def create_cluster_autoscaler(
             fetch_opts=helm.FetchOpts(repo="https://kubernetes.github.io/autoscaler"),
             values={
                 "autoDiscovery": {"clusterName": cluster.eks_cluster.name},
-                "awsRegion": config.cluster.defaultRegion,
+                "awsRegion": config.cluster.region,
                 "rbac": {
                     "create": True,
                     "serviceAccount": {

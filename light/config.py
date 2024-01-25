@@ -66,11 +66,11 @@ class ClusterConfig(BaseModel):
 
     Attributes:
         name (str): The name of the cluster.
-        defaultRegion (str): The default region for the cluster.
+        region (str): The default region for the cluster.
     """
 
     name: str
-    defaultRegion: str
+    region: str
 
 
 class CloudVectorStore(CloudNode):

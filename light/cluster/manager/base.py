@@ -46,11 +46,11 @@ class ClusterManager(ABC):
     def create(self) -> None:
         if self._orig_config.aws:
             self._stack.set_config(
-                "aws:region", auto.ConfigValue(value=self.config.cluster.defaultRegion)
+                "aws:region", auto.ConfigValue(value=self.config.cluster.region)
             )
 
         save_cluster_data(
-            self.config.cluster.name, "region", self.config.cluster.defaultRegion
+            self.config.cluster.name, "region", self.config.cluster.region
         )
 
         logger.info("Creating resources...")

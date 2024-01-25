@@ -12,7 +12,7 @@ from light.config import (
 )
 
 cloud_config = CloudConfig(
-    cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
+    cluster=ClusterConfig(name="test-cluster", region="us-east-1"),
     modelGroups=[
         CloudModelGroup(
             name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
@@ -59,7 +59,7 @@ def test_parse_yaml() -> None:
     aws:
         cluster:
             name: test_cluster
-            defaultRegion: us-west-2
+            region: us-west-2
         blobStore:
             bucket: test_bucket
     """
@@ -67,7 +67,7 @@ def test_parse_yaml() -> None:
     assert isinstance(config, Config)
     assert config.aws is not None
     assert config.aws.cluster.name == "test_cluster"
-    assert config.aws.cluster.defaultRegion == "us-west-2"
+    assert config.aws.cluster.region == "us-west-2"
 
 
 def test_round_trip() -> None:

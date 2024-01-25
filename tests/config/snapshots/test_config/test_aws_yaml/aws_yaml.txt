@@ -1,7 +1,7 @@
 aws:
   cluster:
     name: test-cluster
-    defaultRegion: us-east-1
+    region: us-east-1
   modelGroups:
     - nodeType: t2.micro
       name: test-model-group
