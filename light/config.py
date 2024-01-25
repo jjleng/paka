@@ -98,57 +98,6 @@ class CloudServe(Serve):
     pass
 
 
-class Worker(BaseModel):
-    """
-    Represents a worker in the cluster.
-
-    Attributes:
-        instances (int): The number of instances of the worker to launch.
-    """
-
-    instances: int
-
-
-class CloudWorkerConfig(Worker, CloudNode):
-    """
-    Configuration class for cloud worker.
-
-    Inherited Attributes:
-        nodeType (str): The type of the node.
-        maxInstances (int): The maximum number of instances to run.
-    """
-
-    pass
-
-
-class JobConfig(BaseModel):
-    """
-    Represents the configuration for a job.
-
-    Attributes:
-        queue (str): The name of the queue.
-        lazyCreate (bool, optional): Whether to lazily create the job. Defaults to True.
-    """
-
-    queue: str
-    lazyCreate: bool = True
-
-
-class CloudJobConfig(JobConfig):
-    """
-    Configuration for a cloud job.
-
-    Attributes:
-        workers (CloudWorkerConfig): The cloud worker configuration.
-
-    Inherited Attributes:
-        queue (str): The name of the queue.
-        lazyCreate (bool, optional): Whether to lazily create the job. Defaults to True.
-    """
-
-    workers: CloudWorkerConfig
-
-
 class ClusterConfig(BaseModel):
     """
     Represents the configuration for a cluster.
@@ -192,7 +141,6 @@ class CloudConfig(BaseModel):
     blobStore: Optional[BlobStore] = None
     modelGroups: Optional[List[CloudModelGroup]] = None
     serve: Optional[CloudServe] = None
-    job: Optional[CloudJobConfig] = None
     vectorStore: Optional[CloudVectorStore] = None
 
 

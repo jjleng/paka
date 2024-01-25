@@ -5,10 +5,8 @@ import pytest
 from light.config import (
     BlobStore,
     CloudConfig,
-    CloudJobConfig,
     CloudModelGroup,
     CloudServe,
-    CloudWorkerConfig,
     ClusterConfig,
     Config,
     Serve,
@@ -26,10 +24,6 @@ cloud_config = CloudConfig(
         )
     ],
     serve=cloud_serve_config,
-    job=CloudJobConfig(
-        queue="test-queue",
-        workers=CloudWorkerConfig(nodeType="t2.micro", instances=2),
-    ),
 )
 
 

@@ -12,9 +12,3 @@ aws:
   serve:
     minInstances: 1
     maxInstances: 1
-  job:
-    queue: test-queue
-    lazyCreate: true
-    workers:
-      nodeType: t2.micro
-      instances: 2
