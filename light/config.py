@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, model_validator
 from ruamel.yaml import YAML
@@ -6,26 +6,13 @@ from ruamel.yaml import YAML
 from light.utils import to_yaml
 
 
-class CloudResource(BaseModel):
-    """
-    Represents a cloud resource in a specific region.
-
-    Attributes:
-        region (Optional[str], optional): The region where the cloud resource is located. Defaults to None.
-    """
-
-    region: Optional[str] = None
-
-
-class CloudNode(CloudResource):
+class CloudNode(BaseModel):
     """
     Represents a node in the cloud cluster.
 
     Attributes:
         nodeType (str): The type of the node.
 
-    Inherited Attributes:
-        region (str): The region where the cloud resource is located.
     """
 
     nodeType: str
@@ -91,78 +78,24 @@ class CloudModelGroup(ModelGroup, CloudNode):
         name (str): The name of the model group.
         minInstances (int): The min number of replicas for the model group.
         maxInstances (int): The max number of replicas for the model group.
-        region (str): The region where the cloud resource is located.
         nodeType (str): The type of the node.
     """
 
     pass
 
 
-class CloudServerless(Serve, CloudResource):
+class CloudServe(Serve):
     """
     Represents a cloud serverless resource.
 
-    This class inherits from the Serve and CloudResource classes.
+    This class inherits from the Serve class.
 
     Inherited Attributes:
         minInstances (int): The minimum number of instances to provision.
         maxInstances (int): The maximum number of instances to provision.
-        region (str): The region where the cloud resource is located.
     """
 
     pass
-
-
-class CloudServer(Serve, CloudNode):
-    """
-    VM app server config for cloud deployment.
-
-    Attributes:
-        loadBalancer (bool): Indicates whether a load balancer should be provisioned.
-        region (str): The region where the server is located.
-        nodeType (str): The type of the server node.
-
-    Inherited Attributes:
-        minInstances (int): The minimum number of instances to run.
-        maxInstances (int): The maximum number of instances to run.
-    """
-
-    loadBalancer: bool = True
-
-
-class CloudServeConfig(BaseModel):
-    """
-    Configuration class for cloud server settings.
-
-    Attributes:
-        serverless (Optional[CloudServerless]): The serverless configuration.
-        server (Optional[CloudServer]): The server configuration.
-    """
-
-    serverless: Optional[CloudServerless] = None
-    server: Optional[CloudServer] = None
-
-    @model_validator(mode="before")
-    def check_one_field(
-        cls, values: Dict[str, Union[CloudServerless, CloudServer, None]]
-    ) -> Dict[str, Union[CloudServerless, CloudServer, None]]:
-        """
-        Validates that exactly one field is set in the configuration.
-
-        Args:
-            values: A dictionary containing the field values.
-
-        Returns:
-            The validated dictionary of field values.
-
-        Raises:
-            ValueError: If more or less than one field is set.
-        """
-        non_none_fields = sum(value is not None for value in values.values())
-        if non_none_fields != 1:
-            raise ValueError("Exactly one field must be set")
-
-        return values
 
 
 class Worker(BaseModel):
@@ -183,7 +116,6 @@ class CloudWorkerConfig(Worker, CloudNode):
     Inherited Attributes:
         nodeType (str): The type of the node.
         maxInstances (int): The maximum number of instances to run.
-        region (str): The region where the cloud resource is located.
     """
 
     pass
@@ -259,7 +191,7 @@ class CloudConfig(BaseModel):
     cluster: ClusterConfig
     blobStore: Optional[BlobStore] = None
     modelGroups: Optional[List[CloudModelGroup]] = None
-    serve: Optional[CloudServeConfig] = None
+    serve: Optional[CloudServe] = None
     job: Optional[CloudJobConfig] = None
     vectorStore: Optional[CloudVectorStore] = None
 

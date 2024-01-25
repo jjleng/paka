@@ -10,10 +10,8 @@ aws:
       maxInstances: 2
       name: test-model-group
   serve:
-    serverless:
-      region: us-east-1
-      minInstances: 1
-      maxInstances: 1
+    minInstances: 1
+    maxInstances: 1
   job:
     queue: test-queue
     lazyCreate: true

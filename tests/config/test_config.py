@@ -7,9 +7,7 @@ from light.config import (
     CloudConfig,
     CloudJobConfig,
     CloudModelGroup,
-    CloudServeConfig,
-    CloudServer,
-    CloudServerless,
+    CloudServe,
     CloudWorkerConfig,
     ClusterConfig,
     Config,
@@ -18,8 +16,7 @@ from light.config import (
     parse_yaml,
 )
 
-serverless_config = CloudServerless(region="us-east-1", maxInstances=1, minInstances=1)
-server_config = CloudServer(maxInstances=1, minInstances=1, nodeType="t2.micro")
+cloud_serve_config = CloudServe(maxInstances=1, minInstances=1)
 cloud_config = CloudConfig(
     cluster=ClusterConfig(name="test-cluster", defaultRegion="us-east-1"),
     blobStore=BlobStore(bucket="test-bucket"),
@@ -28,7 +25,7 @@ cloud_config = CloudConfig(
             name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
         )
     ],
-    serve=CloudServeConfig(serverless=serverless_config),
+    serve=cloud_serve_config,
     job=CloudJobConfig(
         queue="test-queue",
         workers=CloudWorkerConfig(nodeType="t2.micro", instances=2),
@@ -49,28 +46,6 @@ def test_serve_min_instances_greater_than_max_instances() -> None:
 def test_serve_min_instances_equal_to_max_instances() -> None:
     serve: Serve = Serve(minInstances=3, maxInstances=3)
     assert serve.minInstances == serve.maxInstances
-
-
-def test_cloud_serve_config_one_field_set() -> None:
-    try:
-        CloudServeConfig(
-            serverless=serverless_config,
-        )
-        CloudServeConfig(
-            server=server_config,
-        )
-    except Exception:
-        pytest.fail("Unexpected exception raised")
-
-
-def test_cloud_serve_config_multiple_fields_set() -> None:
-    with pytest.raises(ValueError):
-        CloudServeConfig(serverless=serverless_config, server=server_config)
-
-
-def test_cloud_serve_config_no_fields_set() -> None:
-    with pytest.raises(ValueError):
-        CloudServeConfig()
 
 
 def test_config_only_aws_set() -> None:
