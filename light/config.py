@@ -1,9 +1,76 @@
+import re
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 from ruamel.yaml import YAML
 
 from light.utils import to_yaml
+
+
+def validate_size(v: str, error_message: str = "Invalid size format") -> str:
+    """
+    Validates the format of the size field.
+
+    Args:
+        v (str): The value of the size field.
+        error_message (str, optional): The error message to raise if the format of the input value is invalid. Defaults to "Invalid size format".
+
+    Returns:
+        str: The input value if validation is successful.
+
+    Raises:
+        ValueError: If the format of the input value is invalid. The error message is specified by the `error_message` parameter.
+    """
+    if not re.match(r"^\d+(Mi|Gi)$", v):
+        raise ValueError(error_message)
+    return v
+
+
+class ResourceRequest(BaseModel):
+    """
+    Represents the resource request for a container.
+
+    Attributes:
+        cpu (str): The amount of CPU to request.
+        memory (str): The amount of memory to request.
+    """
+
+    cpu: str
+    memory: str
+
+    @field_validator("cpu", mode="before")
+    def validate_cpu(cls, v: str) -> str:
+        """
+        Validates the format of the cpu field.
+
+        Args:
+            v (str): The value of the cpu field.
+
+        Returns:
+            str: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the format of the input value is invalid.
+        """
+        if not re.match(r"^\d+(m)?$", v):
+            raise ValueError("Invalid CPU format")
+        return v
+
+    @field_validator("memory", mode="before")
+    def validate_memory(cls, v: str) -> str:
+        """
+        Validates the format of the memory field.
+
+        Args:
+            v (str): The value of the memory field.
+
+        Returns:
+            str: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the format of the input value is invalid.
+        """
+        return validate_size(v, "Invalid memory format")
 
 
 class CloudNode(BaseModel):
@@ -50,14 +117,17 @@ class CloudModelGroup(ModelGroup, CloudNode):
 
     This class inherits from both the `ModelGroup` and `CloudNode` classes.
 
+    Attributes:
+        resource_request (Optional[ResourceRequest]): The resource request for the model group, specifying the amount of CPU and memory to request.
+
     Inherited Attributes:
         name (str): The name of the model group.
-        minInstances (int): The min number of replicas for the model group.
-        maxInstances (int): The max number of replicas for the model group.
+        minInstances (int): The minimum number of instances to provision for the model group.
+        maxInstances (int): The maximum number of instances to provision for the model group.
         nodeType (str): The type of the node.
     """
 
-    pass
+    resource_request: Optional[ResourceRequest] = None
 
 
 class ClusterConfig(BaseModel):
@@ -78,12 +148,33 @@ class CloudVectorStore(CloudNode):
     Represents a cloud vector store.
 
     Attributes:
-        replicas (int): The number of replicas for the vector store.
-        storage_size (str): The size of the storage of one node for the vector store.
+        replicas (int): The number of replicas for the vector store. Defaults to 1.
+        storage_size (str): The size of the storage of one node for the vector store. Defaults to "10Gi".
+        resource_request (Optional[ResourceRequest]): The resource request for the vector store, specifying the amount of CPU and memory to request.
+
+    Methods:
+        validate_storage_size: Validates the format of the storage_size field.
     """
 
     replicas: int = 1
     storage_size: str = "10Gi"
+    resource_request: Optional[ResourceRequest] = None
+
+    @field_validator("storage_size", mode="before")
+    def validate_storage_size(cls, v: str) -> str:
+        """
+        Validates the format of the storage_size field.
+
+        Args:
+            v (str): The value of the storage_size field.
+
+        Returns:
+            str: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the format of the input value is invalid.
+        """
+        return validate_size(v, "Invalid storage size format")
 
 
 class CloudConfig(BaseModel):

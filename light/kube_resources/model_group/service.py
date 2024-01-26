@@ -96,6 +96,55 @@ def create_pod(
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
 
+    container_args = {
+        "name": f"{kubify_name(model_group.name)}",
+        "image": runtime_image,
+        "volume_mounts": [
+            client.V1VolumeMount(
+                name="model-data",
+                mount_path="/data",
+            )
+        ],
+        "env": [
+            client.V1EnvVar(
+                name="USE_MLOCK",  # Model weights are locked in RAM or not
+                value="0",
+            ),
+            client.V1EnvVar(
+                name="MODEL",
+                value=f"/data/my_model.gguf",
+            ),
+            client.V1EnvVar(
+                name="PORT",
+                value=str(port),
+            ),
+        ],
+        "readiness_probe": client.V1Probe(
+            http_get=client.V1HTTPGetAction(
+                path="/v1/models",
+                port=port,
+            ),
+            initial_delay_seconds=60,
+            period_seconds=30,
+        ),
+        "liveness_probe": client.V1Probe(
+            http_get=client.V1HTTPGetAction(
+                path="/v1/models",
+                port=port,
+            ),
+            initial_delay_seconds=240,
+            period_seconds=30,
+        ),
+    }
+
+    if model_group.resource_request:
+        container_args["resources"] = client.V1ResourceRequirements(
+            requests={
+                "cpu": model_group.resource_request.cpu,
+                "memory": model_group.resource_request.memory,
+            },
+        )
+
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}",
@@ -114,56 +163,7 @@ def create_pod(
                 )
             ],
             init_containers=[init_aws(config.aws, model_group), init_parse_manifest()],
-            containers=[
-                client.V1Container(
-                    name=f"{kubify_name(model_group.name)}",
-                    image=runtime_image,
-                    volume_mounts=[
-                        client.V1VolumeMount(
-                            name="model-data",
-                            mount_path="/data",
-                        )
-                    ],
-                    env=[
-                        client.V1EnvVar(
-                            name="USE_MLOCK",  # Model weights are locked in RAM or not
-                            value="0",
-                        ),
-                        client.V1EnvVar(
-                            name="MODEL",
-                            value=f"/data/my_model.gguf",
-                        ),
-                        client.V1EnvVar(
-                            name="PORT",
-                            value=str(port),
-                        ),
-                    ],
-                    # A good estimate for the resources required for a model group
-                    # This will make the pod's QoS to be `Burstable`
-                    resources=client.V1ResourceRequirements(
-                        requests={
-                            "cpu": "3500m",  # 3.5 CPU core
-                            "memory": "6Gi",  # 6 GB RAM
-                        },
-                    ),
-                    readiness_probe=client.V1Probe(
-                        http_get=client.V1HTTPGetAction(
-                            path="/v1/models",
-                            port=port,
-                        ),
-                        initial_delay_seconds=60,
-                        period_seconds=30,
-                    ),
-                    liveness_probe=client.V1Probe(
-                        http_get=client.V1HTTPGetAction(
-                            path="/v1/models",
-                            port=port,
-                        ),
-                        initial_delay_seconds=240,
-                        period_seconds=30,
-                    ),
-                )
-            ],
+            containers=[client.V1Container(**container_args)],
             tolerations=[
                 client.V1Toleration(
                     key="app",

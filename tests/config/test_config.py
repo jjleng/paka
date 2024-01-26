@@ -7,6 +7,7 @@ from light.config import (
     CloudModelGroup,
     ClusterConfig,
     Config,
+    ResourceRequest,
     generate_yaml,
     parse_yaml,
 )
@@ -19,6 +20,26 @@ cloud_config = CloudConfig(
         )
     ],
 )
+
+
+def test_valid_resource_request() -> None:
+    rr = ResourceRequest(cpu="500m", memory="2Gi")
+    assert rr.cpu == "500m"
+    assert rr.memory == "2Gi"
+
+    rr = ResourceRequest(cpu="2", memory="200Mi")
+    assert rr.cpu == "2"
+    assert rr.memory == "200Mi"
+
+
+def test_invalid_cpu_resource_request() -> None:
+    with pytest.raises(ValueError, match="Invalid CPU format"):
+        ResourceRequest(cpu="500n", memory="2Gi")
+
+
+def test_invalid_memory_resource_request() -> None:
+    with pytest.raises(ValueError, match="Invalid memory format"):
+        ResourceRequest(cpu="500m", memory="2G")
 
 
 def test_config_only_aws_set() -> None:
