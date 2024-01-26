@@ -22,6 +22,20 @@ def create_qdrant(
         metadata={"name": "qdrant"},
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
+
+    resource_request = (
+        {
+            "resources": {
+                "requests": {
+                    "cpu": config.vectorStore.resource_request.cpu,
+                    "memory": config.vectorStore.resource_request.memory,
+                },
+            }
+        }
+        if config.vectorStore.resource_request
+        else {}
+    )
+
     Chart(
         "qdrant",
         ChartOpts(
@@ -86,6 +100,7 @@ def create_qdrant(
                         "labelSelector": {"matchLabels": {"app": "qdrant"}},
                     }
                 ],
+                **resource_request,
             },
         ),
         opts=pulumi.ResourceOptions(provider=k8s_provider),
