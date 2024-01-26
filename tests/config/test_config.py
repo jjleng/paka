@@ -5,8 +5,10 @@ import pytest
 from light.config import (
     CloudConfig,
     CloudModelGroup,
+    CloudVectorStore,
     ClusterConfig,
     Config,
+    ModelGroup,
     ResourceRequest,
     generate_yaml,
     parse_yaml,
@@ -40,6 +42,87 @@ def test_invalid_cpu_resource_request() -> None:
 def test_invalid_memory_resource_request() -> None:
     with pytest.raises(ValueError, match="Invalid memory format"):
         ResourceRequest(cpu="500m", memory="2G")
+
+
+def test_model_group() -> None:
+    # Test with valid minInstances and maxInstances
+    model_group = ModelGroup(name="test", minInstances=1, maxInstances=2)
+    assert model_group.name == "test"
+    assert model_group.minInstances == 1
+    assert model_group.maxInstances == 2
+
+    # Test with maxInstances less than minInstances
+    with pytest.raises(
+        ValueError, match="maxInstances must be greater than or equal to minInstances"
+    ):
+        ModelGroup(name="test", minInstances=2, maxInstances=1)
+
+    # Test with minInstances less than or equal to 0
+    with pytest.raises(ValueError, match="minInstances must be greater than 0"):
+        ModelGroup(name="test", minInstances=0, maxInstances=2)
+
+
+def test_cloud_vector_store() -> None:
+    # Test with valid replicas and storage_size
+    resource_request = ResourceRequest(cpu="2000m", memory="2Gi")
+    vector_store = CloudVectorStore(
+        nodeType="t2.small",
+        replicas=2,
+        storage_size="20Gi",
+        resource_request=resource_request,
+    )
+    assert vector_store.nodeType == "t2.small"
+    assert vector_store.replicas == 2
+    assert vector_store.storage_size == "20Gi"
+    assert vector_store.resource_request == resource_request
+
+    # Test with replicas less than or equal to 0
+    with pytest.raises(ValueError, match="replicas must be greater than 0"):
+        CloudVectorStore(nodeType="t2.small", replicas=0, storage_size="10Gi")
+
+    # Test with invalid storage_size format
+    with pytest.raises(ValueError, match="Invalid storage size format"):
+        CloudVectorStore(nodeType="t2.small", replicas=1, storage_size="10Gib")
+
+
+def test_cloud_config() -> None:
+    # Test with valid cluster, modelGroups, and vectorStore
+    cluster = ClusterConfig(name="test-cluster", region="us-west-2")
+    model_group1 = CloudModelGroup(
+        nodeType="c7a.xlarge", name="test-group1", minInstances=1, maxInstances=2
+    )
+    model_group2 = CloudModelGroup(
+        nodeType="c7a.xlarge", name="test-group2", minInstances=1, maxInstances=2
+    )
+    resource_request = ResourceRequest(cpu="2000m", memory="2Gi")
+    vector_store = CloudVectorStore(
+        nodeType="t2.small",
+        replicas=2,
+        storage_size="20Gi",
+        resource_request=resource_request,
+    )
+    cloud_config = CloudConfig(
+        cluster=cluster,
+        modelGroups=[model_group1, model_group2],
+        vectorStore=vector_store,
+    )
+    assert cloud_config.cluster == cluster
+    assert cloud_config.modelGroups == [model_group1, model_group2]
+    assert cloud_config.vectorStore == vector_store
+
+    # Test with duplicate model group names
+    model_group1 = CloudModelGroup(
+        nodeType="c7a.xlarge", name="test-group", minInstances=1, maxInstances=2
+    )
+    model_group2 = CloudModelGroup(
+        nodeType="c7a.xlarge", name="test-group", minInstances=1, maxInstances=2
+    )
+    with pytest.raises(ValueError, match="Duplicate model group names are not allowed"):
+        CloudConfig(
+            cluster=cluster,
+            modelGroups=[model_group1, model_group2],
+            vectorStore=vector_store,
+        )
 
 
 def test_config_only_aws_set() -> None:
@@ -81,14 +164,30 @@ def test_parse_yaml() -> None:
         cluster:
             name: test_cluster
             region: us-west-2
-        blobStore:
-            bucket: test_bucket
+        modelGroups:
+            - nodeType: c7a.xlarge
+              minInstances: 1
+              maxInstances: 1
+              name: llama2-7b
+        vectorStore:
+            nodeType: t2.small
+            replicas: 2
     """
     config = parse_yaml(yaml_str)
     assert isinstance(config, Config)
     assert config.aws is not None
     assert config.aws.cluster.name == "test_cluster"
     assert config.aws.cluster.region == "us-west-2"
+    assert config.aws.modelGroups is not None
+    assert len(config.aws.modelGroups) == 1
+    model_group = config.aws.modelGroups[0]
+    assert model_group.nodeType == "c7a.xlarge"
+    assert model_group.minInstances == 1
+    assert model_group.maxInstances == 1
+    assert model_group.name == "llama2-7b"
+    assert config.aws.vectorStore is not None
+    assert config.aws.vectorStore.nodeType == "t2.small"
+    assert config.aws.vectorStore.replicas == 2
 
 
 def test_round_trip() -> None:

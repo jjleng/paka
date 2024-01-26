@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 from ruamel.yaml import YAML
@@ -110,6 +110,25 @@ class ModelGroup(BaseModel):
             )
         return values
 
+    @field_validator("minInstances", mode="before")
+    def validate_min_instances(cls, v: int) -> int:
+        """
+        Validates the value of the minInstances field. Spinning up 1 model group instance is heavy.
+        No scaling down to 0 for now.
+
+        Args:
+            v (int): The value of the minInstances field.
+
+        Returns:
+            int: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the value of the input value is invalid.
+        """
+        if v <= 0:
+            raise ValueError("minInstances must be greater than 0")
+        return v
+
 
 class CloudModelGroup(ModelGroup, CloudNode):
     """
@@ -152,6 +171,9 @@ class CloudVectorStore(CloudNode):
         storage_size (str): The size of the storage of one node for the vector store. Defaults to "10Gi".
         resource_request (Optional[ResourceRequest]): The resource request for the vector store, specifying the amount of CPU and memory to request.
 
+    Inherited Attributes:
+        nodeType (str): The type of the node.
+
     Methods:
         validate_storage_size: Validates the format of the storage_size field.
     """
@@ -176,6 +198,24 @@ class CloudVectorStore(CloudNode):
         """
         return validate_size(v, "Invalid storage size format")
 
+    @field_validator("replicas", mode="before")
+    def validate_replicas(cls, v: int) -> int:
+        """
+        Validates the value of the replicas field.
+
+        Args:
+            v (int): The value of the replicas field.
+
+        Returns:
+            int: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the value of the input value is invalid.
+        """
+        if v <= 0:
+            raise ValueError("replicas must be greater than 0")
+        return v
+
 
 class CloudConfig(BaseModel):
     """
@@ -190,6 +230,16 @@ class CloudConfig(BaseModel):
     cluster: ClusterConfig
     modelGroups: Optional[List[CloudModelGroup]] = None
     vectorStore: Optional[CloudVectorStore] = None
+
+    @field_validator("modelGroups", mode="before")
+    def check_model_group(cls, v: List[Any]) -> List[Any]:
+        if v is None or len(v) == 0:
+            return v
+        # Check if there are duplicated model group names
+        model_group_names = [dict(group)["name"] for group in v]
+        if len(set(model_group_names)) != len(model_group_names):
+            raise ValueError("Duplicate model group names are not allowed")
+        return v
 
 
 class Config(BaseModel):
