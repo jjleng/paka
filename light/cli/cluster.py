@@ -15,15 +15,21 @@ def up(
         "",
         "--file",
         "-f",
-        help="Path to the cluster config file.",
+        help="Path to the cluster config file. The cluster config file is a "
+        "YAML file that contains the configuration of the cluster",
     ),
     update_kubeconfig: bool = typer.Option(
         False,
         "--update-kubeconfig",
         "-u",
-        help="Update kubeconfig with the new cluster.",
+        help="Updates the default kubeconfig file (~/.kube/config) to include"
+        "the connection details of the newly created Kubernetes cluster"
+        "This allows kubectl to communicate with the new cluster.",
     ),
 ) -> None:
+    """
+    Creates or updates a Kubernetes cluster based on the provided configuration.
+    """
     cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.create()
     if update_kubeconfig:
@@ -38,9 +44,13 @@ def down(
         "",
         "--file",
         "-f",
-        help="Path to the cluster config file.",
+        help="Path to the cluster config file. The cluster config file is a "
+        "YAML file that contains the configuration of the cluster",
     ),
 ) -> None:
+    """
+    Tears down the Kubernetes cluster, removing all associated resources and data.
+    """
     cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.destroy()
 
@@ -51,9 +61,13 @@ def refresh(
         "",
         "--file",
         "-f",
-        help="Path to the cluster config file.",
+        help="Path to the cluster config file. The cluster config file is a "
+        "YAML file that contains the configuration of the cluster",
     ),
 ) -> None:
+    """
+    Updates local states to match the current state of the resources in the cloud.
+    """
     cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.refresh()
 
@@ -64,7 +78,8 @@ def preview(
         "",
         "--file",
         "-f",
-        help="Path to the cluster config file.",
+        help="Path to the cluster config file. The cluster config file is a "
+        "YAML file that contains the configuration of the cluster",
     ),
     policy_packs: List[str] = typer.Option(
         [],
@@ -73,6 +88,9 @@ def preview(
         help="Path to the policy pack.",
     ),
 ) -> None:
+    """
+    Previews the changes that will be applied to the cloud resources.
+    """
     cluster_manager = load_cluster_manager(cluster_config)
     if policy_packs:
         cluster_manager.preview(policy_packs=policy_packs)

@@ -19,10 +19,8 @@ def build(
     source_dir: str,
     image_name: str,
 ) -> None:
-    # Install pack first
     install_pack()
 
-    # Expand the source_dir path
     source_dir = os.path.abspath(os.path.expanduser(source_dir))
 
     if not os.path.exists(os.path.join(source_dir, ".cnignore")):
@@ -40,11 +38,8 @@ def build(
     logger.info(f"Building image {image_name}...")
 
     try:
-        # Navigate to the application directory
-        # (This step may be optional depending on your setup)
         subprocess.run(["cd", source_dir], check=True)
 
-        # Build the application using pack
         subprocess.run(
             ["pack", "build", image_name, "--builder", "paketobuildpacks/builder:base"],
             check=True,
