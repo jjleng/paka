@@ -120,9 +120,12 @@ def resolve_image(image: Optional[str], source_dir: Optional[str]) -> str:
 
 
 def init_pulumi() -> None:
-    os.environ["PULUMI_CONFIG_PASSPHRASE"] = ""
-    os.environ["PULUMI_ACCESS_TOKEN"] = "NOT_NEEDED"
+    os.environ["PULUMI_CONFIG_PASSPHRASE"] = os.environ.get(
+        "PULUMI_CONFIG_PASSPHRASE", ""
+    )
 
     pulumi_root = get_pulumi_root()
     os.makedirs(pulumi_root, exist_ok=True)
-    os.environ["PULUMI_ROOT"] = f"file://{pulumi_root}"
+    os.environ["PULUMI_BACKEND_URL"] = os.environ.get(
+        "PULUMI_BACKEND_URL", f"file://{pulumi_root}"
+    )

@@ -140,7 +140,7 @@ def get_pulumi_root() -> str:
     Returns:
         str: The pulumi data directory.
     """
-    return os.path.join(get_project_data_dir(), "pulumi")
+    return get_project_data_dir()
 
 
 def save_kubeconfig(cluster_name: str, kubeconfig_json: Optional[str]) -> None:

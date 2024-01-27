@@ -1,9 +1,12 @@
+import os
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import click
 import pytest
 
-from light.cli.utils import resolve_image, validate_name
+from light.cli.utils import init_pulumi, resolve_image, validate_name
+from light.utils import get_pulumi_root
 
 
 def test_resolve_image() -> None:
@@ -39,14 +42,12 @@ def test_resolve_image() -> None:
 def test_validate_name() -> None:
     mock_func = MagicMock()
 
-    # Apply the decorator
     decorated_func = validate_name(mock_func)
 
     # Test case when name is valid
     decorated_func("valid-name")
     mock_func.assert_called_once_with("valid-name")
 
-    # Reset the mock
     mock_func.reset_mock()
 
     # Test case when name is not valid
@@ -54,10 +55,25 @@ def test_validate_name() -> None:
         decorated_func("Invalid-Name")
     mock_func.assert_not_called()
 
-    # Reset the mock
     mock_func.reset_mock()
 
     # Test case when name is too long
     with pytest.raises(click.exceptions.Exit):
         decorated_func("a" * 64)
     mock_func.assert_not_called()
+
+
+def test_init_pulumi() -> None:
+    with patch.dict(
+        os.environ,
+        {
+            "PULUMI_CONFIG_PASSPHRASE": "test_passphrase",
+            "PULUMI_BACKEND_URL": "test_backend_url",
+        },
+    ), patch("os.makedirs") as mock_makedirs:
+        init_pulumi()
+
+        assert os.environ["PULUMI_CONFIG_PASSPHRASE"] == "test_passphrase"
+        assert os.environ["PULUMI_BACKEND_URL"] == "test_backend_url"
+
+        mock_makedirs.assert_called_once()
