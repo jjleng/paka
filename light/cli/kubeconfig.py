@@ -6,8 +6,12 @@ from light.logger import logger
 kube_app = typer.Typer()
 
 
-@kube_app.command(help="Update the kubeconfig file for kubectl.")
+@kube_app.command()
 def update() -> None:
+    """
+    Updates the default kubeconfig file (~/.kube/config) to include the connection
+    details of the newly provisioned Kubernetes cluster
+    """
     logger.info("Updating kubeconfig...")
     update_kubeconfig()
     logger.info("Successfully updated kubeconfig.")
