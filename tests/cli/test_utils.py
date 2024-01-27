@@ -1,12 +1,16 @@
 import os
-from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 import click
 import pytest
 
-from light.cli.utils import init_pulumi, resolve_image, validate_name
-from light.utils import get_pulumi_root
+from light.cli.utils import (
+    init_pulumi,
+    load_cluster_manager,
+    resolve_image,
+    validate_name,
+)
+from light.cluster.manager.aws import AWSClusterManager
 
 
 def test_resolve_image() -> None:
@@ -29,6 +33,10 @@ def test_resolve_image() -> None:
         # Test case when image is provided and source_dir is None
         result = resolve_image("image", None)
         assert result == "registry_uri:image"
+
+        # Test case when a fully qualified image is provided
+        result = resolve_image("fully/qualified/image:tag", None)
+        assert result == "fully/qualified/image:tag"
 
         # Test case when neither image nor source_dir is provided
         with pytest.raises(click.exceptions.Exit):
@@ -77,3 +85,22 @@ def test_init_pulumi() -> None:
         assert os.environ["PULUMI_BACKEND_URL"] == "test_backend_url"
 
         mock_makedirs.assert_called_once()
+
+
+def test_load_cluster_manager() -> None:
+    cluster_config = "/path/to/cluster.yaml"
+    config_data = {"aws": {"cluster": {"name": "test-cluster", "region": "us-west-2"}}}
+    m = mock_open(
+        read_data="aws:\n  cluster:\n    name: test-cluster\n    region: us-west-2"
+    )
+
+    with patch("os.path.abspath", return_value=cluster_config), patch(
+        "os.path.expanduser", return_value=cluster_config
+    ), patch("os.path.exists", return_value=True), patch("builtins.open", m), patch(
+        "light.config.parse_yaml", return_value=config_data
+    ):
+        result = load_cluster_manager(cluster_config)
+
+    m.assert_called_once_with(cluster_config, "r")
+    assert isinstance(result, AWSClusterManager)
+    assert result.config.model_dump(exclude_none=True) == config_data["aws"]
