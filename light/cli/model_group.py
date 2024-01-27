@@ -17,14 +17,20 @@ try_load_kubeconfig()
 model_group_app = typer.Typer()
 
 
-@model_group_app.command(help="List available models.")
+@model_group_app.command()
 def list_all_models() -> None:
+    """
+    List all supported models.
+    """
     for model_name in SUPPORTED_MODELS:
         logger.info(model_name)
 
 
-@model_group_app.command(help="List the models downloaded to object store.")
+@model_group_app.command()
 def list_downloaded_models() -> None:
+    """
+    List all models that have been downloaded to the object store.
+    """
     bucket = read_current_cluster_data("bucket")
     s3 = boto3.client("s3")
     response = s3.list_objects_v2(Bucket=bucket, Prefix=MODEL_PATH_PREFIX)
@@ -45,8 +51,11 @@ def list_downloaded_models() -> None:
         logger.info("No models found.")
 
 
-@model_group_app.command(help="List model groups.")
+@model_group_app.command()
 def list() -> None:
+    """
+    List all model groups.
+    """
     services = filter_services(APP_NS)
     model_groups = [service.spec.selector.get("model") for service in services]
 

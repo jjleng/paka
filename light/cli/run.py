@@ -8,7 +8,7 @@ from light.cli.utils import resolve_image
 from light.constants import APP_NS
 from light.k8s import tail_logs, try_load_kubeconfig
 from light.logger import logger
-from light.utils import kubify_name, random_str, read_current_cluster_data
+from light.utils import kubify_name, random_str
 
 CLEANUP_TIMEOUT = 600  # 10 minutes
 
@@ -22,19 +22,33 @@ def one_off_script(
     entrypoint: str = typer.Option(
         ...,
         "--entrypoint",
-        help="The entrypoint to run.",
+        help="The entrypoint of the application. This refers to the command "
+        "defined in the Procfile that will be executed.",
     ),
     source_dir: Optional[str] = typer.Option(
         None,
         "--source",
-        help="Source directory of the application.",
+        help="The directory containing the source code of the application. If "
+        "specified, a new Docker image will be built using the source code from "
+        "this directory. A Dockerfile is not required because the build process "
+        "uses Cloud Native's Buildpacks, which automatically detect and install "
+        "dependencies.",
     ),
     image: Optional[str] = typer.Option(
         None,
         "--image",
-        help="The name of the image to deploy.",
+        help="The name of the Docker image to deploy. If both an image and a "
+        "source directory are provided, this image will be used and the source "
+        "directory will be ignored.",
     ),
 ) -> None:
+    """
+    Runs a one-off script.
+
+    This command creates a new Kubernetes job that runs the specified entrypoint command
+    in a container with the specified Docker image. If a source directory is provided, a new
+    Docker image is built using the source code from that directory.
+    """
     resolved_image = resolve_image(image, source_dir)
 
     # Generate a job name which is the hash of the command
