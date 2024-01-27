@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Optional
 
 from ruamel.yaml import YAML
 
-from light.constants import PROJECT_NAME
+from light.constants import HOME_ENV_VAR, PROJECT_NAME
 
 
 def camel_to_kebab(name: str) -> str:
@@ -58,11 +58,16 @@ def get_project_data_dir() -> str:
     """
     Get the project data directory.
 
+    This function retrieves the directory path where the project data is stored.
+    If the environment variable HOME_ENV_VAR is set, it returns its value.
+    Otherwise, it returns the home directory appended with the kebab-case project name.
+
     Returns:
-        str: The project data directory.
+        str: The absolute path of the project data directory.
     """
-    home = Path.home()
-    return os.path.join(home, f".{camel_to_kebab(PROJECT_NAME)}")
+    return os.environ.get(
+        HOME_ENV_VAR, os.path.join(Path.home(), f".{camel_to_kebab(PROJECT_NAME)}")
+    )
 
 
 def call_once(func: Callable) -> Callable:

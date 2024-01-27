@@ -1,9 +1,9 @@
 import json
 import os
+from pathlib import Path
 from unittest.mock import mock_open, patch
 
-from ruamel.yaml import YAML
-
+from light.constants import HOME_ENV_VAR, PROJECT_NAME
 from light.utils import (
     call_once,
     camel_to_kebab,
@@ -92,3 +92,17 @@ def test_save_cluster_data() -> None:
 
     handle = m()
     mock_dump.assert_called_once_with({k: v}, handle)
+
+
+def test_get_project_data_dir() -> None:
+    with patch.dict(os.environ, {HOME_ENV_VAR: "/test/home"}):
+        result = get_project_data_dir()
+
+        assert result == "/test/home"
+
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_project_data_dir()
+
+        assert result == os.path.join(
+            str(Path.home()), f".{camel_to_kebab(PROJECT_NAME)}"
+        )
