@@ -4,7 +4,7 @@ aws:
     region: us-west-2
   modelGroups:
     - nodeType: c7a.xlarge
-      minInstances: 0
+      minInstances: 1
       maxInstances: 1
       name: llama2-7b
   vectorStore:

@@ -250,7 +250,4 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         lambda kubeconfig_json: save_kubeconfig(config.cluster.name, kubeconfig_json)
     )
 
-    # Export the cluster's kubeconfig
-    pulumi.export("kubeconfig", cluster.kubeconfig)
-
     return cluster
