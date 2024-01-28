@@ -73,13 +73,32 @@ def download_file_to_s3(
     max_parallel_uploads: int = 20,
 ) -> str:
     """
-    Download a file from a URL and upload it to S3 using multipart upload.
+    Downloads a file from a URL and uploads it to an S3 bucket in chunks.
 
-    :param url: URL of the file to download.
-    :param bucket_name: Name of the S3 bucket.
-    :param s3_file_name: Name for the file in S3.
-    :param chunk_size: Size of each chunk for multipart upload. Default is 5 MB.
+    This function downloads a file from the specified URL and uploads it to the specified S3 bucket.
+    The file is uploaded in chunks of the specified size. The function uses a ThreadPoolExecutor to
+    upload the chunks in parallel, with the specified maximum number of parallel uploads.
+
+    The function calculates the SHA256 hash of the file while it is being downloaded and uploaded.
+    If the upload is successful, the function returns the SHA256 hash.
+
+    If an error occurs during the download or upload, the function logs the error and raises an exception.
+    If an error occurs during the upload, the function aborts the multipart upload.
+
+    Args:
+        url (str): The URL to download the file from.
+        bucket_name (str): The name of the S3 bucket to upload the file to.
+        s3_file_name (str): The name to give to the file in the S3 bucket.
+        chunk_size (int, optional): The size of the chunks to upload. Defaults to 5 * 1024 * 1024.
+        max_parallel_uploads (int, optional): The maximum number of parallel uploads. Defaults to 20.
+
+    Raises:
+        Exception: If an error occurs during the download or upload.
+
+    Returns:
+        str: The SHA256 hash of the file.
     """
+
     s3 = boto3.client("s3", config=Config(signature_version="s3v4"))
     upload_id = None
     upload_completed = False
@@ -165,6 +184,26 @@ def download_file_to_s3(
 
 
 def download_model(name: str) -> None:
+    """
+    Downloads a machine learning model from a URL and uploads it to an S3 bucket.
+
+    This function checks if the model is supported and if it already exists in the S3 bucket.
+    If the model is supported and does not exist, the function downloads the model from the URL
+    and uploads it to the S3 bucket. The function also saves a manifest file in the S3 bucket
+    with metadata about the model.
+
+    If the SHA256 hash of the downloaded file does not match the expected hash, the function
+    deletes the file from the S3 bucket and raises an exception.
+
+    Args:
+        name (str): The name of the model to download.
+
+    Raises:
+        Exception: If the model is not supported or if the SHA256 hash of the downloaded file does not match.
+
+    Returns:
+        None
+    """
     if name not in SUPPORTED_MODELS:
         logger.error(
             f"Model {name} is not supported."
@@ -209,6 +248,21 @@ def download_model(name: str) -> None:
 
 
 def get_model_file_name(model_name: str) -> str:
+    """
+    Returns the file name of a machine learning model.
+
+    This function checks if the model is supported and if so, returns the file name of the model.
+    The file name is extracted from the model's URL.
+
+    Args:
+        model_name (str): The name of the model.
+
+    Raises:
+        Exception: If the model is not supported.
+
+    Returns:
+        str: The file name of the model.
+    """
     if model_name not in SUPPORTED_MODELS:
         logger.error(
             f"Model {model_name} is not supported."

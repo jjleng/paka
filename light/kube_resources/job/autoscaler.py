@@ -12,6 +12,29 @@ def create_autoscaler(
     min_replicas: int,
     max_replicas: int,
 ) -> None:
+    """
+    Creates a KEDA autoscaler for a job with a Redis trigger.
+
+    This function creates a KEDA TriggerAuthentication resource and a ScaledObject resource.
+    The TriggerAuthentication resource is used to authenticate to the Redis instance.
+    The ScaledObject resource defines the autoscaling configuration for the job.
+
+    The autoscaler scales the job based on the length of a Redis list.
+    The job is scaled up when the list length exceeds the trigger queue length,
+    and scaled down when the list is empty.
+
+    Args:
+        namespace (str): The namespace to create the resources in.
+        redis_svc_name (str): The name of the Redis service.
+        queue_name (str): The name of the Redis list to monitor.
+        trigger_queue_length (int): The list length at which to trigger scaling.
+        job_name (str): The name of the job to scale.
+        min_replicas (int): The minimum number of job replicas.
+        max_replicas (int): The maximum number of job replicas.
+
+    Returns:
+        None
+    """
     trigger_auth = CustomResource(
         api_version="keda.sh/v1alpha1",
         kind="TriggerAuthentication",

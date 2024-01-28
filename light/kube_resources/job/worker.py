@@ -12,6 +12,20 @@ try_load_kubeconfig()
 
 
 def wait_for_pods_to_drain(namespace: str, deployment_name: str) -> None:
+    """
+    Waits for all worker pods of a specific deployment in a namespace to drain.
+
+    This function continuously checks for the existence of worker pods associated with a specific deployment
+    in a given namespace. If any such pods exist, the function waits for 10 seconds before checking again.
+    The function returns when no such pods exist.
+
+    Args:
+        namespace (str): The namespace in which to check for pods.
+        deployment_name (str): The name of the deployment whose pods to wait for.
+
+    Returns:
+        None
+    """
     while True:
         pods = client.CoreV1Api().list_namespaced_pod(
             namespace,
@@ -23,8 +37,10 @@ def wait_for_pods_to_drain(namespace: str, deployment_name: str) -> None:
         time.sleep(10)
 
 
-# k8s job is another option to run a task. We are using k8s deployment here.
-# The advantage of using k8s deployment is that we retrigger the workers without creating a new deployment.
+# While Kubernetes Jobs are an option for running tasks, we opt for
+# Kubernetes Deployments in this case. The benefit of using Deployments is
+# that they allow us to restart the workers without the need to create a new
+# deployment.
 def create_deployment(
     entrypoint: str,
     namespace: str,

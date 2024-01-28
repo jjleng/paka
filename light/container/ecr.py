@@ -8,6 +8,30 @@ from light.utils import random_str
 def push_to_ecr(
     image_name: str, repository_uri: str, aws_region: str, app_name: str
 ) -> None:
+    """
+    Pushes a Docker image to an Amazon ECR repository.
+
+    This function tags the Docker image with a version tag and the "latest" tag,
+    logs in to the ECR repository, and pushes the image to the repository.
+    The version tag is generated randomly.
+
+    All applications share the same container registry repository.
+    To differentiate between them, we append the application name to the image tag.
+    The '-latest' suffix is added to handle cases where applications themselves are tagged.
+    This ensures that even tagged applications have a unique identifier in the shared repository.
+
+    Args:
+        image_name (str): The name of the Docker image to push.
+        repository_uri (str): The URI of the ECR repository to push the image to.
+        aws_region (str): The AWS region where the ECR repository is located.
+        app_name (str): The name of the application. Used to generate the image tags.
+
+    Raises:
+        subprocess.CalledProcessError: If an error occurs while executing a subprocess command.
+
+    Returns:
+        None
+    """
     try:
         # Get ECR login password
         login_password = (

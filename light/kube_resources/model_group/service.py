@@ -82,16 +82,24 @@ def create_pod(
     port: int,
 ) -> client.V1Pod:
     """
-    Creates a Kubernetes pod for a model group.
+    Creates a Kubernetes Pod for a machine learning model group.
+
+    This function creates a Kubernetes Pod with the specified configuration. The Pod runs a container
+    with the specified runtime image and exposes the specified port. The container runs a machine learning
+    model from the model group.
 
     Args:
-        config (Config): The configuration object.
-        model_group (CloudModelGroup): The model group object.
-        runtime_image (str): The runtime image for the pod.
-        port (int): The port number for the pod.
+        namespace (str): The namespace to create the Pod in.
+        config (Config): The configuration for the Pod.
+        model_group (CloudModelGroup): The model group to run in the Pod.
+        runtime_image (str): The runtime image for the container.
+        port (int): The port to expose on the container.
+
+    Raises:
+        ValueError: If the AWS configuration is not provided.
 
     Returns:
-        client.V1Pod: The created Kubernetes pod.
+        client.V1Pod: The created Pod.
     """
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
@@ -217,16 +225,16 @@ def create_deployment(
     namespace: str, model_group: CloudModelGroup, pod: client.V1Pod
 ) -> client.V1Deployment:
     """
-    Create a deployment for a model group.
+    Creates a Kubernetes Deployment for a machine learning model group.
 
     Args:
-        model_group (CloudModelGroup): The model group object.
-        pod (client.V1Pod): The pod object.
+        namespace (str): The namespace to create the Deployment in.
+        model_group (CloudModelGroup): The model group to run in the Deployment.
+        pod (client.V1Pod): The Pod to use as a template for the Deployment.
 
     Returns:
-        client.V1Deployment: The created deployment object.
+        client.V1Deployment: The created Deployment.
     """
-
     return client.V1Deployment(
         api_version="apps/v1",
         kind="Deployment",
@@ -251,14 +259,15 @@ def create_service(
     namespace: str, model_group: CloudModelGroup, port: int
 ) -> client.V1Service:
     """
-    Creates a Kubernetes service for a given model group.
+    Creates a Kubernetes Service for a machine learning model group.
 
     Args:
-        model_group (CloudModelGroup): The model group for which the service is created.
-        port (int): The port number to expose for the service.
+        namespace (str): The namespace to create the Service in.
+        model_group (CloudModelGroup): The model group to expose with the Service.
+        port (int): The port to expose on the Service.
 
     Returns:
-        V1Service: The created Kubernetes service.
+        client.V1Service: The created Service.
     """
     return client.V1Service(
         api_version="v1",
@@ -284,14 +293,15 @@ def create_service(
 
 def filter_services(namespace: str) -> List[Any]:
     """
-    Filters Kubernetes services in a given namespace that have a selector with "app": "model-group".
+    Filters the Kubernetes Services in a namespace that belong to a model group.
 
     Args:
-        namespace (str): The namespace in which to filter services.
+        namespace (str): The namespace to filter the Services in.
 
     Returns:
-        list: The filtered Kubernetes services.
+        List[Any]: The filtered Services.
     """
+
     v1 = client.CoreV1Api()
 
     services = v1.list_namespaced_service(namespace)
@@ -310,14 +320,21 @@ def create_hpa(
     namespace: str, model_group: CloudModelGroup, deployment: client.V1Deployment
 ) -> client.V2HorizontalPodAutoscaler:
     """
-    Create a HorizontalPodAutoscaler for a given model group and deployment.
+    Creates a Kubernetes Horizontal Pod Autoscaler (HPA) for a machine learning model group.
+
+    This function creates a Kubernetes HPA with the specified namespace, model group, and deployment.
+    The HPA automatically scales the number of Pods in the deployment based on the CPU utilization.
+
+    The HPA is configured to maintain a specified number of replicas of the Pod.
+    The HPA increases the number of replicas when the average CPU utilization exceeds 95%.
 
     Args:
-        model_group (CloudModelGroup): The model group object.
-        deployment (client.V1Deployment): The deployment object.
+        namespace (str): The namespace to create the HPA in.
+        model_group (CloudModelGroup): The model group to scale with the HPA.
+        deployment (client.V1Deployment): The deployment to scale.
 
     Returns:
-        client.V2HorizontalPodAutoscaler: The created HorizontalPodAutoscaler object.
+        client.V2HorizontalPodAutoscaler: The created HPA.
     """
     return client.V2HorizontalPodAutoscaler(
         api_version="autoscaling/v2",
@@ -356,12 +373,15 @@ def create_model_group_service(
     model_group: CloudModelGroup,
 ) -> None:
     """
-    Creates a model group service.
+    Creates a Kubernetes service for a machine learning model group.
 
     Args:
-        config (Config): The configuration object.
-        model_group (CloudModelGroup): The model group object.
-        k8s_provider (k8s.Provider): The Kubernetes provider.
+        namespace (str): The namespace to create the service in.
+        config (Config): The configuration for the service.
+        model_group (CloudModelGroup): The model group to create the service for.
+
+    Raises:
+        ValueError: If the AWS configuration is not provided.
 
     Returns:
         None

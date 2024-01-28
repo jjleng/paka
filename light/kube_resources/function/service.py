@@ -43,6 +43,29 @@ def create_knative_service(
     scaling_metric: Tuple[Literal["concurrency", "rps"], str],
     scale_down_delay: str = "0s",
 ) -> None:
+    """
+    Creates a Knative Service with the specified configuration.
+
+    This function creates a Knative Service with the provided service name, namespace, image,
+    minimum and maximum instances, scaling metric, and scale down delay.
+
+    The function validates the input parameters and raises a ValueError if any of them are invalid.
+
+    Args:
+        service_name (str): The name of the service.
+        namespace (str): The namespace to create the service in.
+        image (str): The Docker image for the service.
+        min_instances (int): The minimum number of instances for the service.
+        max_instances (int): The maximum number of instances for the service.
+        scaling_metric (Tuple[Literal["concurrency", "rps"], str]): The scaling metric and target value.
+        scale_down_delay (str, optional): The delay before scaling down. Defaults to "0s".
+
+    Raises:
+        ValueError: If any of the input parameters are invalid.
+
+    Returns:
+        None
+    """
     if not isinstance(min_instances, int) or not isinstance(max_instances, int):
         raise ValueError("min_replicas and max_replicas must be integers")
     if min_instances > max_instances:

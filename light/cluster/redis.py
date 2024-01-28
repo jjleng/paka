@@ -32,8 +32,8 @@ def create_redis(k8s_provider: k8s.Provider) -> None:
             fetch_opts=FetchOpts(repo="https://charts.bitnami.com/bitnami"),
             values={
                 "architecture": "standalone",  # Use "replication" for high availability
-                "auth": {"enabled": True, "password": password},  # TODO: set password
-                # "master": {"persistence": {"enabled": True, "size": "2Gi"}},
+                "auth": {"enabled": True, "password": password},
+                "master": {"persistence": {"enabled": True, "size": "10Gi"}},
                 "metrics": {"enabled": True},  # For enabling metrics
             },
         ),
