@@ -15,6 +15,24 @@ def create_service_accounts(
     cluster: eks.Cluster,
     k8s_provider: k8s.Provider,
 ) -> None:
+    """
+    Creates service accounts with necessary IAM roles and policies.
+
+    This function creates two IAM policies: one for S3 access and one for ECR access.
+    It then creates an IAM role for the service account and attaches the two policies to this role.
+    Finally, it creates a Kubernetes service account and annotates it with the ARN of the IAM role.
+
+    The S3 policy allows the service account to get objects and list the bucket.
+    The ECR policy allows the service account to perform various actions related to ECR images.
+
+    Args:
+        config (CloudConfig): The cloud configuration containing the cluster name.
+        cluster (eks.Cluster): The EKS cluster to create the service accounts in.
+        k8s_provider (k8s.Provider): The Kubernetes provider to use when creating the service account.
+
+    Returns:
+        None
+    """
     project = config.cluster.name
     bucket = read_cluster_data(project, "bucket")
 

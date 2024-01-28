@@ -53,7 +53,7 @@ def create_ebs_csi_driver(
         role=csi_driver_role.name,
     )
 
-    chart = Chart(
+    Chart(
         "aws-ebs-csi-driver",
         ChartOpts(
             chart="aws-ebs-csi-driver",

@@ -17,6 +17,14 @@ STACK_NAME = "default"
 
 
 class ClusterManager(ABC):
+    """
+    Abstract base class for a cluster manager.
+
+    A ClusterManager is responsible for managing a cluster of compute resources.
+
+    Subclasses must implement the abstract methods defined in this class.
+    """
+
     _orig_config: Config
     config: CloudConfig
 

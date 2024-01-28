@@ -45,6 +45,23 @@ def create_node_group_for_model_group(
     vpc: awsx.ec2.Vpc,
     worker_role: aws.iam.Role,
 ) -> None:
+    """
+    Creates a managed node group for each model group in the provided configuration.
+
+    This function iterates over the model groups in the configuration. For each
+    model group, it creates a managed node group in the provided EKS cluster.
+    The node group is configured with the instance type, scaling configuration,
+    labels, and taints specified in the model group.
+
+    Args:
+        config (CloudConfig): The cloud configuration containing the model groups.
+        cluster (eks.Cluster): The EKS cluster to create the node groups in.
+        vpc (awsx.ec2.Vpc): The VPC to associate the node groups with.
+        worker_role (aws.iam.Role): The IAM role for the worker nodes.
+
+    Returns:
+        None
+    """
     if config.modelGroups is None:
         return
 
@@ -57,9 +74,12 @@ def create_node_group_for_model_group(
             node_group_name=f"{project}-{kubify_name(model_group.name)}-group",
             cluster=cluster,
             instance_types=[model_group.nodeType],
+            # Set the desired size of the node group to the minimum number of instances
+            # specified for the model group.
+            # Note: Scaling down to 0 is not supported, since cold starting time is
+            # too long for model group services.
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(
                 desired_size=model_group.minInstances,
-                # No scale down to 0 for now
                 min_size=model_group.minInstances,
                 max_size=model_group.maxInstances,
             ),
@@ -70,6 +90,8 @@ def create_node_group_for_model_group(
             },
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
+            # Apply taints to ensure that only pods belonging to the same model group
+            # can be scheduled on this node group.
             taints=[
                 aws.eks.NodeGroupTaintArgs(
                     effect="NO_SCHEDULE", key="app", value="model-group"
@@ -87,6 +109,29 @@ def create_node_group_for_qdrant(
     vpc: awsx.ec2.Vpc,
     worker_role: aws.iam.Role,
 ) -> None:
+    """
+    Creates a managed node group for Qdrant in the provided EKS cluster.
+
+    This function creates a managed node group in the EKS cluster with the
+    instance type and replicas specified in the vectorStore configuration.
+    The node group is labeled with the instance type and the app name ("qdrant").
+    It uses the provided worker role and is associated with the private subnets
+    of the provided VPC. A taint is applied to ensure that only pods with a
+    toleration for "app=qdrant" can be scheduled on this node group.
+
+    If the vectorStore configuration is not provided, the function returns without
+    creating a node group.
+
+    Args:
+        config (CloudConfig): The cloud configuration containing the vectorStore
+            configuration.
+        cluster (eks.Cluster): The EKS cluster to create the node group in.
+        vpc (awsx.ec2.Vpc): The VPC to associate the node group with.
+        worker_role (aws.iam.Role): The IAM role for the worker nodes.
+
+    Returns:
+        None
+    """
     if config.vectorStore is None:
         return
 
@@ -100,6 +145,7 @@ def create_node_group_for_qdrant(
         node_group_name=f"{project}-qdrant-group",
         cluster=cluster,
         instance_types=[vectorStore.nodeType],
+        # Scaling down to 0 is not supported
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
             desired_size=vectorStore.replicas,
             min_size=vectorStore.replicas,
@@ -205,6 +251,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
             # Each t2.small node is bounded to a maximum 4 pods.
             # At least 2 t2.small nodes are required for the Cluster Autoscaler to work
+            # TODO: move hadcoded values to config
             desired_size=2,
             min_size=2,
             max_size=3,
