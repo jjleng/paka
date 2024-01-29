@@ -2,6 +2,7 @@ from typing import Literal, Optional
 
 import click
 import typer
+from kubernetes.dynamic.exceptions import NotFoundError
 from tabulate import tabulate
 
 from light.cli.utils import resolve_image
@@ -9,6 +10,7 @@ from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.k8s import try_load_kubeconfig
 from light.kube_resources.function.service import (
     create_knative_service,
+    delete_knative_service,
     list_knative_services,
 )
 from light.logger import logger
@@ -83,7 +85,17 @@ def deploy(
 
 @function_app.command()
 def list() -> None:
+    """
+    List all deployed functions.
+
+    Returns:
+        None
+    """
     services = list_knative_services(APP_NS)
+
+    if not services.items:
+        logger.info("No functions found.")
+        return
 
     table = [
         (
@@ -109,3 +121,22 @@ def list() -> None:
             ],
         )
     )
+
+
+@function_app.command()
+def delete(name: str) -> None:
+    """
+    Delete a function.
+
+    Args:
+        name (str): The name of the function to delete.
+
+    Returns:
+        None
+    """
+    logger.info(f"Deleting function {name}")
+    try:
+        delete_knative_service(kubify_name(name), APP_NS)
+        logger.info(f"Successfully deleted function {name}")
+    except NotFoundError:
+        logger.error(f"Function {name} not found.")

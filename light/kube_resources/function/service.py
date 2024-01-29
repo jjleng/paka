@@ -5,6 +5,7 @@ from kubernetes.dynamic import DynamicClient
 from kubernetes.dynamic.exceptions import NotFoundError
 
 from light.k8s import try_load_kubeconfig
+from light.logger import logger
 
 try_load_kubeconfig()
 
@@ -162,3 +163,24 @@ def list_knative_services(namespace: str) -> Any:
     )
 
     return service_resource.get(namespace=namespace)
+
+
+def delete_knative_service(service_name: str, namespace: str) -> None:
+    """
+    Delete a Knative Service.
+
+    Args:
+        service_name (str): The name of the service to delete.
+        namespace (str): The namespace to delete the service from.
+
+    Returns:
+        None
+    """
+    k8s_client = client.ApiClient()
+    dyn_client = DynamicClient(k8s_client)
+
+    service_resource = dyn_client.resources.get(
+        api_version="serving.knative.dev/v1", kind="Service"
+    )
+
+    service_resource.delete(name=service_name, namespace=namespace)
