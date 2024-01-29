@@ -68,6 +68,7 @@ def build(
 
     except subprocess.CalledProcessError as e:
         logger.error(f"An error occurred: {e}")
+        raise typer.Exit(1)
 
 
 def load_cluster_manager(cluster_config: str) -> ClusterManager:
