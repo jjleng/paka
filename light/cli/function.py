@@ -21,51 +21,84 @@ try_load_kubeconfig()
 function_app = typer.Typer()
 
 
-@function_app.command(help="Deploy a function.")
+@function_app.command()
 def deploy(
     name: str = typer.Option(
         ...,
         "--name",
-        help="The name of the function.",
+        help="The name of the function to be deployed.",
     ),
     source_dir: Optional[str] = typer.Option(
         None,
         "--source",
-        help="Source directory of the application.",
+        help="The directory containing the source code of the application. If "
+        "specified, a new Docker image will be built using the source code from "
+        "this directory. A Dockerfile is not required because the build process "
+        "uses Cloud Native's Buildpacks, which automatically detect and install "
+        "dependencies.",
     ),
     image: Optional[str] = typer.Option(
         None,
         "--image",
-        help="The name of the image to deploy.",
+        help="The name of the Docker image to deploy. If both an image and a "
+        "source directory are provided, this image will be used and the source "
+        "directory will be ignored.",
     ),
     min_instances: int = typer.Option(
         0,
         "--min-replicas",
-        help="The minimum number of instances.",
+        help="The minimum number of instances to be maintained at all times to "
+        "handle incoming requests. The default value is 0, indicating that the "
+        "system can scale down to zero instances when no requests are being processed.",
     ),
     max_instances: int = typer.Option(
         0,
         "--max-replicas",
-        help="The maximum number of instances.",
+        help="The maximum number of instances that can be created to handle peak "
+        "load. The default value is set to 0, indicating that there is no upper "
+        "limit on the number of instances that can be created.",
     ),
     scaling_metric: Literal["concurrency", "rps"] = typer.Option(
         "concurrency",
         "--scaling-metric",
-        help="The metric to scale on.",
+        help="The performance metric that the scaling system should monitor to "
+        "determine when to adjust the number of instances.",
         case_sensitive=True,
         click_type=click.Choice(["rps", "concurrency"]),
     ),
     metric_target: int = typer.Option(
         10,
         "--metric-target",
-        help="The metric target.",
+        help="The desired value for the chosen scaling metric. The system will "
+        "adjust the number of active instances to attempt to reach this target.",
     ),
     scale_down_delay: str = typer.Option(
         "0s",
         "--scale-down-delay",
-        help="The scale down delay (e.g. 0s, 1m, 1h). Must be 0s <= value <= 1h",
+        help="The delay before the system scales down after a spike in traffic. "
+        "This value must be a duration between 0 seconds and 1 hour, represented "
+        "as a string (e.g., '0s', '1m', '1h').",
     ),
 ) -> None:
+    """
+    Deploy a function to a Knative service.
+
+    Args:
+        name (str): The name of the function.
+        source_dir (Optional[str]): The source directory of the application. If provided, a new Docker image
+            will be built from this directory. If not provided, the `image` parameter must be provided.
+        image (Optional[str]): The name of the Docker image to deploy. If not provided, the `source_dir`
+            parameter must be provided.
+        min_instances (int): The minimum number of instances for the Knative service.
+        max_instances (int): The maximum number of instances for the Knative service.
+        scaling_metric (Literal["concurrency", "rps"]): The metric to scale on. Must be either "concurrency" or "rps".
+        metric_target (int): The target value for the scaling metric.
+        scale_down_delay (str): The delay before scaling down after a spike in traffic. Must be a string
+            representing a duration in seconds (e.g. "0s", "1m", "1h").
+
+    Returns:
+        None
+    """
     resolved_image = resolve_image(image, source_dir)
 
     logger.info(f"Deploying {name}...")
