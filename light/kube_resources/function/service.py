@@ -2,6 +2,7 @@ from typing import Literal, Tuple
 
 from kubernetes import client
 from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import NotFoundError
 
 from light.k8s import try_load_kubeconfig
 
@@ -127,6 +128,17 @@ def create_knative_service(
     k8s_client = client.ApiClient()
     dyn_client = DynamicClient(k8s_client)
 
-    dyn_client.resources.get(
+    service_resource = dyn_client.resources.get(
         api_version="serving.knative.dev/v1", kind="Service"
-    ).create(body=knative_service, namespace=namespace)
+    )
+
+    try:
+        service_resource.get(name=service_name, namespace=namespace)
+        service_resource.patch(
+            body=knative_service,
+            namespace=namespace,
+            name=service_name,
+            content_type="application/merge-patch+json",
+        )
+    except NotFoundError:
+        service_resource.create(body=knative_service, namespace=namespace)
