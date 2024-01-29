@@ -157,19 +157,33 @@ def list() -> None:
 
 
 @function_app.command()
-def delete(name: str) -> None:
+def delete(
+    name: str,
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Automatic yes to prompts. Use this option to bypass the confirmation "
+        "prompt and directly proceed with the deletion.",
+    ),
+) -> None:
     """
     Delete a function.
 
     Args:
         name (str): The name of the function to delete.
+        yes (bool): If True, bypasses the confirmation prompt and directly
+            proceeds with the deletion.
 
     Returns:
         None
     """
-    logger.info(f"Deleting function {name}")
-    try:
-        delete_knative_service(kubify_name(name), APP_NS)
-        logger.info(f"Successfully deleted function {name}")
-    except NotFoundError:
-        logger.error(f"Function {name} not found.")
+    if yes or click.confirm(
+        f"Are you sure you want to delete the function {name}?", default=False
+    ):
+        logger.info(f"Deleting function {name}")
+        try:
+            delete_knative_service(kubify_name(name), APP_NS)
+            logger.info(f"Successfully deleted function {name}")
+        except NotFoundError:
+            logger.error(f"Function {name} not found.")

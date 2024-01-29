@@ -1,5 +1,6 @@
 from typing import List
 
+import click
 import typer
 
 from light.cli.utils import load_cluster_manager
@@ -47,13 +48,24 @@ def down(
         help="Path to the cluster config file. The cluster config file is a "
         "YAML file that contains the configuration of the cluster",
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Automatic yes to prompts. Use this option to bypass the confirmation "
+        "prompt and directly proceed with the operation.",
+    ),
 ) -> None:
     """
     Tears down the Kubernetes cluster, removing all associated resources and data.
     """
-    # TODO: Show warning message before destroying the cluster
-    cluster_manager = load_cluster_manager(cluster_config)
-    cluster_manager.destroy()
+    if yes or click.confirm(
+        f"Are you sure you want to proceed with the operation? Please note that "
+        "all resources and data will be permanently deleted.",
+        default=False,
+    ):
+        cluster_manager = load_cluster_manager(cluster_config)
+        cluster_manager.destroy()
 
 
 @cluster_app.command()

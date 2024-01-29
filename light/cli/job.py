@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+import click
 import typer
 from kubernetes import client
 
@@ -119,13 +120,31 @@ def delete(
         "complete before deploying the new job. If set to true, the deployment "
         "will wait until all current tasks have finished.",
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Automatic yes to prompts. Use this option to bypass the confirmation "
+        "prompt and directly proceed with the deletion.",
+    ),
 ) -> None:
     """
     Deletes a job.
+
+    Args:
+        name (str): The unique identifier of the job to be deleted.
+        wait_existing_tasks (bool): Determines whether the system should wait for existing tasks to complete before deleting the job.
+        yes (bool): If True, bypasses the confirmation prompt and directly proceeds with the deletion.
+
+    Returns:
+        None
     """
-    logger.info(f"Deleting job {name}")
-    delete_workers(APP_NS, prefixed_job_name(name), wait_existing_tasks)
-    logger.info(f"Successfully deleted job {name}")
+    if yes or click.confirm(
+        f"Are you sure you want to delete the job {name}?", default=False
+    ):
+        logger.info(f"Deleting job {name}")
+        delete_workers(APP_NS, prefixed_job_name(name), wait_existing_tasks)
+        logger.info(f"Successfully deleted job {name}")
 
 
 @job_app.command()
