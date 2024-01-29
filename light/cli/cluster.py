@@ -51,6 +51,7 @@ def down(
     """
     Tears down the Kubernetes cluster, removing all associated resources and data.
     """
+    # TODO: Show warning message before destroying the cluster
     cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.destroy()
 

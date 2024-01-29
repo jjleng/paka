@@ -15,12 +15,6 @@ try_load_kubeconfig()
 function_app = typer.Typer()
 
 
-def typed_job_name(job_name: str) -> str:
-    if not job_name.startswith("job-"):
-        return f"job-{job_name}"
-    return job_name
-
-
 @function_app.command(help="Deploy a function.")
 def deploy(
     name: str = typer.Option(
@@ -53,8 +47,6 @@ def deploy(
         "--scaling-metric",
         help="The metric to scale on.",
         case_sensitive=True,
-        prompt="Please choose a scaling metric",
-        show_choices=True,
         click_type=click.Choice(["rps", "concurrency"]),
     ),
     metric_target: int = typer.Option(
