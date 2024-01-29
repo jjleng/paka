@@ -2,11 +2,15 @@ from typing import Literal, Optional
 
 import click
 import typer
+from tabulate import tabulate
 
 from light.cli.utils import resolve_image
 from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.k8s import try_load_kubeconfig
-from light.kube_resources.function.service import create_knative_service
+from light.kube_resources.function.service import (
+    create_knative_service,
+    list_knative_services,
+)
 from light.logger import logger
 from light.utils import kubify_name
 
@@ -75,3 +79,33 @@ def deploy(
     )
 
     logger.info(f"Successfully deployed {name}")
+
+
+@function_app.command()
+def list() -> None:
+    services = list_knative_services(APP_NS)
+
+    table = [
+        (
+            svc.metadata.name,
+            svc.status.url,
+            svc.status.latestCreatedRevisionName,
+            svc.status.latestReadyRevisionName,
+            svc.status.conditions[0].status if len(svc.status.conditions) > 0 else "",
+            svc.status.conditions[0].reason if len(svc.status.conditions) > 0 else "",
+        )
+        for svc in services.items
+    ]
+    logger.info(
+        tabulate(
+            table,
+            headers=[
+                "Name",
+                "Endpoint",
+                "LatestCreated",
+                "LatestReady",
+                "Ready",
+                "Reason",
+            ],
+        )
+    )

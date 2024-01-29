@@ -1,4 +1,4 @@
-from typing import Literal, Tuple
+from typing import Any, Literal, Tuple
 
 from kubernetes import client
 from kubernetes.dynamic import DynamicClient
@@ -142,3 +142,23 @@ def create_knative_service(
         )
     except NotFoundError:
         service_resource.create(body=knative_service, namespace=namespace)
+
+
+def list_knative_services(namespace: str) -> Any:
+    """
+    List all Knative Services in the specified namespace.
+
+    Args:
+        namespace (str): The namespace to list services in. Defaults to "knative-serving".
+
+    Returns:
+        None
+    """
+    k8s_client = client.ApiClient()
+    dyn_client = DynamicClient(k8s_client)
+
+    service_resource = dyn_client.resources.get(
+        api_version="serving.knative.dev/v1", kind="Service"
+    )
+
+    return service_resource.get(namespace=namespace)
