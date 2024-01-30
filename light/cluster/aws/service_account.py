@@ -71,6 +71,24 @@ def create_service_accounts(
         ).json,
     )
 
+    cloudwatch_policy = aws.iam.Policy(
+        "cloudwatch-policy",
+        policy=aws.iam.get_policy_document(
+            statements=[
+                aws.iam.GetPolicyDocumentStatementArgs(
+                    effect="Allow",
+                    actions=[
+                        "logs:CreateLogGroup",
+                        "logs:CreateLogStream",
+                        "logs:PutLogEvents",
+                        "logs:DescribeLogStreams",
+                    ],
+                    resources=["arn:aws:logs:*:*:*"],
+                )
+            ]
+        ).json,
+    )
+
     sa_role = odic_role_for_sa(config, cluster, "sa", f"{APP_NS}:{ACCESS_ALL_SA}")
 
     aws.iam.RolePolicyAttachment(
@@ -83,6 +101,12 @@ def create_service_accounts(
         f"{project}-sa-ecr-role-policy-attachment",
         role=sa_role.name,
         policy_arn=ecr_policy.arn,
+    )
+
+    aws.iam.RolePolicyAttachment(
+        f"{project}-sa-cloudwatch-role-policy-attachment",
+        role=sa_role.name,
+        policy_arn=cloudwatch_policy.arn,
     )
 
     k8s.core.v1.ServiceAccount(
