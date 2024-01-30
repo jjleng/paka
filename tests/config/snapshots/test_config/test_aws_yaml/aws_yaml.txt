@@ -2,6 +2,11 @@ aws:
   cluster:
     name: test-cluster
     region: us-east-1
+    namespace: default
+    nodeType: t2.micro
+    minNodes: 2
+    maxNodes: 2
+    logRetentionDays: 14
   modelGroups:
     - nodeType: t2.micro
       name: test-model-group

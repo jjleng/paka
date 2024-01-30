@@ -156,10 +156,23 @@ class ClusterConfig(BaseModel):
     Attributes:
         name (str): The name of the cluster.
         region (str): The default region for the cluster.
+        namespace (str, optional): The namespace in which the cluster is deployed. Defaults to 'default'.
+        nodeType (str): The type of nodes in the cluster.
+        minNodes (int): The minimum number of nodes in the cluster.
+        maxNodes (int): The maximum number of nodes in the cluster.
+        logRetentionDays (int, optional): The number of days to retain log entries. Defaults to 14.
     """
 
     name: str
     region: str
+
+    namespace: str = "default"
+
+    nodeType: str
+    minNodes: int
+    maxNodes: int
+
+    logRetentionDays: int = 14
 
 
 class CloudVectorStore(CloudNode):

@@ -15,7 +15,15 @@ from light.config import (
 )
 
 cloud_config = CloudConfig(
-    cluster=ClusterConfig(name="test-cluster", region="us-east-1"),
+    cluster=ClusterConfig(
+        name="test-cluster",
+        region="us-east-1",
+        nodeType="t2.micro",
+        minNodes=2,
+        maxNodes=2,
+        logRetentionDays=14,
+        namespace="default",
+    ),
     modelGroups=[
         CloudModelGroup(
             name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
@@ -87,7 +95,15 @@ def test_cloud_vector_store() -> None:
 
 def test_cloud_config() -> None:
     # Test with valid cluster, modelGroups, and vectorStore
-    cluster = ClusterConfig(name="test-cluster", region="us-west-2")
+    cluster = ClusterConfig(
+        name="test-cluster",
+        region="us-west-2",
+        nodeType="t2.micro",
+        minNodes=2,
+        maxNodes=2,
+        logRetentionDays=14,
+        namespace="default",
+    )
     model_group1 = CloudModelGroup(
         nodeType="c7a.xlarge", name="test-group1", minInstances=1, maxInstances=2
     )
@@ -164,6 +180,11 @@ def test_parse_yaml() -> None:
         cluster:
             name: test_cluster
             region: us-west-2
+            namespace: test_namespace
+            nodeType: t2.medium
+            minNodes: 2
+            maxNodes: 4
+            logRetentionDays: 7
         modelGroups:
             - nodeType: c7a.xlarge
               minInstances: 1
@@ -178,6 +199,11 @@ def test_parse_yaml() -> None:
     assert config.aws is not None
     assert config.aws.cluster.name == "test_cluster"
     assert config.aws.cluster.region == "us-west-2"
+    assert config.aws.cluster.namespace == "test_namespace"
+    assert config.aws.cluster.nodeType == "t2.medium"
+    assert config.aws.cluster.minNodes == 2
+    assert config.aws.cluster.maxNodes == 4
+    assert config.aws.cluster.logRetentionDays == 7
     assert config.aws.modelGroups is not None
     assert len(config.aws.modelGroups) == 1
     model_group = config.aws.modelGroups[0]

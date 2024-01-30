@@ -89,10 +89,30 @@ def test_init_pulumi() -> None:
 
 def test_load_cluster_manager() -> None:
     cluster_config = "/path/to/cluster.yaml"
-    config_data = {"aws": {"cluster": {"name": "test-cluster", "region": "us-west-2"}}}
-    m = mock_open(
-        read_data="aws:\n  cluster:\n    name: test-cluster\n    region: us-west-2"
-    )
+    config_data = {
+        "aws": {
+            "cluster": {
+                "name": "test-cluster",
+                "region": "us-west-2",
+                "namespace": "test-namespace",
+                "nodeType": "t2.medium",
+                "minNodes": 2,
+                "maxNodes": 4,
+                "logRetentionDays": 7,
+            }
+        }
+    }
+    m = mock_open(read_data="""
+        aws:
+          cluster:
+            name: test-cluster
+            region: us-west-2
+            namespace: test-namespace
+            nodeType: t2.medium
+            minNodes: 2
+            maxNodes: 4
+            logRetentionDays: 7
+        """)
 
     with patch("os.path.abspath", return_value=cluster_config), patch(
         "os.path.expanduser", return_value=cluster_config
