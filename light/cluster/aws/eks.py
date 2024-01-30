@@ -6,6 +6,7 @@ import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
 
+from light.cluster.aws.cloudwatch import enable_cloudwatch
 from light.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from light.cluster.aws.service_account import create_service_accounts
@@ -291,6 +292,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     create_qdrant(config, k8s_provider)
 
     create_service_accounts(config, cluster, k8s_provider)
+    enable_cloudwatch(config, k8s_provider)
 
     # Save the kubeconfig to a file
     cluster.kubeconfig_json.apply(
