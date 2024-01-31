@@ -248,16 +248,13 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         f"{project}-default-group",
         node_group_name=f"{project}-default-group",
         cluster=cluster,
-        instance_types=["t2.medium"],
+        instance_types=[config.cluster.nodeType],
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
-            # Each t2.small node is bounded to a maximum 4 pods.
-            # At least 2 t2.small nodes are required for the Cluster Autoscaler to work
-            # TODO: move hadcoded values to config
-            desired_size=2,
-            min_size=2,
-            max_size=3,
+            desired_size=config.cluster.minNodes,
+            min_size=config.cluster.minNodes,
+            max_size=config.cluster.maxNodes,
         ),
-        labels={"size": "t2.medium", "group": "default"},
+        labels={"size": config.cluster.nodeType, "group": "default"},
         node_role_arn=worker_role.arn,
         subnet_ids=vpc.private_subnet_ids,
     )
