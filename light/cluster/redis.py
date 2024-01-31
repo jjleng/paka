@@ -4,8 +4,9 @@ import pulumi
 import pulumi_kubernetes as k8s
 from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
 
-from light.constants import APP_NS
-from light.utils import call_once
+from light.utils import call_once, read_current_cluster_data
+
+APP_NS = read_current_cluster_data("namespace")
 
 
 @call_once

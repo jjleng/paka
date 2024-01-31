@@ -5,7 +5,6 @@ import typer
 from kubernetes import client
 from tabulate import tabulate
 
-from light.constants import APP_NS
 from light.k8s import try_load_kubeconfig
 from light.kube_resources.model_group.model import SUPPORTED_MODELS
 from light.kube_resources.model_group.service import MODEL_PATH_PREFIX, filter_services
@@ -15,6 +14,8 @@ from light.utils import read_current_cluster_data
 try_load_kubeconfig()
 
 model_group_app = typer.Typer()
+
+APP_NS = read_current_cluster_data("namespace")
 
 
 @model_group_app.command()

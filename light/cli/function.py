@@ -6,7 +6,6 @@ from kubernetes.dynamic.exceptions import NotFoundError
 from tabulate import tabulate
 
 from light.cli.utils import resolve_image
-from light.constants import APP_NS  # TODO: APP_NS should be loaded dynamically
 from light.k8s import try_load_kubeconfig
 from light.kube_resources.function.service import (
     create_knative_service,
@@ -14,11 +13,13 @@ from light.kube_resources.function.service import (
     list_knative_services,
 )
 from light.logger import logger
-from light.utils import kubify_name
+from light.utils import kubify_name, read_current_cluster_data
 
 try_load_kubeconfig()
 
 function_app = typer.Typer()
+
+APP_NS = read_current_cluster_data("namespace")
 
 
 @function_app.command()

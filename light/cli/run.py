@@ -5,16 +5,17 @@ import typer
 from kubernetes import client
 
 from light.cli.utils import resolve_image
-from light.constants import APP_NS
 from light.k8s import tail_logs, try_load_kubeconfig
 from light.logger import logger
-from light.utils import kubify_name, random_str
+from light.utils import kubify_name, random_str, read_current_cluster_data
 
 CLEANUP_TIMEOUT = 600  # 10 minutes
 
 run_app = typer.Typer()
 
 try_load_kubeconfig()
+
+APP_NS = read_current_cluster_data("namespace")
 
 
 @run_app.callback(invoke_without_command=True)

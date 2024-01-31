@@ -4,16 +4,16 @@ from typing import Any
 from pulumi import automation as auto
 
 from light.config import CloudConfig, Config
-from light.constants import APP_NS
 from light.kube_resources.model_group.ingress import (
     create_model_group_ingress,
     create_model_vservice,
 )
 from light.kube_resources.model_group.service import create_model_group_service
 from light.logger import logger
-from light.utils import save_cluster_data
+from light.utils import read_current_cluster_data, save_cluster_data
 
 STACK_NAME = "default"
+APP_NS = read_current_cluster_data("namespace")
 
 
 class ClusterManager(ABC):

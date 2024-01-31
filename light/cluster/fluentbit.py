@@ -1,8 +1,10 @@
 import pulumi
 import pulumi_kubernetes as k8s
 
-from light.constants import ACCESS_ALL_SA, APP_NS
-from light.utils import call_once
+from light.constants import ACCESS_ALL_SA
+from light.utils import call_once, read_current_cluster_data
+
+APP_NS = read_current_cluster_data("namespace")
 
 
 @call_once

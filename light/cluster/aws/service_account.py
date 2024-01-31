@@ -5,8 +5,10 @@ import pulumi_kubernetes as k8s
 
 from light.cluster.aws.utils import odic_role_for_sa
 from light.config import CloudConfig
-from light.constants import ACCESS_ALL_SA, APP_NS
-from light.utils import call_once, read_cluster_data
+from light.constants import ACCESS_ALL_SA
+from light.utils import call_once, read_cluster_data, read_current_cluster_data
+
+APP_NS = read_current_cluster_data("namespace")
 
 
 @call_once
