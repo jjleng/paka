@@ -230,6 +230,26 @@ class CloudVectorStore(CloudNode):
         return v
 
 
+class Prometheus(BaseModel):
+    storage_size: str = "10Gi"
+
+    @field_validator("storage_size", mode="before")
+    def validate_storage_size(cls, v: str) -> str:
+        """
+        Validates the format of the storage_size field.
+
+        Args:
+            v (str): The value of the storage_size field.
+
+        Returns:
+            str: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the format of the input value is invalid.
+        """
+        return validate_size(v, "Invalid storage size format")
+
+
 class CloudConfig(BaseModel):
     """
     Represents the configuration for the cloud environment.
@@ -243,6 +263,7 @@ class CloudConfig(BaseModel):
     cluster: ClusterConfig
     modelGroups: Optional[List[CloudModelGroup]] = None
     vectorStore: Optional[CloudVectorStore] = None
+    prometheus: Optional[Prometheus] = None
 
     @field_validator("modelGroups", mode="before")
     def check_model_group(cls, v: List[Any]) -> List[Any]:

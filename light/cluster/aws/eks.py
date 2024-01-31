@@ -12,6 +12,7 @@ from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from light.cluster.aws.service_account import create_service_accounts
 from light.cluster.keda import create_keda
 from light.cluster.knative import create_knative
+from light.cluster.prometheus import create_prometheus
 from light.cluster.qdrant import create_qdrant
 from light.cluster.redis import create_redis
 from light.config import CloudConfig
@@ -287,6 +288,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     create_keda(k8s_provider)
     create_knative(k8s_provider)
     create_qdrant(config, k8s_provider)
+    create_prometheus(config, k8s_provider)
 
     create_service_accounts(config, cluster, k8s_provider)
     enable_cloudwatch(config, k8s_provider)
