@@ -12,7 +12,7 @@ def enable_cloudwatch(cloud_config: CloudConfig, k8s_provider: k8s.Provider) -> 
     aws.cloudwatch.LogGroup(
         "log-group",
         name=LOG_GROUP,
-        retention_in_days=14,
+        retention_in_days=cloud_config.cluster.logRetentionDays,
     )
 
     # Fluent Bit configuration for forwarding logs to CloudWatch
