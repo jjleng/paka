@@ -32,6 +32,9 @@ class ClusterManager(ABC):
         self._orig_config = config
         if not config.aws is None:
             self.config = config.aws
+        save_cluster_data(
+            self.config.cluster.name, "namespace", self.config.cluster.namespace
+        )
 
     @abstractmethod
     def provision_k8s(self) -> None:

@@ -23,9 +23,6 @@ class AWSClusterManager(ClusterManager):
     def provision_k8s(self) -> None:
         # TODO: Hardcoded provider value `aws` should be defined in config
         save_cluster_data(self.config.cluster.name, "provider", "aws")
-        save_cluster_data(
-            self.config.cluster.name, "namespace", self.config.cluster.namespace
-        )
         create_object_store(self.config)
         create_container_registry(self.config)
         create_k8s_cluster(self.config)

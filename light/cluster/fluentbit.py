@@ -46,6 +46,7 @@ def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None
             template=k8s.core.v1.PodTemplateSpecArgs(
                 metadata=k8s.meta.v1.ObjectMetaArgs(
                     labels={"k8s-app": "fluent-bit-logging"},
+                    annotations={"sidecar.istio.io/inject": "false"},
                 ),
                 spec=k8s.core.v1.PodSpecArgs(
                     service_account_name=ACCESS_ALL_SA,

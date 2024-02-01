@@ -11,7 +11,8 @@ from light.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from light.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from light.cluster.aws.service_account import create_service_accounts
 from light.cluster.keda import create_keda
-from light.cluster.knative import create_knative
+from light.cluster.knative import create_knative_and_istio
+from light.cluster.namespace import create_namespace
 from light.cluster.prometheus import create_prometheus
 from light.cluster.qdrant import create_qdrant
 from light.cluster.redis import create_redis
@@ -284,9 +285,12 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     )
 
     create_ebs_csi_driver(config, cluster, k8s_provider)
+    create_namespace(k8s_provider)
+    # Install Knative and Istio. This should be done before installing other services,
+    # such as, Redis, Qdrant, Model groups, etc as we want to enable Istio sidecar.
+    create_knative_and_istio(config, k8s_provider)
     create_redis(k8s_provider)
     create_keda(k8s_provider)
-    create_knative(config, k8s_provider)
     create_qdrant(config, k8s_provider)
 
     create_service_accounts(config, cluster, k8s_provider)

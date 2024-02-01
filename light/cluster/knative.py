@@ -73,7 +73,7 @@ non_crd_transform = partial(crd_install_filter, filter=non_crd_resources)
 
 
 @call_once
-def create_knative(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
+def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
     yaml_files = [
         # TODO: sigstore verification
         # Creates resources under the knative-serving namespace
