@@ -286,12 +286,12 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     create_ebs_csi_driver(config, cluster, k8s_provider)
     create_redis(k8s_provider)
     create_keda(k8s_provider)
-    create_knative(k8s_provider)
+    create_knative(config, k8s_provider)
     create_qdrant(config, k8s_provider)
-    create_prometheus(config, k8s_provider)
 
     create_service_accounts(config, cluster, k8s_provider)
     enable_cloudwatch(config, k8s_provider)
+    create_prometheus(config, k8s_provider)
 
     # Save the kubeconfig to a file
     cluster.kubeconfig_json.apply(

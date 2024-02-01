@@ -4,8 +4,11 @@ from typing import Any, Callable, Dict
 import pulumi
 import pulumi_kubernetes as k8s
 from pulumi import ResourceOptions
+from pulumi_kubernetes.apiextensions import CustomResource
 from pulumi_kubernetes.yaml import ConfigFile
 
+from light.cluster.prometheus import create_prometheus
+from light.config import CloudConfig
 from light.utils import call_once
 
 VERSION = "v1.12.3"
@@ -59,12 +62,18 @@ def crd_install_filter(
             inputs["items"] = []
 
 
+def exclude_knative_eventing_namespace(inputs: Any, opts: ResourceOptions) -> None:
+    if "metadata" in inputs and inputs["metadata"]["namespace"] == "knative-eventing":
+        inputs["kind"] = "List"
+        inputs["items"] = []
+
+
 only_crd_transform = partial(crd_install_filter, filter=crd_resources)
 non_crd_transform = partial(crd_install_filter, filter=non_crd_resources)
 
 
 @call_once
-def create_knative(k8s_provider: k8s.Provider) -> None:
+def create_knative(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
     yaml_files = [
         # TODO: sigstore verification
         # Creates resources under the knative-serving namespace
@@ -113,4 +122,54 @@ def create_knative(k8s_provider: k8s.Provider) -> None:
         "kn-default-domain",
         file=yaml_file,
         opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[net_istio]),
+    )
+
+    # Now, install ServiceMonitor and PodMonitor CRDs
+    prometheus = create_prometheus(config, k8s_provider)
+
+    if not prometheus:
+        return
+
+    yaml_file = "https://raw.githubusercontent.com/knative-extensions/monitoring/main/servicemonitor.yaml"
+
+    ConfigFile(
+        "kn-prom-monitor",
+        file=yaml_file,
+        transformations=[exclude_knative_eventing_namespace],
+        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[prometheus]),
+    )
+
+    CustomResource(
+        "istio-monitor",
+        api_version="monitoring.coreos.com/v1",
+        kind="ServiceMonitor",
+        metadata={
+            "name": "istio-monitor",
+            # ServiceMonitor can be discovered regardless of namespace.
+            # See `serviceMonitorSelectorNilUsesHelmValues` and
+            # `podMonitorSelectorNilUsesHelmValues` in the Prometheus chart.
+            # We can create this in the istio-system namespace.
+            "namespace": "istio-system",
+        },
+        spec={
+            "selector": {
+                "matchExpressions": [
+                    {
+                        "key": "app",
+                        "operator": "In",
+                        "values": ["istio-telemetry", "istiod"],
+                    }
+                ]
+            },
+            "namespaceSelector": {"matchNames": ["istio-system"]},
+            "endpoints": [
+                {
+                    "port": "http-monitoring",
+                    "interval": "15s",
+                },
+            ],
+        },
+        opts=pulumi.ResourceOptions(
+            provider=k8s_provider, depends_on=[prometheus, net_istio]
+        ),
     )

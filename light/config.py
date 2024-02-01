@@ -232,6 +232,18 @@ class CloudVectorStore(CloudNode):
 
 class Prometheus(BaseModel):
     storage_size: str = "10Gi"
+    grafana: bool = False
+    alertmanager: bool = False
+    kube_api_server: bool = False
+    kubelet: bool = False
+    kube_controller_manager: bool = False
+    core_dns: bool = False
+    kube_etcd: bool = False
+    kube_scheduler: bool = False
+    kube_proxy: bool = False
+    kube_state_metrics: bool = False
+    node_exporter: bool = False
+    thanos_ruler: bool = False
 
     @field_validator("storage_size", mode="before")
     def validate_storage_size(cls, v: str) -> str:
