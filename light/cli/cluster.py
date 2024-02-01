@@ -69,23 +69,6 @@ def down(
 
 
 @cluster_app.command()
-def refresh(
-    cluster_config: str = typer.Option(
-        "",
-        "--file",
-        "-f",
-        help="Path to the cluster config file. The cluster config file is a "
-        "YAML file that contains the configuration of the cluster",
-    ),
-) -> None:
-    """
-    Updates local states to match the current state of the resources in the cloud.
-    """
-    cluster_manager = load_cluster_manager(cluster_config)
-    cluster_manager.refresh()
-
-
-@cluster_app.command()
 def preview(
     cluster_config: str = typer.Option(
         "",
