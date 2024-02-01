@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict
 import pulumi
 import pulumi_kubernetes as k8s
 from pulumi import ResourceOptions
+from pulumi_kubernetes.apiextensions import CustomResource
 from pulumi_kubernetes.yaml import ConfigFile
 
 from light.cluster.prometheus import create_prometheus
@@ -136,4 +137,36 @@ def create_knative(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
         file=yaml_file,
         transformations=[exclude_knative_eventing_namespace],
         opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[prometheus]),
+    )
+
+    CustomResource(
+        "ingressgateway-monitor",
+        api_version="monitoring.coreos.com/v1",
+        kind="ServiceMonitor",
+        metadata={
+            "name": "ingressgateway-monitor",
+            # ServiceMonitor can be discovered regardless of namespace.
+            # See `serviceMonitorSelectorNilUsesHelmValues` and
+            # `podMonitorSelectorNilUsesHelmValues` in the Prometheus chart.
+            # We can create this in the istio-system namespace.
+            "namespace": "istio-system",
+        },
+        spec={
+            "selector": {
+                "matchLabels": {
+                    "app": "istio-ingressgateway",
+                }
+            },
+            "namespaceSelector": {"matchNames": ["istio-system"]},
+            "endpoints": [
+                {
+                    "port": "http-envoy-prom",
+                    "path": "/stats/prometheus",
+                    "interval": "15s",
+                },
+            ],
+        },
+        opts=pulumi.ResourceOptions(
+            provider=k8s_provider, depends_on=[prometheus, net_istio]
+        ),
     )
