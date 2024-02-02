@@ -13,7 +13,6 @@ from light.logger import logger
 from light.utils import read_current_cluster_data, save_cluster_data
 
 STACK_NAME = "default"
-APP_NS = read_current_cluster_data("namespace")
 
 
 class ClusterManager(ABC):
@@ -70,10 +69,14 @@ class ClusterManager(ABC):
         if self.config.modelGroups is None:
             return
 
-        create_model_group_ingress(APP_NS)
+        create_model_group_ingress(read_current_cluster_data("namespace"))
         for model_group in self.config.modelGroups:
-            create_model_group_service(APP_NS, self._orig_config, model_group)
-            create_model_vservice(APP_NS, model_group.name)
+            create_model_group_service(
+                read_current_cluster_data("namespace"), self._orig_config, model_group
+            )
+            create_model_vservice(
+                read_current_cluster_data("namespace"), model_group.name
+            )
 
     def destroy(self) -> None:
         logger.info("Destroying resources...")

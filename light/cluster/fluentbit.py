@@ -4,8 +4,6 @@ import pulumi_kubernetes as k8s
 from light.constants import ACCESS_ALL_SA
 from light.utils import call_once, read_current_cluster_data
 
-APP_NS = read_current_cluster_data("namespace")
-
 
 @call_once
 def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None:
@@ -23,7 +21,10 @@ def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None
     parsers_config_map = k8s.core.v1.ConfigMap(
         "fluent-bit-parsers",
         data={"parsers.conf": parsers_config},
-        metadata={"namespace": APP_NS, "name": "fluent-bit-parsers"},
+        metadata={
+            "namespace": read_current_cluster_data("namespace"),
+            "name": "fluent-bit-parsers",
+        },
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
@@ -31,7 +32,7 @@ def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None
         "fluent-bit-config-map",
         data={"fluent-bit.conf": fluent_bit_config},
         metadata={
-            "namespace": APP_NS,
+            "namespace": read_current_cluster_data("namespace"),
             "name": "fluent-bit-config",
         },
         opts=pulumi.ResourceOptions(provider=k8s_provider),
@@ -106,6 +107,6 @@ def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None
                 ),
             ),
         ),
-        metadata={"namespace": APP_NS},
+        metadata={"namespace": read_current_cluster_data("namespace")},
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )

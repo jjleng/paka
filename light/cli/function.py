@@ -19,8 +19,6 @@ try_load_kubeconfig()
 
 function_app = typer.Typer()
 
-APP_NS = read_current_cluster_data("namespace")
-
 
 @function_app.command()
 def deploy(
@@ -106,7 +104,7 @@ def deploy(
 
     create_knative_service(
         service_name=kubify_name(name),
-        namespace=APP_NS,
+        namespace=read_current_cluster_data("namespace"),
         image=resolved_image,
         min_instances=min_instances,
         max_instances=max_instances,
@@ -125,7 +123,7 @@ def list() -> None:
     Returns:
         None
     """
-    services = list_knative_services(APP_NS)
+    services = list_knative_services(read_current_cluster_data("namespace"))
 
     if not services.items:
         logger.info("No functions found.")
@@ -184,7 +182,9 @@ def delete(
     ):
         logger.info(f"Deleting function {name}")
         try:
-            delete_knative_service(kubify_name(name), APP_NS)
+            delete_knative_service(
+                kubify_name(name), read_current_cluster_data("namespace")
+            )
             logger.info(f"Successfully deleted function {name}")
         except NotFoundError:
             logger.error(f"Function {name} not found.")

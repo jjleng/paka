@@ -15,8 +15,6 @@ run_app = typer.Typer()
 
 try_load_kubeconfig()
 
-APP_NS = read_current_cluster_data("namespace")
-
 
 @run_app.callback(invoke_without_command=True)
 def one_off_script(
@@ -89,7 +87,7 @@ def one_off_script(
         ),
     )
 
-    namespace = APP_NS
+    namespace = read_current_cluster_data("namespace")
 
     logger.info(f"Submitting the task...")
     batch_api = client.BatchV1Api()

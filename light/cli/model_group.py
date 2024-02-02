@@ -15,8 +15,6 @@ try_load_kubeconfig()
 
 model_group_app = typer.Typer()
 
-APP_NS = read_current_cluster_data("namespace")
-
 
 @model_group_app.command()
 def list_all_models() -> None:
@@ -57,7 +55,7 @@ def list() -> None:
     """
     List all model groups.
     """
-    services = filter_services(APP_NS)
+    services = filter_services(read_current_cluster_data("namespace"))
     model_groups = [service.spec.selector.get("model") for service in services]
 
     v1 = client.CoreV1Api()

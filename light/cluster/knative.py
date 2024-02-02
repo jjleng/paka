@@ -9,7 +9,7 @@ from pulumi_kubernetes.yaml import ConfigFile
 
 from light.cluster.prometheus import create_prometheus
 from light.config import CloudConfig
-from light.utils import call_once
+from light.utils import call_once, read_current_cluster_data
 
 VERSION = "v1.12.3"
 ISTIO_VERSION = "v1.12.1"
@@ -139,6 +139,7 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
         opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[prometheus]),
     )
 
+    # Create a ServiceMonitor for the istio-ingressgateway
     CustomResource(
         "ingressgateway-monitor",
         api_version="monitoring.coreos.com/v1",

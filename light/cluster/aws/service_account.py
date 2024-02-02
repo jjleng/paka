@@ -8,8 +8,6 @@ from light.config import CloudConfig
 from light.constants import ACCESS_ALL_SA
 from light.utils import call_once, read_cluster_data, read_current_cluster_data
 
-APP_NS = read_current_cluster_data("namespace")
-
 
 @call_once
 def create_service_accounts(
@@ -91,7 +89,13 @@ def create_service_accounts(
         ).json,
     )
 
-    sa_role = odic_role_for_sa(config, cluster, "sa", f"{APP_NS}:{ACCESS_ALL_SA}")
+    ns = read_current_cluster_data("namespace")
+    sa_role = odic_role_for_sa(
+        config,
+        cluster,
+        "sa",
+        f"{ns}:{ACCESS_ALL_SA}",
+    )
 
     aws.iam.RolePolicyAttachment(
         f"{project}-sa-s3-role-policy-attachment",
@@ -114,7 +118,7 @@ def create_service_accounts(
     k8s.core.v1.ServiceAccount(
         f"{project}-service-account",
         metadata={
-            "namespace": APP_NS,
+            "namespace": read_current_cluster_data("namespace"),
             "name": ACCESS_ALL_SA,
             "annotations": {"eks.amazonaws.com/role-arn": sa_role.arn},
         },

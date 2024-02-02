@@ -15,8 +15,6 @@ try_load_kubeconfig()
 
 job_app = typer.Typer()
 
-APP_NS = read_current_cluster_data("namespace")
-
 
 def prefixed_job_name(job_name: str) -> str:
     # Prefix the job name with "job-" to reduce the chances of name collision
@@ -98,7 +96,7 @@ def deploy(
         job_name = os.path.basename(source_dir)
 
     create_workers(
-        namespace=APP_NS,
+        namespace=read_current_cluster_data("namespace"),
         job_name=kubify_name(prefixed_job_name(name or job_name)),
         image=resolved_image,
         entrypoint=entrypoint,
@@ -144,7 +142,11 @@ def delete(
         f"Are you sure you want to delete the job {name}?", default=False
     ):
         logger.info(f"Deleting job {name}")
-        delete_workers(APP_NS, prefixed_job_name(name), wait_existing_tasks)
+        delete_workers(
+            read_current_cluster_data("namespace"),
+            prefixed_job_name(name),
+            wait_existing_tasks,
+        )
         logger.info(f"Successfully deleted job {name}")
 
 
@@ -159,7 +161,7 @@ def list() -> None:
 
     # List the deployments in the specified namespace that match the field selector
     deployments = api_instance.list_namespaced_deployment(
-        namespace=APP_NS, label_selector=label_selector
+        namespace=read_current_cluster_data("namespace"), label_selector=label_selector
     )
 
     for deployment in deployments.items:
