@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict
 import pulumi
 import pulumi_kubernetes as k8s
 from pulumi import ResourceOptions
-from pulumi_kubernetes.apiextensions import CustomResource
 from pulumi_kubernetes.yaml import ConfigFile
 
 from light.cluster.prometheus import create_prometheus
