@@ -441,7 +441,8 @@ def create_model_group_service(
     svc = create_service(namespace, model_group, port)
     apply_resource(svc)
 
-    create_service_monitor(namespace, model_group)
+    if config.aws.prometheus:
+        create_service_monitor(namespace, model_group)
 
     hpa = create_hpa(namespace, model_group, deployment)
     apply_resource(hpa)
