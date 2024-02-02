@@ -44,6 +44,11 @@ def create_qdrant(
             namespace="qdrant",
             fetch_opts=FetchOpts(repo="https://qdrant.github.io/qdrant-helm"),
             values={
+                "metrics": {
+                    "serviceMonitor": {
+                        "enabled": True if config.prometheus else False,
+                    },
+                },
                 "podAnnotations": {"sidecar.istio.io/inject": "false"},
                 "replicaCount": config.vectorStore.replicas,
                 "persistence": {
