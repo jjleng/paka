@@ -286,8 +286,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
 
     create_ebs_csi_driver(config, cluster, k8s_provider)
     create_namespace(k8s_provider)
-    # Install Knative and Istio. This should be done before installing other services,
-    # such as, Redis, Qdrant, Model groups, etc as we want to enable Istio sidecar.
+    # TODO: Decouple knative and istio
     create_knative_and_istio(config, k8s_provider)
     create_redis(k8s_provider)
     create_keda(k8s_provider)

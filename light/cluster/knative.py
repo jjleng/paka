@@ -72,6 +72,7 @@ only_crd_transform = partial(crd_install_filter, filter=crd_resources)
 non_crd_transform = partial(crd_install_filter, filter=non_crd_resources)
 
 
+# TODO: Decouple knative and istio
 @call_once
 def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
     yaml_files = [
@@ -137,37 +138,4 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
         file=yaml_file,
         transformations=[exclude_knative_eventing_namespace],
         opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[prometheus]),
-    )
-
-    # Create a ServiceMonitor for the istio-ingressgateway
-    CustomResource(
-        "ingressgateway-monitor",
-        api_version="monitoring.coreos.com/v1",
-        kind="ServiceMonitor",
-        metadata={
-            "name": "ingressgateway-monitor",
-            # ServiceMonitor can be discovered regardless of namespace.
-            # See `serviceMonitorSelectorNilUsesHelmValues` and
-            # `podMonitorSelectorNilUsesHelmValues` in the Prometheus chart.
-            # We can create this in the istio-system namespace.
-            "namespace": "istio-system",
-        },
-        spec={
-            "selector": {
-                "matchLabels": {
-                    "app": "istio-ingressgateway",
-                }
-            },
-            "namespaceSelector": {"matchNames": ["istio-system"]},
-            "endpoints": [
-                {
-                    "port": "http-envoy-prom",
-                    "path": "/stats/prometheus",
-                    "interval": "15s",
-                },
-            ],
-        },
-        opts=pulumi.ResourceOptions(
-            provider=k8s_provider, depends_on=[prometheus, net_istio]
-        ),
     )

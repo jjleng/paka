@@ -26,7 +26,10 @@ def create_redis(k8s_provider: k8s.Provider) -> None:
             values={
                 "architecture": "standalone",  # Use "replication" for high availability
                 "auth": {"enabled": True, "password": password},
-                "master": {"persistence": {"enabled": True, "size": "10Gi"}},
+                "master": {
+                    "persistence": {"enabled": True, "size": "10Gi"},
+                    "podAnnotations": {"sidecar.istio.io/inject": "false"},
+                },
                 "metrics": {"enabled": True},  # For enabling metrics
             },
         ),

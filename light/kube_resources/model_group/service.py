@@ -4,7 +4,7 @@ from kubernetes import client
 
 from light.config import CloudConfig, CloudModelGroup, Config
 from light.constants import ACCESS_ALL_SA
-from light.k8s import apply_resource, try_load_kubeconfig
+from light.k8s import CustomResource, apply_resource, try_load_kubeconfig
 from light.kube_resources.model_group.model import MODEL_PATH_PREFIX, download_model
 from light.utils import kubify_name, read_cluster_data
 
@@ -255,8 +255,35 @@ def create_deployment(
     )
 
 
+def create_service_monitor(namespace: str, model_group: CloudModelGroup) -> None:
+    monitor = CustomResource(
+        api_version="monitoring.coreos.com/v1",
+        kind="ServiceMonitor",
+        plural="servicemonitors",
+        metadata=client.V1ObjectMeta(
+            name=f"{model_group.name}-monitor", namespace=namespace
+        ),
+        spec={
+            "selector": {
+                "matchLabels": {"app": "model-group", "model": model_group.name}
+            },
+            "namespaceSelector": {
+                "matchNames": [namespace],
+            },
+            "endpoints": [
+                {
+                    "port": "http-envoy-prom",
+                    "path": "/stats/prometheus",
+                    "interval": "15s",
+                },
+            ],
+        },
+    )
+    apply_resource(monitor)
+
+
 def create_service(
-    namespace: str, model_group: CloudModelGroup, port: int
+    namespace: str, model_group: CloudModelGroup, port: int, sidecar_port: int = 15090
 ) -> client.V1Service:
     """
     Creates a Kubernetes Service for a machine learning model group.
@@ -265,6 +292,8 @@ def create_service(
         namespace (str): The namespace to create the Service in.
         model_group (CloudModelGroup): The model group to expose with the Service.
         port (int): The port to expose on the Service.
+        sidecar_port (int): The port on which the istio sidecar is exposing metrics.
+
 
     Returns:
         client.V1Service: The created Service.
@@ -275,6 +304,10 @@ def create_service(
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}",
             namespace=namespace,
+            labels={
+                "app": "model-group",
+                "model": model_group.name,
+            },
         ),
         spec=client.V1ServiceSpec(
             selector={
@@ -283,9 +316,15 @@ def create_service(
             },
             ports=[
                 client.V1ServicePort(
+                    name="http-app",
                     port=80,
                     target_port=port,
-                )
+                ),
+                client.V1ServicePort(
+                    name="http-envoy-prom",
+                    port=sidecar_port,
+                    target_port=sidecar_port,
+                ),
             ],
         ),
     )
@@ -401,6 +440,8 @@ def create_model_group_service(
 
     svc = create_service(namespace, model_group, port)
     apply_resource(svc)
+
+    create_service_monitor(namespace, model_group)
 
     hpa = create_hpa(namespace, model_group, deployment)
     apply_resource(hpa)
