@@ -3,6 +3,7 @@ import os
 import random
 import re
 import string
+from functools import lru_cache
 from io import StringIO
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -245,6 +246,7 @@ def save_cluster_data(cluster_name: str, k: str, v: Any) -> None:
         yaml.dump(data, file)
 
 
+@lru_cache(maxsize=100)
 def read_cluster_data_by_path(path: str, k: str) -> Any:
     """
     Reads cluster data from a YAML file at a given path.
