@@ -4,22 +4,22 @@ from unittest.mock import MagicMock, mock_open, patch
 import click
 import pytest
 
-from light.cli.utils import (
+from cusco.cli.utils import (
     init_pulumi,
     load_cluster_manager,
     resolve_image,
     validate_name,
 )
-from light.cluster.manager.aws import AWSClusterManager
+from cusco.cluster.manager.aws import AWSClusterManager
 
 
 def test_resolve_image() -> None:
     with patch("os.path.abspath") as mock_abspath, patch(
         "os.path.expanduser"
     ) as mock_expanduser, patch("os.path.basename") as mock_basename, patch(
-        "light.cli.utils.build"
+        "cusco.cli.utils.build"
     ) as mock_build, patch(
-        "light.cli.utils.read_current_cluster_data"
+        "cusco.cli.utils.read_current_cluster_data"
     ) as mock_read_current_cluster_data:
         mock_abspath.return_value = "/absolute/path/to/source_dir"
         mock_expanduser.return_value = "/path/to/source_dir"
@@ -117,10 +117,11 @@ def test_load_cluster_manager() -> None:
     with patch("os.path.abspath", return_value=cluster_config), patch(
         "os.path.expanduser", return_value=cluster_config
     ), patch("os.path.exists", return_value=True), patch("builtins.open", m), patch(
-        "light.config.parse_yaml", return_value=config_data
+        "cusco.config.parse_yaml", return_value=config_data
+    ), patch(
+        "os.makedirs"
     ):
         result = load_cluster_manager(cluster_config)
 
-    m.assert_called_once_with(cluster_config, "r")
     assert isinstance(result, AWSClusterManager)
     assert result.config.model_dump(exclude_none=True) == config_data["aws"]

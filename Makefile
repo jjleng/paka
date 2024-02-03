@@ -4,7 +4,7 @@ install:
 	poetry install
 
 test:
-	poetry run pytest && poetry run python -m light.cli cluster preview -f $(shell pwd)/tests/policy_packs/aws/test_cluster.yaml --policy-pack $(shell pwd)/tests/policy_packs/aws
+	poetry run pytest && poetry run python -m cusco.cli cluster preview -f $(shell pwd)/tests/policy_packs/aws/test_cluster.yaml --policy-pack $(shell pwd)/tests/policy_packs/aws
 
 setup:
 	poetry run pre-commit install

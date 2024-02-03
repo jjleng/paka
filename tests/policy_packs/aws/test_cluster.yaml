@@ -2,6 +2,9 @@ aws:
   cluster:
     name: test-cluster
     region: us-west-2
+    nodeType: t2.micro
+    minNodes: 2
+    maxNodes: 2
   modelGroups:
     - nodeType: c7a.xlarge
       minInstances: 1

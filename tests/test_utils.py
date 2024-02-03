@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
-from light.constants import HOME_ENV_VAR, PROJECT_NAME
-from light.utils import (
+from cusco.constants import HOME_ENV_VAR, PROJECT_NAME
+from cusco.utils import (
     call_once,
     camel_to_kebab,
     get_cluster_data_dir,

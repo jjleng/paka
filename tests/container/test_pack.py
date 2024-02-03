@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from light.container.pack import get_latest_pack_version, install_pack
+from cusco.container.pack import get_latest_pack_version, install_pack
 
 
 def test_get_latest_pack_version() -> None:
@@ -46,7 +46,7 @@ def test_installation_on_different_systems(
     with patch("shutil.which", return_value=False), patch(
         "platform.system", return_value=system
     ), patch("platform.machine", return_value=arch), patch(
-        "light.container.pack.get_latest_pack_version", return_value="X.Y.Z"
+        "cusco.container.pack.get_latest_pack_version", return_value="X.Y.Z"
     ), patch(
         "requests.get"
     ) as mock_requests, patch(
