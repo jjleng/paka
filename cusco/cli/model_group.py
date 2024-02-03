@@ -69,5 +69,5 @@ def list() -> None:
         return
     domain = filtered_keys[0]
 
-    table = [(group, f"{group}.{domain}") for group in model_groups]
+    table = [(group, f"http://{group}.{domain}") for group in model_groups]
     logger.info(tabulate(table, headers=["Model Group", "Endpoint"]))
