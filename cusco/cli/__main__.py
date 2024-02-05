@@ -21,7 +21,7 @@ def verbose_option(
     setup_logger(verbose)
 
 
-cli = typer.Typer()
+cli = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 cli.callback()(verbose_option)
 
 cli.add_typer(cluster_app, name="cluster", help="Manage clusters.")
