@@ -137,7 +137,7 @@ class CloudModelGroup(ModelGroup, CloudNode):
     This class inherits from both the `ModelGroup` and `CloudNode` classes.
 
     Attributes:
-        resource_request (Optional[ResourceRequest]): The resource request for the model group, specifying the amount of CPU and memory to request.
+        resourceRequest (Optional[ResourceRequest]): The resource request for the model group, specifying the amount of CPU and memory to request.
 
     Inherited Attributes:
         name (str): The name of the model group.
@@ -146,7 +146,7 @@ class CloudModelGroup(ModelGroup, CloudNode):
         nodeType (str): The type of the node.
     """
 
-    resource_request: Optional[ResourceRequest] = None
+    resourceRequest: Optional[ResourceRequest] = None
 
 
 class ClusterConfig(BaseModel):
@@ -182,7 +182,7 @@ class CloudVectorStore(CloudNode):
     Attributes:
         replicas (int): The number of replicas for the vector store. Defaults to 1.
         storage_size (str): The size of the storage of one node for the vector store. Defaults to "10Gi".
-        resource_request (Optional[ResourceRequest]): The resource request for the vector store, specifying the amount of CPU and memory to request.
+        resourceRequest (Optional[ResourceRequest]): The resource request for the vector store, specifying the amount of CPU and memory to request.
 
     Inherited Attributes:
         nodeType (str): The type of the node.
@@ -193,7 +193,7 @@ class CloudVectorStore(CloudNode):
 
     replicas: int = 1
     storage_size: str = "10Gi"
-    resource_request: Optional[ResourceRequest] = None
+    resourceRequest: Optional[ResourceRequest] = None
 
     @field_validator("storage_size", mode="before")
     def validate_storage_size(cls, v: str) -> str:

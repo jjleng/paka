@@ -77,12 +77,12 @@ def test_cloud_vector_store() -> None:
         nodeType="t2.small",
         replicas=2,
         storage_size="20Gi",
-        resource_request=resource_request,
+        resourceRequest=resource_request,
     )
     assert vector_store.nodeType == "t2.small"
     assert vector_store.replicas == 2
     assert vector_store.storage_size == "20Gi"
-    assert vector_store.resource_request == resource_request
+    assert vector_store.resourceRequest == resource_request
 
     # Test with replicas less than or equal to 0
     with pytest.raises(ValueError, match="replicas must be greater than 0"):
@@ -115,7 +115,7 @@ def test_cloud_config() -> None:
         nodeType="t2.small",
         replicas=2,
         storage_size="20Gi",
-        resource_request=resource_request,
+        resourceRequest=resource_request,
     )
     cloud_config = CloudConfig(
         cluster=cluster,

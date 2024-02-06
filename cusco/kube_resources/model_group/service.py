@@ -133,23 +133,25 @@ def create_pod(
                 port=port,
             ),
             initial_delay_seconds=60,
-            period_seconds=30,
+            period_seconds=5,
+            timeout_seconds=30,
         ),
-        "liveness_probe": client.V1Probe(
-            http_get=client.V1HTTPGetAction(
-                path="/v1/models",
-                port=port,
-            ),
-            initial_delay_seconds=240,
-            period_seconds=30,
-        ),
+        # TODO: Add liveness probe.
+        # "liveness_probe": client.V1Probe(
+        #     http_get=client.V1HTTPGetAction(
+        #         path="/v1/models",
+        #         port=port,
+        #     ),
+        #     initial_delay_seconds=240,
+        #     period_seconds=30,
+        # ),
     }
 
-    if model_group.resource_request:
+    if model_group.resourceRequest:
         container_args["resources"] = client.V1ResourceRequirements(
             requests={
-                "cpu": model_group.resource_request.cpu,
-                "memory": model_group.resource_request.memory,
+                "cpu": model_group.resourceRequest.cpu,
+                "memory": model_group.resourceRequest.memory,
             },
         )
 

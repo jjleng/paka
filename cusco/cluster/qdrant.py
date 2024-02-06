@@ -27,12 +27,12 @@ def create_qdrant(
         {
             "resources": {
                 "requests": {
-                    "cpu": config.vectorStore.resource_request.cpu,
-                    "memory": config.vectorStore.resource_request.memory,
+                    "cpu": config.vectorStore.resourceRequest.cpu,
+                    "memory": config.vectorStore.resourceRequest.memory,
                 },
             }
         }
-        if config.vectorStore.resource_request
+        if config.vectorStore.resourceRequest
         else {}
     )
 
