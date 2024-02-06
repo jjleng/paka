@@ -1,7 +1,9 @@
 from typing import Generator
 
 from crawler import crawl
+from embeddings import LlamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Qdrant
 from langchain_core.documents import Document
 
 
@@ -37,7 +39,7 @@ def docs_loader(website: str) -> Generator[Document, None, None]:
         )
 
 
-def embedding(website: str) -> None:
+def embed_website(website: str) -> None:
     chunk_size = 300
     chunk_overlap = 50
     text_splitter = RecursiveCharacterTextSplitter(
@@ -47,7 +49,18 @@ def embedding(website: str) -> None:
         length_function=len,
     )
     docs = text_splitter.split_documents(docs_loader(website))
-    print(len(docs))
+    embeddings = LlamaEmbeddings()
+
+    url = "http://qdrant.qdrant.svc.cluster.local:6333"
+
+    qdrant = Qdrant.from_documents(
+        docs,
+        embeddings,
+        url=url,
+        prefer_grpc=True,
+        collection_name="langchain_documents",
+    )
+    print("done")
 
 
-embedding("https://python.langchain.com/docs/get_started/introduction")
+embed_website("https://python.langchain.com/docs/get_started/introduction")
