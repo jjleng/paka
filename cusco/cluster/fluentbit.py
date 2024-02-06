@@ -51,6 +51,7 @@ def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None
                 ),
                 spec=k8s.core.v1.PodSpecArgs(
                     service_account_name=ACCESS_ALL_SA,
+                    tolerations=[k8s.core.v1.TolerationArgs(operator="Exists")],
                     containers=[
                         k8s.core.v1.ContainerArgs(
                             name="fluent-bit",
