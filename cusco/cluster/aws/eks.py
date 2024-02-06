@@ -267,38 +267,39 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     # Create a managed node group for Qdrant
     create_node_group_for_qdrant(config, cluster, vpc, worker_role)
 
-    k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
+    def create_eks_resources(kubeconfig_json: str) -> None:
+        k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
 
-    # Deploy the metrics server. This is required for the Horizontal Pod Autoscaler to work.
-    # HPA requires metrics to be available in order to scale the pods.
-    k8s.yaml.ConfigFile(
-        "metrics-server",
-        file="https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml",
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
+        save_kubeconfig(config.cluster.name, kubeconfig_json)
 
-    # Deploy the cluster autoscaler through Helm
-    create_cluster_autoscaler(
-        config,
-        cluster,
-        k8s_provider,
-    )
+        # Deploy the metrics server. This is required for the Horizontal Pod Autoscaler to work.
+        # HPA requires metrics to be available in order to scale the pods.
+        k8s.yaml.ConfigFile(
+            "metrics-server",
+            file="https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml",
+            opts=pulumi.ResourceOptions(provider=k8s_provider),
+        )
 
-    create_ebs_csi_driver(config, cluster, k8s_provider)
-    create_namespace(k8s_provider)
-    # TODO: Decouple knative and istio
-    create_knative_and_istio(config, k8s_provider)
-    create_redis(config, k8s_provider)
-    create_keda(k8s_provider)
-    create_qdrant(config, k8s_provider)
+        # Deploy the cluster autoscaler through Helm
+        create_cluster_autoscaler(
+            config,
+            cluster,
+            k8s_provider,
+        )
 
-    create_service_accounts(config, cluster, k8s_provider)
-    enable_cloudwatch(config, k8s_provider)
-    create_prometheus(config, k8s_provider)
+        create_ebs_csi_driver(config, cluster, k8s_provider)
+        create_namespace(k8s_provider, kubeconfig_json)
+        # TODO: Decouple knative and istio
+        create_knative_and_istio(config, k8s_provider)
+        create_redis(config, k8s_provider)
+        create_keda(k8s_provider)
+        create_qdrant(config, k8s_provider)
+
+        create_service_accounts(config, cluster, k8s_provider)
+        enable_cloudwatch(config, k8s_provider)
+        create_prometheus(config, k8s_provider)
 
     # Save the kubeconfig to a file
-    cluster.kubeconfig_json.apply(
-        lambda kubeconfig_json: save_kubeconfig(config.cluster.name, kubeconfig_json)
-    )
+    cluster.kubeconfig_json.apply(create_eks_resources)
 
     return cluster

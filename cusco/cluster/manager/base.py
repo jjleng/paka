@@ -10,7 +10,7 @@ from cusco.kube_resources.model_group.ingress import (
 )
 from cusco.kube_resources.model_group.service import create_model_group_service
 from cusco.logger import logger
-from cusco.utils import read_current_cluster_data, save_cluster_data
+from cusco.utils import read_cluster_data, save_cluster_data
 
 STACK_NAME = "default"
 
@@ -69,14 +69,12 @@ class ClusterManager(ABC):
         if self.config.modelGroups is None:
             return
 
-        create_model_group_ingress(read_current_cluster_data("namespace"))
+        namespace = read_cluster_data(self.config.cluster.name, "namespace")
+
+        create_model_group_ingress(namespace)
         for model_group in self.config.modelGroups:
-            create_model_group_service(
-                read_current_cluster_data("namespace"), self._orig_config, model_group
-            )
-            create_model_vservice(
-                read_current_cluster_data("namespace"), model_group.name
-            )
+            create_model_group_service(namespace, self._orig_config, model_group)
+            create_model_vservice(namespace, model_group.name)
 
     def destroy(self) -> None:
         logger.info("Destroying resources...")
