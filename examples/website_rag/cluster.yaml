@@ -1,0 +1,17 @@
+aws:
+  cluster:
+    name: website-rag
+    region: us-west-2
+    namespace: default
+    nodeType: t2.medium
+    minNodes: 2
+    maxNodes: 4
+  prometheus:
+  vectorStore:
+     nodeType: t2.small
+     replicas: 2
+  modelGroups:
+    - nodeType: c7a.xlarge
+      minInstances: 1
+      maxInstances: 1
+      name: llama2-7b
