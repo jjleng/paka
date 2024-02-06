@@ -9,6 +9,7 @@ import typer
 from cusco.cluster.manager.aws import AWSClusterManager
 from cusco.cluster.manager.base import ClusterManager
 from cusco.config import parse_yaml
+from cusco.constants import BP_BUILDER_ENV_VAR
 from cusco.container.ecr import push_to_ecr
 from cusco.container.pack import install_pack
 from cusco.logger import logger
@@ -68,12 +69,14 @@ def build(
     try:
         subprocess.run(["cd", source_dir], check=True)
 
+        builder = os.environ.get(BP_BUILDER_ENV_VAR, "paketobuildpacks/builder:base")
+
         pack_command = [
             "pack",
             "build",
             image_name,
             "--builder",
-            "paketobuildpacks/builder:base",
+            builder,
         ]
         if bp_cpython_version:
             pack_command.extend(["--env", f"BP_CPYTHON_VERSION={bp_cpython_version}"])
