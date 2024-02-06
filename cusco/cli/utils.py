@@ -50,13 +50,37 @@ def build(
 
     logger.info(f"Building image {image_name}...")
 
+    # Parse runtime.txt and set BP_CPYTHON_VERSION
+    runtime_path = os.path.join(source_dir, "runtime.txt")
+    bp_cpython_version = None
+    bp_node_version = None
+    if os.path.exists(runtime_path):
+        with open(runtime_path, "r") as file:
+            content = file.read()
+            match = re.search(r"python-(\d+\.\d+(\.\d+|\.\*))", content)
+            if match:
+                bp_cpython_version = match.group(1)
+            else:
+                match = re.search(r"nodejs-(\d+\.\d+(\.\d+|\.\*))", content)
+                if match:
+                    bp_node_version = match.group(1)
+
     try:
         subprocess.run(["cd", source_dir], check=True)
 
-        subprocess.run(
-            ["pack", "build", image_name, "--builder", "paketobuildpacks/builder:base"],
-            check=True,
-        )
+        pack_command = [
+            "pack",
+            "build",
+            image_name,
+            "--builder",
+            "paketobuildpacks/builder:base",
+        ]
+        if bp_cpython_version:
+            pack_command.extend(["--env", f"BP_CPYTHON_VERSION={bp_cpython_version}"])
+        elif bp_node_version:
+            pack_command.extend(["--env", f"BP_NODE_VERSION={bp_node_version}"])
+
+        subprocess.run(pack_command, check=True)
         logger.info(f"Successfully built {image_name}")
 
         push_to_ecr(
