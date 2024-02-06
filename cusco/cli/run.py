@@ -100,4 +100,4 @@ def one_off_script(
         namespace=namespace, label_selector=f"job-name={job_name}"
     )
     for pod in pods.items:
-        tail_logs(namespace, pod.metadata.name)
+        tail_logs(namespace, pod.metadata.name, "one-off-script")

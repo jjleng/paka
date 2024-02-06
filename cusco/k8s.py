@@ -595,7 +595,7 @@ def update_kubeconfig() -> None:
         yaml.dump(sorted_config, file)
 
 
-def tail_logs(namespace: str, pod_name: str) -> None:
+def tail_logs(namespace: str, pod_name: str, container_name: str) -> None:
     v1 = client.CoreV1Api()
     w = watch.Watch()
 
@@ -613,7 +613,10 @@ def tail_logs(namespace: str, pod_name: str) -> None:
 
     print("\n")
     for event in w.stream(
-        v1.read_namespaced_pod_log, namespace=namespace, name=pod_name
+        v1.read_namespaced_pod_log,
+        namespace=namespace,
+        name=pod_name,
+        container=container_name,
     ):
         logger.info(event)
 
