@@ -1,5 +1,6 @@
 import os
 
+from constants import QDRANT_URL
 from embeddings import LlamaEmbeddings
 from fastapi import FastAPI
 from langchain_community.vectorstores import Qdrant
@@ -9,7 +10,7 @@ from qdrant_client import QdrantClient
 port = int(os.getenv("PORT", 8080))
 
 client = QdrantClient(
-    url="http://qdrant.qdrant.svc.cluster.local",
+    url=QDRANT_URL,
     prefer_grpc=True,
 )
 collection_name = "langchain_documents"

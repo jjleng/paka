@@ -1,5 +1,7 @@
+import sys
 from typing import Generator
 
+from constants import QDRANT_URL
 from crawler import crawl
 from embeddings import LlamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -51,19 +53,21 @@ def embed_website(website: str) -> None:
     docs = text_splitter.split_documents(docs_loader(website))
     embeddings = LlamaEmbeddings()
 
-    url = "http://qdrant.qdrant.svc.cluster.local:6333"
-
     print("Embedding documents...")
     print("Total number of documents:", len(docs))
 
     Qdrant.from_documents(
         docs,
         embeddings,
-        url=url,
+        url=QDRANT_URL,
         prefer_grpc=True,
         collection_name="langchain_documents",
     )
     print("done")
 
 
-embed_website("https://python.langchain.com/docs/get_started/introduction")
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        embed_website(sys.argv[1])
+    else:
+        print("Please provide a URL as a command-line argument.")
