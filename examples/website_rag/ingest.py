@@ -31,7 +31,7 @@ def _metadata_extractor(raw_html: str, url: str) -> dict:
 
 def docs_loader(website: str) -> Generator[Document, None, None]:
     # We use a custom crawler. LangChain's RecursiveUrlLoader cannot be used as is.
-    crawler = crawl(website, max_depth=5)
+    crawler = crawl(website, max_depth=0)
 
     for url, html_content in crawler:
         yield Document(
@@ -40,7 +40,7 @@ def docs_loader(website: str) -> Generator[Document, None, None]:
 
 
 def embed_website(website: str) -> None:
-    chunk_size = 300
+    chunk_size = 400
     chunk_overlap = 50
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", " ", ""],
@@ -53,7 +53,10 @@ def embed_website(website: str) -> None:
 
     url = "http://qdrant.qdrant.svc.cluster.local:6333"
 
-    qdrant = Qdrant.from_documents(
+    print("Embedding documents...")
+    print("Total number of documents:", len(docs))
+
+    Qdrant.from_documents(
         docs,
         embeddings,
         url=url,

@@ -1,0 +1,3 @@
+ingest: python ingest.py
+web: python serve.py
+serve: python serve.py

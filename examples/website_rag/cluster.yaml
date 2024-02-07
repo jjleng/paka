@@ -13,5 +13,8 @@ aws:
   modelGroups:
     - nodeType: c7a.xlarge
       minInstances: 1
-      maxInstances: 1
+      maxInstances: 3
       name: llama2-7b
+      resourceRequest:
+        cpu: 3600m
+        memory: 6Gi
