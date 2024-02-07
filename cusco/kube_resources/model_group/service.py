@@ -135,16 +135,20 @@ def create_pod(
             initial_delay_seconds=60,
             period_seconds=5,
             timeout_seconds=30,
+            success_threshold=1,
+            failure_threshold=5,
         ),
-        # TODO: Add liveness probe.
-        # "liveness_probe": client.V1Probe(
-        #     http_get=client.V1HTTPGetAction(
-        #         path="/v1/models",
-        #         port=port,
-        #     ),
-        #     initial_delay_seconds=240,
-        #     period_seconds=30,
-        # ),
+        "liveness_probe": client.V1Probe(
+            http_get=client.V1HTTPGetAction(
+                path="/v1/models",
+                port=port,
+            ),
+            initial_delay_seconds=240,
+            period_seconds=30,
+            timeout_seconds=30,
+            success_threshold=1,
+            failure_threshold=5,
+        ),
     }
 
     if model_group.resourceRequest:

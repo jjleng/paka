@@ -146,6 +146,7 @@ class CloudModelGroup(ModelGroup, CloudNode):
         nodeType (str): The type of the node.
     """
 
+    # TODO: make required for HPA to work
     resourceRequest: Optional[ResourceRequest] = None
 
 
