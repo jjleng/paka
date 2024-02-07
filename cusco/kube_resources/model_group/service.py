@@ -403,7 +403,7 @@ def create_hpa(
                         name="cpu",
                         target=client.V2MetricTarget(
                             type="Utilization",
-                            average_utilization=95,
+                            average_utilization=50,
                         ),
                     ),
                 )

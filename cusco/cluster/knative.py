@@ -8,7 +8,7 @@ from pulumi_kubernetes.yaml import ConfigFile
 
 from cusco.cluster.prometheus import create_prometheus
 from cusco.config import CloudConfig
-from cusco.utils import call_once, read_current_cluster_data
+from cusco.utils import call_once
 
 VERSION = "v1.12.3"
 ISTIO_VERSION = "v1.12.1"

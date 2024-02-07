@@ -1,3 +1,4 @@
+import shlex
 from typing import Any, Literal, Tuple
 
 from kubernetes import client
@@ -5,7 +6,6 @@ from kubernetes.dynamic import DynamicClient
 from kubernetes.dynamic.exceptions import NotFoundError
 
 from cusco.k8s import try_load_kubeconfig
-from cusco.logger import logger
 
 try_load_kubeconfig()
 
@@ -38,6 +38,7 @@ def create_knative_service(
     service_name: str,
     namespace: str,
     image: str,
+    entrypoint: str,
     min_instances: int,
     max_instances: int,
     # concurrency refers to the number of simultaneous requests that a single pod can handle
@@ -108,6 +109,7 @@ def create_knative_service(
                         {
                             "image": image,
                             "imagePullPolicy": "Always",
+                            "command": shlex.split(entrypoint),
                             "env": [
                                 {
                                     "name": "REDIS_PASSWORD",

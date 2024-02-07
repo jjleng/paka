@@ -27,6 +27,12 @@ def deploy(
         "--name",
         help="The name of the function to be deployed.",
     ),
+    entrypoint: str = typer.Option(
+        "web",
+        "--entrypoint",
+        help="The entrypoint of the application. This refers to the command "
+        "defined in the Procfile that will be executed.",
+    ),
     source_dir: Optional[str] = typer.Option(
         None,
         "--source",
@@ -106,6 +112,7 @@ def deploy(
         service_name=kubify_name(name),
         namespace=read_current_cluster_data("namespace"),
         image=resolved_image,
+        entrypoint=entrypoint,
         min_instances=min_instances,
         max_instances=max_instances,
         scaling_metric=(scaling_metric, str(metric_target)),
