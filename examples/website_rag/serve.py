@@ -1,10 +1,14 @@
 import os
+from typing import Annotated, Any
 
 from constants import QDRANT_URL
 from embeddings import LlamaEmbeddings
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request, Response
+from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import Qdrant
-from langserve import add_routes
+from langchain_core.runnables import RunnableLambda
+from langserve import APIHandler, add_routes
+from llama_cpp_llm import LlamaCpp
 from qdrant_client import QdrantClient
 
 port = int(os.getenv("PORT", 8080))
@@ -30,6 +34,35 @@ app = FastAPI(
 # /batch
 # /stream
 add_routes(app, retriever)
+
+
+def run_llm(query: str) -> Any:
+    llm = LlamaCpp(
+        model_url="http://llama2-7b.52.38.72.240.sslip.io",
+        temperature=0,
+    )
+
+    qa = RetrievalQA.from_chain_type(
+        llm=llm, retriever=retriever, chain_type="stuff", return_source_documents=True
+    )
+
+    return qa.invoke({"query": query})
+
+
+async def _get_api_handler() -> APIHandler:
+    """Prepare a RunnableLambda."""
+    return APIHandler(RunnableLambda(run_llm), path="/v2")
+
+
+@app.post("/v2/invoke")
+async def v2_invoke(
+    request: Request, runnable: Annotated[APIHandler, Depends(_get_api_handler)]
+) -> Response:
+    """Handle invoke request."""
+    # The API Handler validates the parts of the request
+    # that are used by the runnnable (e.g., input, config fields)
+    return await runnable(request)
+
 
 if __name__ == "__main__":
     import uvicorn
