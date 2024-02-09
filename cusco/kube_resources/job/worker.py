@@ -53,7 +53,6 @@ def create_deployment(
             name="worker",
             image=image_name,
             command=shlex.split(entrypoint),
-            image_pull_policy="Always",
             env=[
                 client.V1EnvVar(
                     name="REDIS_PASSWORD",

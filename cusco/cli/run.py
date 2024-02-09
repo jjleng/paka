@@ -64,7 +64,6 @@ def one_off_script(
                         client.V1Container(
                             name="one-off-script",
                             image=resolved_image,
-                            image_pull_policy="Always",
                             command=shlex.split(entrypoint),
                             env=[
                                 client.V1EnvVar(
