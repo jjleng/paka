@@ -7,7 +7,7 @@ from cusco.utils import random_str
 
 def push_to_ecr(
     image_name: str, repository_uri: str, aws_region: str, app_name: str
-) -> None:
+) -> str:
     """
     Pushes a Docker image to an Amazon ECR repository.
 
@@ -30,7 +30,7 @@ def push_to_ecr(
         subprocess.CalledProcessError: If an error occurs while executing a subprocess command.
 
     Returns:
-        None
+        str: The version tag of the image that was pushed.
     """
     try:
         # Get ECR login password
@@ -81,6 +81,7 @@ def push_to_ecr(
         subprocess.run(login_push_cmd, shell=True, check=True, executable="/bin/sh")
 
         logger.info(f"Successfully pushed {image_name} to {repository_uri}")
+        return version_tag
     except subprocess.CalledProcessError as e:
         logger.error(f"An error occurred: {e}")
         raise

@@ -19,7 +19,7 @@ from cusco.utils import get_pulumi_root, read_current_cluster_data
 def build(
     source_dir: str,
     image_name: str,
-) -> None:
+) -> str:
     """
     Builds a Docker image from the source code in the specified directory.
 
@@ -31,7 +31,7 @@ def build(
         image_name (str): The name of the Docker image to build. If not provided, the name of the source directory is used.
 
     Returns:
-        None
+        str: The image tag of the built Docker image.
     """
     install_pack()
 
@@ -86,7 +86,7 @@ def build(
         subprocess.run(pack_command, check=True)
         logger.info(f"Successfully built {image_name}")
 
-        push_to_ecr(
+        return push_to_ecr(
             image_name,
             read_current_cluster_data("registry"),
             read_current_cluster_data("region"),
@@ -205,12 +205,7 @@ def resolve_image(image: Optional[str], source_dir: Optional[str]) -> str:
     if not image and source_dir:
         source_dir = os.path.abspath(os.path.expanduser(source_dir))
         result_image = os.path.basename(source_dir)
-        build(source_dir, result_image)
-        # All applications share the same container registry repository.
-        # To differentiate between them, we append the application name to the image tag.
-        # The '-latest' suffix is added to handle cases where applications themselves are tagged.
-        # This ensures that even tagged applications have a unique identifier in the shared repository.
-        result_image = f"{result_image}-latest"
+        result_image = build(source_dir, result_image)
     elif image:
         result_image = image
 
