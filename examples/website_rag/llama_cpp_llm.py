@@ -269,24 +269,3 @@ class LlamaCpp(LLM):
 
     def get_num_tokens(self, text: str) -> int:
         return self.client.tokenize(text)
-
-
-# callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
-# llm = LlamaCpp(
-#     model_url="http://llama2-7b.52.38.72.240.sslip.io",
-#     temperature=0.75,
-#     max_tokens=2000,
-#     top_p=1,
-#     callback_manager=callback_manager,
-# )
-
-# llm.invoke(
-#     """
-# Question: A rap battle between Stephen Colbert and John Oliver
-# """
-# )
-
-
-# llm = LlamaCpp(model_url="http://llama2-7b.52.38.72.240.sslip.io", temperature=0.5)
-# for chunk in llm.stream("Ask 'Hi, how are you?' like a pirate:'", stop=["'", "\n"]):
-#     print(chunk, end="", flush=True)
