@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from kubernetes import client
 
@@ -412,6 +412,54 @@ def create_hpa(
     )
 
 
+def create_scaled_object(
+    namespace: str, model_group: CloudModelGroup, deployment: client.V1Deployment
+) -> Optional[CustomResource]:
+    """
+    Creates a KEDA ScaledObject for a given model group.
+
+    This function creates a ScaledObject custom resource for Kubernetes Event-driven Autoscaling (KEDA).
+    The ScaledObject is used to scale a Kubernetes Deployment based on the triggers defined in the model group.
+
+    Args:
+        namespace (str): The namespace in which to create the ScaledObject.
+        model_group (CloudModelGroup): The model group for which to create the ScaledObject.
+            This object should have `autoScaleTriggers`, `minInstances`, and `maxInstances` attributes.
+        deployment (client.V1Deployment): The Kubernetes Deployment that the ScaledObject should scale.
+
+    Returns:
+        None
+    """
+    if not model_group.autoScaleTriggers:
+        return None
+
+    return CustomResource(
+        api_version="keda.sh/v1alpha1",
+        kind="ScaledObject",
+        plural="scaledobjects",
+        metadata=client.V1ObjectMeta(
+            name=f"{kubify_name(model_group.name)}", namespace=namespace
+        ),
+        spec={
+            "scaleTargetRef": {
+                "kind": "Deployment",
+                "name": deployment.metadata.name,
+            },
+            "minReplicaCount": model_group.minInstances,
+            "maxReplicaCount": model_group.maxInstances,
+            "triggers": list(
+                map(
+                    lambda trigger: {
+                        "type": trigger.type,
+                        "metadata": trigger.metadata,
+                    },
+                    model_group.autoScaleTriggers,
+                )
+            ),
+        },
+    )
+
+
 def create_model_group_service(
     namespace: str,
     config: Config,
@@ -450,5 +498,6 @@ def create_model_group_service(
     if config.aws.prometheus:
         create_service_monitor(namespace, model_group)
 
-    hpa = create_hpa(namespace, model_group, deployment)
-    apply_resource(hpa)
+    scaled_object = create_scaled_object(namespace, model_group, deployment)
+    if scaled_object:
+        apply_resource(scaled_object)

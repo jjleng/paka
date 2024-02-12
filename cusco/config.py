@@ -130,6 +130,11 @@ class ModelGroup(BaseModel):
         return v
 
 
+class Trigger(BaseModel):
+    type: str
+    metadata: Dict[str, str]
+
+
 class CloudModelGroup(ModelGroup, CloudNode):
     """
     Represents a group of cloud models.
@@ -148,6 +153,33 @@ class CloudModelGroup(ModelGroup, CloudNode):
 
     # TODO: make required for HPA to work
     resourceRequest: Optional[ResourceRequest] = None
+
+    autoScaleTriggers: Optional[List[Trigger]] = None
+    """
+    Triggers for autoscaling the model group. Trigger are not strongly typed, so we use a list of dictionaries to represent them.
+    For example:
+
+    autoScaleTriggers=[
+        # CPU trigger example
+        Trigger(
+            type="cpu",
+            metadata={
+                "type": "Utilization",
+                "value": "70"
+            }
+        ),
+        # Prometheus trigger example
+        Trigger(
+            type="prometheus",
+            metadata={
+                "serverAddress": "http://prometheus-operated.default.svc.cluster.local",
+                "metricName": "http_requests_total",
+                "threshold": "100",
+                "query": "sum(rate(http_requests_total{job=\"example-job\"}[2m]))"
+            }
+        )
+    ]
+    """
 
 
 class ClusterConfig(BaseModel):
