@@ -24,11 +24,11 @@ def test_resolve_image() -> None:
         mock_abspath.return_value = "/absolute/path/to/source_dir"
         mock_expanduser.return_value = "/path/to/source_dir"
         mock_basename.return_value = "source_dir"
-        mock_build.return_value = None
+        mock_build.return_value = "source_dir-abc"
         mock_read_current_cluster_data.return_value = "registry_uri"
 
         result = resolve_image(None, "source_dir")
-        assert result == "registry_uri:source_dir-latest"
+        assert result == "registry_uri:source_dir-abc"
 
         # Test case when image is provided and source_dir is None
         result = resolve_image("image", None)
