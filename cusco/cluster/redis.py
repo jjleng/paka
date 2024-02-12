@@ -15,8 +15,26 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
     Installs redis with a helm chart.
     """
 
+    # Note, we are always creating a password for redis even if we are not installing it.
+    # This is because the password is used by other components. Doing so is for simplicity.
+    # TODO: Remove redis password?
+
     # Generate a 32-character random password
     password = secrets.token_hex(16)
+
+    # Create a Kubernetes Secret to store the password
+    k8s.core.v1.Secret(
+        "redis-password",
+        metadata={
+            "name": "redis-password",
+            "namespace": read_current_cluster_data("namespace"),
+        },
+        string_data={"password": password},
+        opts=pulumi.ResourceOptions(provider=k8s_provider),
+    )
+
+    if not config.job:
+        return
 
     chart = Chart(
         "redis",
@@ -29,23 +47,15 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
                 "architecture": "standalone",  # Use "replication" for high availability
                 "auth": {"enabled": True, "password": password},
                 "master": {
-                    "persistence": {"enabled": True, "size": "10Gi"},
+                    "persistence": {
+                        "enabled": True,
+                        "size": config.job.broker_storage_size,
+                    },
                     "podAnnotations": {"sidecar.istio.io/inject": "false"},
                 },
                 "metrics": {"enabled": True},  # For enabling metrics
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
-
-    # Create a Kubernetes Secret to store the password
-    k8s.core.v1.Secret(
-        "redis-password",
-        metadata={
-            "name": "redis-password",
-            "namespace": read_current_cluster_data("namespace"),
-        },
-        string_data={"password": password},
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 

@@ -263,6 +263,33 @@ class CloudVectorStore(CloudNode):
         return v
 
 
+class Job(BaseModel):
+    """
+    Represents a job cluster configuration.
+
+    Attributes:
+        broker_storage_size (str): The size of the storage for the broker. Defaults to "10Gi".
+    """
+
+    broker_storage_size: str = "10Gi"
+
+    @field_validator("broker_storage_size", mode="before")
+    def validate_broker_storage_size(cls, v: str) -> str:
+        """
+        Validates the format of the broker_storage_size field.
+
+        Args:
+            v (str): The value of the storage_size field.
+
+        Returns:
+            str: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the format of the input value is invalid.
+        """
+        return validate_size(v, "Invalid storage size format")
+
+
 class Prometheus(BaseModel):
     storage_size: str = "10Gi"
     grafana: bool = False
@@ -300,14 +327,23 @@ class CloudConfig(BaseModel):
     Represents the configuration for the cloud environment.
 
     Attributes:
-        cluster (ClusterConfig): The configuration for the cluster.
-        ModelGroups (List[CloudModelGroup]): The list of cloud model groups.
-        vectorStore (CloudVectorStore): The configuration for the cloud vector store.
+        cluster (ClusterConfig): The configuration for the Kubernetes cluster.
+        modelGroups (List[CloudModelGroup], optional): The list of model groups
+            to be deployed in the cloud. If None, no model groups will be deployed. Defaults to None.
+        vectorStore (CloudVectorStore, optional): The configuration
+            for the vector store in the cloud. If None, the vector store will
+            not be provisioned. Defaults to None.
+        job (Job, optional): The configuration for the job broker. If None, the
+            job broker will not be provisioned. Defaults to None.
+        prometheus (Prometheus, optional): The configuration for Prometheus.
+            If None, Prometheus will not be provisioned. Defaults to None.
     """
 
     cluster: ClusterConfig
     modelGroups: Optional[List[CloudModelGroup]] = None
     vectorStore: Optional[CloudVectorStore] = None
+    job: Optional[Job] = None
+
     prometheus: Optional[Prometheus] = None
 
     @field_validator("modelGroups", mode="before")
