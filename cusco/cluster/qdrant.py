@@ -46,7 +46,11 @@ def create_qdrant(
             values={
                 "metrics": {
                     "serviceMonitor": {
-                        "enabled": True if config.prometheus else False,
+                        "enabled": (
+                            True
+                            if config.prometheus and config.prometheus.enabled
+                            else False
+                        ),
                     },
                 },
                 "podAnnotations": {"sidecar.istio.io/inject": "false"},

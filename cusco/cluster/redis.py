@@ -33,18 +33,18 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
-    if not config.job:
+    if not config.job or not config.job.enabled:
         return
 
     chart = Chart(
         "redis",
         ChartOpts(
             chart="redis",
-            version="18.6.1",  # Specify the version you want to use
+            version="18.6.1",
             namespace=read_current_cluster_data("namespace"),
             fetch_opts=FetchOpts(repo="https://charts.bitnami.com/bitnami"),
             values={
-                "architecture": "standalone",  # Use "replication" for high availability
+                "architecture": "standalone",
                 "auth": {"enabled": True, "password": password},
                 "master": {
                     "persistence": {
@@ -59,7 +59,7 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
-    if not config.prometheus:
+    if not config.prometheus or not config.prometheus.enabled:
         return
 
     CustomResource(

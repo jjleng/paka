@@ -495,7 +495,7 @@ def create_model_group_service(
     svc = create_service(namespace, model_group, port)
     apply_resource(svc)
 
-    if config.aws.prometheus:
+    if config.aws.prometheus and config.aws.prometheus.enabled:
         create_service_monitor(namespace, model_group)
 
     scaled_object = create_scaled_object(namespace, model_group, deployment)

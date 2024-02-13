@@ -25,7 +25,7 @@ def create_prometheus(
     """
     Installs a Prometheus chart.
     """
-    if not config.prometheus:
+    if not config.prometheus or not config.prometheus.enabled:
         return None
 
     ns = k8s.core.v1.Namespace(
