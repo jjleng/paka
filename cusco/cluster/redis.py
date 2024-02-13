@@ -51,7 +51,6 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
                         "enabled": True,
                         "size": config.job.broker_storage_size,
                     },
-                    "podAnnotations": {"sidecar.istio.io/inject": "false"},
                 },
                 "metrics": {"enabled": True},  # For enabling metrics
             },

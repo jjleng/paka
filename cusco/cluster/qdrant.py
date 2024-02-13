@@ -19,7 +19,7 @@ def create_qdrant(
 
     k8s.core.v1.Namespace(
         "qdrant",
-        metadata={"name": "qdrant"},
+        metadata={"name": "qdrant", "labels": {"istio-injection": "enabled"}},
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
 
@@ -53,7 +53,6 @@ def create_qdrant(
                         ),
                     },
                 },
-                "podAnnotations": {"sidecar.istio.io/inject": "false"},
                 "replicaCount": config.vectorStore.replicas,
                 "persistence": {
                     "size": config.vectorStore.storage_size,
