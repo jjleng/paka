@@ -16,6 +16,7 @@ from cusco.cluster.namespace import create_namespace
 from cusco.cluster.prometheus import create_prometheus
 from cusco.cluster.qdrant import create_qdrant
 from cusco.cluster.redis import create_redis
+from cusco.cluster.zipkin import create_zipkin
 from cusco.config import CloudConfig
 from cusco.utils import kubify_name, save_kubeconfig
 
@@ -298,6 +299,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         create_service_accounts(config, cluster, k8s_provider)
         enable_cloudwatch(config, k8s_provider)
         create_prometheus(config, k8s_provider)
+        create_zipkin(config, k8s_provider)
 
     # Save the kubeconfig to a file
     cluster.kubeconfig_json.apply(create_eks_resources)

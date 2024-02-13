@@ -271,6 +271,8 @@ class Job(BaseModel):
         broker_storage_size (str): The size of the storage for the broker. Defaults to "10Gi".
     """
 
+    enabled: bool = False
+
     broker_storage_size: str = "10Gi"
 
     @field_validator("broker_storage_size", mode="before")
@@ -291,6 +293,8 @@ class Job(BaseModel):
 
 
 class Prometheus(BaseModel):
+    enabled: bool = False
+
     storage_size: str = "10Gi"
     grafana: bool = False
     alertmanager: bool = False
@@ -322,6 +326,17 @@ class Prometheus(BaseModel):
         return validate_size(v, "Invalid storage size format")
 
 
+class Tracing(BaseModel):
+    """Represents the configuration for tracing."""
+
+    enabled: bool = False
+
+    autoScalingEnabled: bool = False
+
+    zipkinHelmSettings: Optional[Dict[str, Any]] = None
+    """https://github.com/openzipkin/zipkin-helm"""
+
+
 class CloudConfig(BaseModel):
     """
     Represents the configuration for the cloud environment.
@@ -345,6 +360,7 @@ class CloudConfig(BaseModel):
     job: Optional[Job] = None
 
     prometheus: Optional[Prometheus] = None
+    tracing: Optional[Tracing] = None
 
     @field_validator("modelGroups", mode="before")
     def check_model_group(cls, v: List[Any]) -> List[Any]:
