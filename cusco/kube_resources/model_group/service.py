@@ -447,6 +447,7 @@ def create_scaled_object(
             },
             "minReplicaCount": model_group.minInstances,
             "maxReplicaCount": model_group.maxInstances,
+            "pollingInterval": 15,
             "triggers": list(
                 map(
                     lambda trigger: {

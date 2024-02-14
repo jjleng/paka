@@ -9,6 +9,7 @@ import pulumi_kubernetes as k8s
 from cusco.cluster.aws.cloudwatch import enable_cloudwatch
 from cusco.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from cusco.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
+from cusco.cluster.aws.elb import update_elb_idle_timeout
 from cusco.cluster.aws.service_account import create_service_accounts
 from cusco.cluster.keda import create_keda
 from cusco.cluster.knative import create_knative_and_istio
@@ -300,6 +301,9 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         enable_cloudwatch(config, k8s_provider)
         create_prometheus(config, k8s_provider)
         create_zipkin(config, k8s_provider)
+
+        # TODO: Set timeout to be the one used by knative
+        update_elb_idle_timeout(kubeconfig_json, 300)
 
     # Save the kubeconfig to a file
     cluster.kubeconfig_json.apply(create_eks_resources)
