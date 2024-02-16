@@ -3,18 +3,18 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from cusco.kube_resources.model_group.model import (
+from paca.kube_resources.model_group.model import (
     delete_s3_file,
     download_file_to_s3,
     download_model,
     get_model_file_name,
 )
-from cusco.kube_resources.model_group.supported_models import SUPPORTED_MODELS
+from paca.kube_resources.model_group.supported_models import SUPPORTED_MODELS
 
 
 def test_delete_s3_file_exists() -> None:
     with patch("boto3.client") as mock_client, patch(
-        "cusco.kube_resources.model_group.model.s3_file_exists", return_value=True
+        "paca.kube_resources.model_group.model.s3_file_exists", return_value=True
     ) as mock_exists:
         mock_s3 = MagicMock()
         mock_client.return_value = mock_s3
@@ -28,7 +28,7 @@ def test_delete_s3_file_exists() -> None:
 
 def test_delete_s3_file_not_exists() -> None:
     with patch("boto3.client") as mock_client, patch(
-        "cusco.kube_resources.model_group.model.s3_file_exists", return_value=False
+        "paca.kube_resources.model_group.model.s3_file_exists", return_value=False
     ) as mock_exists:
         mock_s3 = MagicMock()
         mock_client.return_value = mock_s3
@@ -67,15 +67,15 @@ def test_download_file_to_s3() -> None:
 
 def test_download_model() -> None:
     with patch(
-        "cusco.kube_resources.model_group.model.s3_file_prefix_exists",
+        "paca.kube_resources.model_group.model.s3_file_prefix_exists",
         return_value=False,
     ) as mock_exists, patch(
-        "cusco.kube_resources.model_group.model.download_file_to_s3",
+        "paca.kube_resources.model_group.model.download_file_to_s3",
         return_value=SUPPORTED_MODELS["llama2-7b"].sha256,
     ) as mock_download, patch(
-        "cusco.kube_resources.model_group.model.delete_s3_file"
+        "paca.kube_resources.model_group.model.delete_s3_file"
     ) as mock_delete, patch(
-        "cusco.kube_resources.model_group.model.save_string_to_s3"
+        "paca.kube_resources.model_group.model.save_string_to_s3"
     ) as mock_save:
         download_model("llama2-7b")
 

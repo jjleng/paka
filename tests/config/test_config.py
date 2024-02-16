@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from cusco.config import (
+from paca.config import (
     CloudConfig,
     CloudModelGroup,
     CloudVectorStore,

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from kubernetes.client.rest import ApiException
 
-from cusco.k8s import KubeconfigMerger, KubernetesResource, apply_resource
+from paca.k8s import KubeconfigMerger, KubernetesResource, apply_resource
 
 
 def test_apply_resource() -> None:
@@ -54,8 +54,8 @@ def test_apply_resource_scaled_object() -> None:
     resource.metadata.name = "test"
     resource.metadata.namespace = "default"
 
-    with patch("cusco.k8s.create_namespaced_custom_object") as mock_create, patch(
-        "cusco.k8s.read_namespaced_custom_object"
+    with patch("paca.k8s.create_namespaced_custom_object") as mock_create, patch(
+        "paca.k8s.read_namespaced_custom_object"
     ) as mock_read:
         mock_read.side_effect = ApiException(status=404)
 

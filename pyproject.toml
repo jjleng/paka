@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "cusco"
+name = "paca"
 version = "0.1.0"
 description = ""
 authors = ["Jijun Leng"]
@@ -23,7 +23,7 @@ filterwarnings = [
 ]
 
 [tool.poetry.scripts]
-cusco = "cusco.cli.__main__:main"
+paca = "paca.cli.__main__:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"
