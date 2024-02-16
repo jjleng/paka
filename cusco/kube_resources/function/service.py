@@ -108,6 +108,7 @@ def create_knative_service(
                     "containers": [
                         {
                             "image": image,
+                            "imagePullPolicy": "Always",
                             "command": shlex.split(entrypoint),
                             "env": [
                                 {
