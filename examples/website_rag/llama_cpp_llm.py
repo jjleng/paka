@@ -1,3 +1,4 @@
+# This file is a part of the Langchain project.
 from __future__ import annotations
 
 import json
@@ -11,6 +12,7 @@ from langchain_core.outputs import GenerationChunk
 from langchain_core.pydantic_v1 import Field, root_validator
 from langchain_core.utils import get_pydantic_field_names
 from langchain_core.utils.utils import build_extra_kwargs
+from sseclient import SSEClient
 
 logger = logging.getLogger(__name__)
 
@@ -23,39 +25,38 @@ class Client:
             "Accept": "application/json",
         }
 
-    def __call__(self, **kwargs: Any) -> Any:
-        if kwargs.get("stream", False):
-            with requests.post(
-                f"{self.url}/v1/completions",
-                headers={**self.headers, "Accept": "text/event-stream"},
-                json=kwargs,
-                stream=True,
-                verify=False,
-            ) as response:
-                for line in response.iter_lines():
-                    if line:
-                        line_str = line.decode("utf-8").replace("data: ", "")
-                        if line_str.strip() == "[DONE]":
-                            return
-                        elif line_str.startswith(": ping - "):
-                            pass
-                        else:
-                            json_line = json.loads(line_str)
-                            yield json_line
-        else:
-            response = requests.post(
-                f"{self.url}/v1/completions",
-                headers=self.headers,
-                json=kwargs,
-                verify=False,
-            )
-            return response.json()
+    def invoke(self, **kwargs: Any) -> Any:
+        response = requests.post(
+            f"{self.url}/v1/completions",
+            headers=self.headers,
+            json=kwargs,
+            verify=False,
+        )
+        return response.json()
+
+    def stream(self, **kwargs: Any) -> Any:
+        with requests.post(
+            f"{self.url}/v1/completions",
+            headers={**self.headers, "Accept": "text/event-stream"},
+            json=kwargs,
+            stream=True,
+            verify=False,
+        ) as response:
+            client = SSEClient(response)
+            for event in client.events():
+                if not event.event == "message":
+                    continue
+                if event.data.strip() == "[DONE]":
+                    break  # Use break instead of return to ensure graceful closure
+                else:
+                    json_line = json.loads(event.data)
+                    yield json_line
 
     def tokenize(self, text: str) -> int:
         response = requests.post(
             f"{self.url}/v1/embeddings",
             headers=self.headers,
-            data={"input": text},
+            json={"input": text},
             verify=False,
         )
         return response.json()["usage"]["total_tokens"]
@@ -213,7 +214,7 @@ class LlamaCpp(LLM):
         else:
             params = self._get_parameters(stop)
             params = {**params, **kwargs}
-            result = self.client(prompt=prompt, **params)
+            result = self.client.invoke(prompt=prompt, stream=False, **params)
             return result["choices"][0]["text"]
 
     def _stream(
@@ -254,7 +255,7 @@ class LlamaCpp(LLM):
 
         """
         params = {**self._get_parameters(stop), **kwargs}
-        result = self.client(prompt=prompt, stream=True, **params)
+        result = self.client.stream(prompt=prompt, stream=True, **params)
         for part in result:
             logprobs = part["choices"][0].get("logprobs", None)
             chunk = GenerationChunk(

@@ -1,7 +1,9 @@
+import logging
 import os
+import time
 from typing import Annotated, Any
 
-from constants import QDRANT_URL
+from constants import LLM_URL, QDRANT_URL
 from embeddings import LlamaEmbeddings
 from fastapi import Depends, FastAPI, Request, Response
 from langchain.chains import RetrievalQA
@@ -10,6 +12,12 @@ from langchain_core.runnables import RunnableLambda
 from langserve import APIHandler, add_routes
 from llama_cpp_llm import LlamaCpp
 from qdrant_client import QdrantClient
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 port = int(os.getenv("PORT", 8080))
 
@@ -37,16 +45,25 @@ add_routes(app, retriever)
 
 
 def run_llm(query: str) -> Any:
+    start_time = time.time()
+    logging.info(f"Running LLM with query: {query}")
     llm = LlamaCpp(
-        model_url="http://llama2-7b.52.38.72.240.sslip.io",
+        model_url=LLM_URL,
         temperature=0,
+        max_tokens=2500,
+        streaming=False,
     )
 
     qa = RetrievalQA.from_chain_type(
         llm=llm, retriever=retriever, chain_type="stuff", return_source_documents=True
     )
 
-    return qa.invoke({"query": query})
+    result = qa.invoke({"query": query})
+    logging.info(f"LLM result: {result}")
+
+    end_time = time.time()
+    logging.info(f"Execution time: {end_time - start_time} seconds")
+    return result
 
 
 async def _get_api_handler() -> APIHandler:
@@ -61,7 +78,7 @@ async def v2_invoke(
     """Handle invoke request."""
     # The API Handler validates the parts of the request
     # that are used by the runnnable (e.g., input, config fields)
-    return await runnable(request)
+    return await runnable.invoke(request)
 
 
 if __name__ == "__main__":
