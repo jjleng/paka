@@ -60,12 +60,12 @@ def crawl(url: str, max_depth: int = 3) -> Generator[Tuple[str, str], None, None
 
         root_url = get_root_url(url)
 
-        html_content = get_html(url)
-        yield url, html_content
+        orig_html_content = get_html(url)
+        soup = BeautifulSoup(orig_html_content, "html.parser")
+
+        yield url, soup.get_text(separator=" ", strip=True)
 
         visited.add(url_without_fragment)
-
-        soup = BeautifulSoup(html_content, "html.parser")
 
         for link in soup.find_all("a"):
             href = link.get("href")
