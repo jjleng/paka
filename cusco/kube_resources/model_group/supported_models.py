@@ -18,4 +18,9 @@ SUPPORTED_MODELS = {
         url="https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_0.gguf",
         sha256="33052f6dd41436db2f83bd48017b6fff8ce0184e15a8a227368b4230f1da97b5",
     ),
+    "gte-base": Model(
+        name="gte-base",
+        url="https://huggingface.co/jjleng/gte-base-gguf/resolve/main/gte-base.q4_0.gguf",
+        sha256="2413866ece3b8b9eedf6c2a4393d4b56dbfa363c173ca3ba3a2f2a44db158982",
+    ),
 }
