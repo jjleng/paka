@@ -294,7 +294,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         # TODO: Decouple knative and istio
         create_knative_and_istio(config, k8s_provider)
         create_redis(config, k8s_provider)
-        create_keda(k8s_provider)
+        create_keda(config, k8s_provider)
         create_qdrant(config, k8s_provider)
 
         create_service_accounts(config, cluster, k8s_provider)
