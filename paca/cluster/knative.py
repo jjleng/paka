@@ -74,6 +74,12 @@ non_crd_transform = partial(crd_install_filter, filter=non_crd_resources)
 # TODO: Decouple knative and istio
 @call_once
 def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
+    ns = k8s.core.v1.Namespace(
+        "knative-serving",
+        metadata={"name": "knative-serving"},
+        opts=pulumi.ResourceOptions(provider=k8s_provider),
+    )
+
     yaml_files = [
         # TODO: sigstore verification
         # Creates resources under the knative-serving namespace
@@ -83,7 +89,7 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
         ConfigFile(
             yaml_file.split("/")[-1],
             file=yaml_file,
-            opts=pulumi.ResourceOptions(provider=k8s_provider),
+            opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[ns]),
         )
 
     yaml_file = f"https://github.com/knative/net-istio/releases/download/knative-{ISTIO_VERSION}/istio.yaml"
@@ -91,7 +97,7 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
         "istio-crd-install",
         file=yaml_file,
         transformations=[only_crd_transform],
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[ns]),
     )
 
     istio_full_install = ConfigFile(
@@ -104,7 +110,7 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
             limit_deployment_replicas,
         ],
         opts=pulumi.ResourceOptions(
-            provider=k8s_provider, depends_on=[istio_crd_install]
+            provider=k8s_provider, depends_on=[istio_crd_install, ns]
         ),
     )
 
@@ -113,7 +119,7 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
         "net-istio",
         file=yaml_file,
         opts=pulumi.ResourceOptions(
-            provider=k8s_provider, depends_on=[istio_full_install]
+            provider=k8s_provider, depends_on=[istio_full_install, ns]
         ),
     )
 
@@ -121,7 +127,7 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
     ConfigFile(
         "kn-default-domain",
         file=yaml_file,
-        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[net_istio]),
+        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[net_istio, ns]),
     )
 
     # Now, install ServiceMonitor and PodMonitor CRDs
@@ -136,5 +142,5 @@ def create_knative_and_istio(config: CloudConfig, k8s_provider: k8s.Provider) ->
         "kn-prom-monitor",
         file=yaml_file,
         transformations=[exclude_knative_eventing_namespace],
-        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[prometheus]),
+        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[prometheus, ns]),
     )

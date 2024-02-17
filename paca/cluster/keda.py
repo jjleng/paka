@@ -10,7 +10,7 @@ def create_keda(k8s_provider: k8s.Provider) -> None:
     """
     Installs a KEDA chart.
     """
-    k8s.core.v1.Namespace(
+    ns = k8s.core.v1.Namespace(
         "keda",
         metadata={"name": "keda"},
         opts=pulumi.ResourceOptions(provider=k8s_provider),
@@ -24,5 +24,5 @@ def create_keda(k8s_provider: k8s.Provider) -> None:
             fetch_opts=FetchOpts(repo="https://kedacore.github.io/charts"),
             values={},
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[ns]),
     )
