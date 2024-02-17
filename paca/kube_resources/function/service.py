@@ -110,17 +110,6 @@ def create_knative_service(
                             "image": image,
                             "imagePullPolicy": "Always",
                             "command": shlex.split(entrypoint),
-                            "env": [
-                                {
-                                    "name": "REDIS_PASSWORD",
-                                    "valueFrom": {
-                                        "secretKeyRef": {
-                                            "name": "redis-password",
-                                            "key": "password",
-                                        }
-                                    },
-                                }
-                            ],
                         }
                     ]
                 },

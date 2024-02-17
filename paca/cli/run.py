@@ -66,17 +66,6 @@ def one_off_script(
                             image=resolved_image,
                             image_pull_policy="Always",
                             command=shlex.split(entrypoint),
-                            env=[
-                                client.V1EnvVar(
-                                    name="REDIS_PASSWORD",
-                                    value_from=client.V1EnvVarSource(
-                                        secret_key_ref=client.V1SecretKeySelector(
-                                            name="redis-password",
-                                            key="password",
-                                        ),
-                                    ),
-                                ),
-                            ],
                         )
                     ],
                     restart_policy="Never",

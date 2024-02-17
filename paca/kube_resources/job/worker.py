@@ -54,17 +54,6 @@ def create_deployment(
             image=image_name,
             command=shlex.split(entrypoint),
             image_pull_policy="Always",
-            env=[
-                client.V1EnvVar(
-                    name="REDIS_PASSWORD",
-                    value_from=client.V1EnvVarSource(
-                        secret_key_ref=client.V1SecretKeySelector(
-                            name="redis-password",
-                            key="password",
-                        ),
-                    ),
-                ),
-            ],
         ),
     ]
 

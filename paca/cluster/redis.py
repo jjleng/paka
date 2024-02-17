@@ -1,5 +1,3 @@
-import secrets
-
 import pulumi
 import pulumi_kubernetes as k8s
 from pulumi_kubernetes.apiextensions import CustomResource
@@ -14,27 +12,14 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
     """
     Installs redis with a helm chart.
     """
-
-    # Note, we are always creating a password for redis even if we are not installing it.
-    # This is because the password is used by other components. Doing so is for simplicity.
-    # TODO: Remove redis password?
-
-    # Generate a 32-character random password
-    password = secrets.token_hex(16)
-
-    # Create a Kubernetes Secret to store the password
-    k8s.core.v1.Secret(
-        "redis-password",
-        metadata={
-            "name": "redis-password",
-            "namespace": read_current_cluster_data("namespace"),
-        },
-        string_data={"password": password},
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
-    )
-
     if not config.job or not config.job.enabled:
         return
+
+    ns = k8s.core.v1.Namespace(
+        "redis",
+        metadata={"name": "redis"},
+        opts=pulumi.ResourceOptions(provider=k8s_provider),
+    )
 
     chart = Chart(
         "redis",
@@ -45,7 +30,6 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
             fetch_opts=FetchOpts(repo="https://charts.bitnami.com/bitnami"),
             values={
                 "architecture": "standalone",
-                "auth": {"enabled": True, "password": password},
                 "master": {
                     "persistence": {
                         "enabled": True,
@@ -55,7 +39,7 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
                 "metrics": {"enabled": True},  # For enabling metrics
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[ns]),
     )
 
     if not config.prometheus or not config.prometheus.enabled:
@@ -67,7 +51,7 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
         kind="ServiceMonitor",
         metadata={
             "name": "redis-metrics-monitor",
-            "namespace": read_current_cluster_data("namespace"),
+            "namespace": "redis",
         },
         spec={
             "selector": {
@@ -78,7 +62,7 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
                 }
             },
             "namespaceSelector": {
-                "matchNames": [read_current_cluster_data("namespace")],
+                "matchNames": ["redis"],
             },
             "endpoints": [
                 {
