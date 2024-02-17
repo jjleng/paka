@@ -9,7 +9,7 @@ from fastapi import Depends, FastAPI, Request, Response
 from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import Qdrant
 from langchain_core.runnables import RunnableLambda
-from langserve import APIHandler, add_routes
+from langserve import APIHandler, add_routes  # type: ignore
 from llama_cpp_llm import LlamaCpp
 from qdrant_client import QdrantClient
 

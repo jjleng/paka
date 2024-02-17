@@ -43,12 +43,12 @@ class Client:
             stream=True,
             verify=False,
         ) as response:
-            client = SSEClient(response)
+            client = SSEClient((chunk for chunk in response.iter_content()))
             for event in client.events():
                 if not event.event == "message":
                     continue
                 if event.data.strip() == "[DONE]":
-                    break  # Use break instead of return to ensure graceful closure
+                    break
                 else:
                     json_line = json.loads(event.data)
                     yield json_line
@@ -66,12 +66,12 @@ class Client:
 class LlamaCpp(LLM):
     """llama.cpp model."""
 
-    client: Any  #: :meta private:
+    client: Any = None  #: :meta private:
 
     model_url: str
     """The url of the model server."""
 
-    suffix: Optional[str] = Field(None)
+    suffix: Optional[str] = None
     """A suffix to append to the generated text. If None, no suffix is appended."""
 
     max_tokens: Optional[int] = 256
@@ -83,7 +83,7 @@ class LlamaCpp(LLM):
     top_p: Optional[float] = 0.95
     """The top-p value to use for sampling."""
 
-    logprobs: Optional[int] = Field(None)
+    logprobs: Optional[int] = None
     """The number of logprobs to return. If None, no logprobs are returned."""
 
     echo: Optional[bool] = False

@@ -1,12 +1,9 @@
-import time
-from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
 import requests
 from constants import EMBEDDING_URL
 from langchain_core.embeddings import Embeddings
 from langchain_core.pydantic_v1 import BaseModel
-from requests.exceptions import RequestException
 
 MAX_ATTEMPTS = 10000
 

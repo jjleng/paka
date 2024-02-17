@@ -1,6 +1,7 @@
 import sys
 from typing import Generator
 
+from bs4.element import Tag
 from constants import QDRANT_URL
 from crawler import crawl
 from embeddings import LlamaEmbeddings
@@ -24,10 +25,24 @@ def _metadata_extractor(raw_html: str, url: str) -> dict:
     soup = BeautifulSoup(raw_html, "html.parser")
     if title := soup.find("title"):
         metadata["title"] = title.get_text()
-    if description := soup.find("meta", attrs={"name": "description"}):
-        metadata["description"] = description.get("content", None)
-    if html := soup.find("html"):
-        metadata["language"] = html.get("lang", None)
+    if (description := soup.find("meta", attrs={"name": "description"})) and isinstance(
+        description, Tag
+    ):
+        description_content = description.get("content", "") or ""
+        metadata["description"] = (
+            " ".join(description_content)
+            if isinstance(description_content, list)
+            else description_content
+        )
+    else:
+        metadata["description"] = ""
+    if (html := soup.find("html")) and isinstance(html, Tag):
+        html_lang = html.get("lang", "") or ""
+        metadata["language"] = (
+            " ".join(html_lang) if isinstance(html_lang, list) else html_lang
+        )
+    else:
+        metadata["language"] = ""
     return metadata
 
 
