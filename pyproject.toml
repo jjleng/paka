@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "paca"
 version = "0.1.0"
-description = ""
+description = "LLMOps tool designed to simplify the deployment and management of large language model (LLM) applications"
 authors = ["Jijun Leng"]
 readme = "README.md"
 
