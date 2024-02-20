@@ -9,11 +9,6 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/paca-llm
-    permissions:
-      id-token: write
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -22,7 +17,7 @@ jobs:
           python-version: '3.11'
       - name: Install Poetry
         run: pip install poetry
-      - name: Build package
-        run: poetry build
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Configure Poetry to use PyPI API Token
+        run: poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+      - name: Build and publish to PyPI
+        run: poetry publish --build
