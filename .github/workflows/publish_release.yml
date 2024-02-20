@@ -8,20 +8,20 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/paca-llm
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.11' 
+          python-version: '3.11'
       - name: Install Poetry
         run: pip install poetry
       - name: Build package
         run: poetry build
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v2
-        with:
-          username: __token__
-          password: ""  
-          repository_url: https://pypi.org/pypi
-          distribution: dist/*  
+        uses: gh-action-pypi-publish@release/v1
