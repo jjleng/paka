@@ -1,15 +1,15 @@
-# Welcome to Paca
+# Welcome to Paka
 
-<img src="docs/img/paca.svg" alt="paca.svg" width="200" height="200">
+<img src="docs/img/paka.svg" alt="paka.svg" width="200" height="200">
 
-**paca** is a versatile LLMOps tool that simplifies the deployment and management of large language model (LLM) apps with a single command.
+**paka** is a versatile LLMOps tool that simplifies the deployment and management of large language model (LLM) apps with a single command.
 
-## Paca Highlights
+## Paka Highlights
 
-- **Cloud-Agnostic Resource Provisioning**: paca starts by breaking down the barriers of cloud vendor lock-in, currently supporting EKS with plans to expand to more cloud services.
-- **Optimized Model Execution**: Designed for efficiency, paca runs LLM models on CPUs, with imminent support for GPUs, ensuring optimal performance. Auto-scaling of model replicas based on CPU usage, request rate, and latency.
-- **Scalable Batch Job Management**: paca excels in managing batch jobs that dynamically scale out and in, catering to varying workload demands without manual intervention.
-- **Seamless Application Deployment**: With support for running Langchain and LlamaIndex applications as functions, paca offers scalability to zero and back up, along with rolling updates to ensure no downtime.
+- **Cloud-Agnostic Resource Provisioning**: paka starts by breaking down the barriers of cloud vendor lock-in, currently supporting EKS with plans to expand to more cloud services.
+- **Optimized Model Execution**: Designed for efficiency, paka runs LLM models on CPUs, with imminent support for GPUs, ensuring optimal performance. Auto-scaling of model replicas based on CPU usage, request rate, and latency.
+- **Scalable Batch Job Management**: paka excels in managing batch jobs that dynamically scale out and in, catering to varying workload demands without manual intervention.
+- **Seamless Application Deployment**: With support for running Langchain and LlamaIndex applications as functions, paka offers scalability to zero and back up, along with rolling updates to ensure no downtime.
 - **Comprehensive Monitoring and Tracing**: Embedded with built-in support for metrics collection via Prometheus and Grafana, along with tracing through Zipkin.
 
 
@@ -29,19 +29,19 @@ Applications are deployed as serverless containers using [knative](https://knati
 Optional redis broker can be provisioned for celery jobs. Job workers are automatically scaled based on the queue length.
 
 ### Vector Store
-Vector store is a key-value store for storing embeddings. Paca supports provisioning [qdrant](https://github.com/qdrant/qdrant).
+Vector store is a key-value store for storing embeddings. Paka supports provisioning [qdrant](https://github.com/qdrant/qdrant).
 
 ### Monitoring
-Paca comes with built-in support for monitoring and tracing. Metrics are collected via Prometheus and Grafana, and tracing is done through Zipkin. Users can also enable Prometheus Alertmanager for alerting.
+Paka comes with built-in support for monitoring and tracing. Metrics are collected via Prometheus and Grafana, and tracing is done through Zipkin. Users can also enable Prometheus Alertmanager for alerting.
 
 ### Continuous Deployment
-Paca supports continuous deployment with rolling updates to ensure no downtime. Application can be built, pushed to container registry and deployed with a single command.
+Paka supports continuous deployment with rolling updates to ensure no downtime. Application can be built, pushed to container registry and deployed with a single command.
 
 ### Building
 Application, job code is built using [buildpacks](https://buildpacks.io/). No need to write Dockerfile. However, user still needs to have docker runtime installed.
 
 
-## Paca CLI Reference
+## Paka CLI Reference
 
 ### Provision a cluster
 
@@ -71,7 +71,7 @@ aws:
 
 Provision the cluster
 ```bash
-paca cluster up -f cluster.yaml -u
+paka cluster up -f cluster.yaml -u
 ```
 
 ### Deploy an application
@@ -82,10 +82,10 @@ To pin the version of the language runtime, add a `runtime.txt` file with the ve
 
 For a python application, a requirements.txt file is required.
 
-To deploy the application, run `paca function deploy --name <function_name> --source <source_path> --entrypoint <Procfile_command>. For example:
+To deploy the application, run `paka function deploy --name <function_name> --source <source_path> --entrypoint <Procfile_command>. For example:
 
 ```bash
-paca function deploy --name langchain-server --source . --entrypoint serve
+paka function deploy --name langchain-server --source . --entrypoint serve
 ```
 
 ## Contributing

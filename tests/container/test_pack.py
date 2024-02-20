@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from paca.container.pack import get_latest_pack_version, install_pack
+from paka.container.pack import get_latest_pack_version, install_pack
 
 
 def test_get_latest_pack_version() -> None:
@@ -46,7 +46,7 @@ def test_installation_on_different_systems(
     with patch("shutil.which", return_value=False), patch(
         "platform.system", return_value=system
     ), patch("platform.machine", return_value=arch), patch(
-        "paca.container.pack.get_latest_pack_version", return_value="X.Y.Z"
+        "paka.container.pack.get_latest_pack_version", return_value="X.Y.Z"
     ), patch(
         "requests.get"
     ) as mock_requests, patch(

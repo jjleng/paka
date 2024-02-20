@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from paca.config import (
+from paka.config import (
     CloudConfig,
     CloudModelGroup,
     CloudVectorStore,

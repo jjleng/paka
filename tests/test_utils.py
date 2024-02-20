@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
-from paca.constants import HOME_ENV_VAR, PROJECT_NAME
-from paca.utils import (
+from paka.constants import HOME_ENV_VAR, PROJECT_NAME
+from paka.utils import (
     call_once,
     camel_to_kebab,
     get_cluster_data_dir,

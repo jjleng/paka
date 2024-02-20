@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "paca"
+name = "paka"
 version = "0.1.0"
 description = "LLMOps tool designed to simplify the deployment and management of large language model (LLM) applications"
 authors = ["Jijun Leng"]
@@ -23,7 +23,7 @@ filterwarnings = [
 ]
 
 [tool.poetry.scripts]
-paca = "paca.cli.__main__:main"
+paka = "paka.cli.__main__:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"
