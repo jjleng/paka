@@ -88,7 +88,24 @@ To deploy the application, run `paka function deploy --name <function_name> --so
 paka function deploy --name langchain-server --source . --entrypoint serve
 ```
 
+### Destroy a cluster
+```bash
+paka cluster down -f cluster.yaml
+```
+
 ## Contributing
 - Open a PR
 - Format and lint code with `make lint`
 - Run tests with `make test`
+
+## Dependencies
+- docker daemon
+- aws cli and credentials for the AWS deployment
+```bash
+# Make sure aws credentials and cli are set up. Your aws credentials should have access to the following services:
+# - S3
+# - ECR
+# - EKS
+# - EC2
+aws configure
+```
