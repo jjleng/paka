@@ -43,6 +43,11 @@ Application, job code is built using [buildpacks](https://buildpacks.io/). No ne
 
 ## Paka CLI Reference
 
+Install the paka CLI
+```bash
+pip install paka
+```
+
 ### Provision a cluster
 
 Create a cluster.yaml
