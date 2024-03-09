@@ -1,5 +1,6 @@
 import typer
 
+from paka import __version__
 from paka.cli.build import build_app
 from paka.cli.cluster import cluster_app
 from paka.cli.function import function_app
@@ -13,6 +14,12 @@ from paka.logger import setup_logger
 init_pulumi()
 
 
+def version_callback(version: bool) -> None:
+    if version:
+        typer.echo(f"Paka CLI Version: {__version__}")
+        raise typer.Exit()
+
+
 def verbose_option(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"
@@ -23,6 +30,17 @@ def verbose_option(
 
 cli = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 cli.callback()(verbose_option)
+
+
+@cli.callback()
+def version_option(
+    ctx: typer.Context,
+    version: bool = typer.Option(
+        False, "--version", help="Show version and exit", callback=version_callback
+    ),
+) -> None:
+    pass
+
 
 cli.add_typer(cluster_app, name="cluster", help="Manage clusters.")
 
