@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, field_validator, model_validator
 from ruamel.yaml import YAML
@@ -73,16 +73,57 @@ class ResourceRequest(BaseModel):
         return validate_size(v, "Invalid memory format")
 
 
+class AwsGpuNode(BaseModel):
+    """
+    Represents an AWS GPU node.
+
+    Attributes:
+        amiId (str): The ID of the Amazon Machine Image (AMI) for the GPU node.
+    """
+
+    amiId: str
+
+
+class GcpGpuNode(BaseModel):
+    """
+    Represents a Google Cloud Platform GPU node.
+
+    Attributes:
+        imageType (str): The type of image used for the GPU node.
+        acceleratorType (str): The type of accelerator used for the GPU node.
+        acceleratorCount (int): The number of accelerators attached to the GPU node.
+        diskType (str): The type of disk used for the GPU node.
+        diskSize (int): The size of the disk attached to the GPU node.
+    """
+
+    imageType: str
+    acceleratorType: str
+    acceleratorCount: int
+    diskType: str
+    diskSize: int
+
+
 class CloudNode(BaseModel):
     """
     Represents a node in the cloud cluster.
 
     Attributes:
         nodeType (str): The type of the node.
-
+        awsGpu (Optional[AwsGpuNode]): The AWS GPU node configuration.
+        gcpGpu (Optional[GcpGpuNode]): The GCP GPU node configuration.
     """
 
     nodeType: str
+    awsGpu: Optional[AwsGpuNode] = None
+    gcpGpu: Optional[GcpGpuNode] = None
+
+    @model_validator(mode="before")
+    def validate_gpu(
+        cls, values: Dict[str, Union[AwsGpuNode, GcpGpuNode]]
+    ) -> Dict[str, Union[AwsGpuNode, GcpGpuNode]]:
+        if values.get("awsGpu") and values.get("gcpGpu"):
+            raise ValueError("At most one of awsGpu or gcpGpu can exist")
+        return values
 
 
 class ModelGroup(BaseModel):

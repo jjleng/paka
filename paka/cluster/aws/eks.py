@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import Dict, Optional, Union
 
 import pulumi
 import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
+from pulumi import ResourceOptions
 
 from paka.cluster.aws.cloudwatch import enable_cloudwatch
 from paka.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
@@ -73,6 +74,12 @@ def create_node_group_for_model_group(
     project = config.cluster.name
 
     for model_group in config.modelGroups:
+        additional_args: Dict[
+            str, Union[str, int, float, bool, ResourceOptions, None]
+        ] = {}
+        if model_group.awsGpu is not None:
+            additional_args["ami_type"] = model_group.awsGpu.amiId
+
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
             f"{project}-{kubify_name(model_group.name)}-group",
@@ -105,6 +112,7 @@ def create_node_group_for_model_group(
                     effect="NO_SCHEDULE", key="model", value=model_group.name
                 ),
             ],
+            **additional_args,
         )
 
 
