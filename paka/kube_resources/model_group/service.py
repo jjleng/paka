@@ -8,8 +8,11 @@ from paka.k8s import CustomResource, apply_resource, try_load_kubeconfig
 from paka.kube_resources.model_group.model import MODEL_PATH_PREFIX, download_model
 from paka.utils import kubify_name, read_cluster_data
 
-# We hardcode the image here for now
+# `latest` will be stale because of the `IfNotPresent` policy
+# We hardcode the image here for now, we can make it configurable later
 LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
+
+LLAMA_CPP_PYTHON_CUDA = "jijunleng/llama-cpp-python-cuda:latest"
 
 try_load_kubeconfig()
 
@@ -116,7 +119,7 @@ def create_pod(
         "env": [
             client.V1EnvVar(
                 name="USE_MLOCK",  # Model weights are locked in RAM or not
-                value="0",
+                value="1",
             ),
             client.V1EnvVar(
                 name="MODEL",
@@ -158,6 +161,14 @@ def create_pod(
                 "memory": model_group.resourceRequest.memory,
             },
         )
+
+    if model_group.awsGpu and model_group.awsGpu.enabled:
+        if "resources" not in container_args:
+            container_args["resources"] = client.V1ResourceRequirements(
+                requests={},
+            )
+        # Ah, we only support nvidia GPUs for now
+        container_args["resources"].requests["nvidia.com/gpu"] = 1
 
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
@@ -488,7 +499,17 @@ def create_model_group_service(
 
     port = 8000
 
-    pod = create_pod(namespace, config, model_group, LLAMA_CPP_PYTHON_IMAGE, port)
+    pod = create_pod(
+        namespace,
+        config,
+        model_group,
+        (
+            LLAMA_CPP_PYTHON_CUDA
+            if model_group.awsGpu and model_group.awsGpu.enabled
+            else LLAMA_CPP_PYTHON_IMAGE
+        ),
+        port,
+    )
 
     deployment = create_deployment(namespace, model_group, pod)
     apply_resource(deployment)
