@@ -75,13 +75,13 @@ class ResourceRequest(BaseModel):
 
 class AwsGpuNode(BaseModel):
     """
-    Represents an AWS GPU node.
+    Represents a configuration for an AWS GPU node.
 
     Attributes:
-        amiId (str): The ID of the Amazon Machine Image (AMI) for the GPU node.
+        enabled (bool): Indicates whether the GPU node is enabled or not.
     """
 
-    amiId: str
+    enabled: bool = False
 
 
 class GcpGpuNode(BaseModel):

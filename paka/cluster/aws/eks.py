@@ -1,11 +1,10 @@
-from typing import Dict, Optional, Union
+from typing import Optional
 
 import pulumi
 import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_eks as eks
 import pulumi_kubernetes as k8s
-from pulumi import ResourceOptions
 
 from paka.cluster.aws.cloudwatch import enable_cloudwatch
 from paka.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
@@ -15,6 +14,7 @@ from paka.cluster.aws.service_account import create_service_accounts
 from paka.cluster.keda import create_keda
 from paka.cluster.knative import create_knative_and_istio
 from paka.cluster.namespace import create_namespace
+from paka.cluster.nvidia_device_plugin import install_nvidia_device_plugin
 from paka.cluster.prometheus import create_prometheus
 from paka.cluster.qdrant import create_qdrant
 from paka.cluster.redis import create_redis
@@ -74,22 +74,12 @@ def create_node_group_for_model_group(
     project = config.cluster.name
 
     for model_group in config.modelGroups:
-        additional_args: Dict[
-            str, Union[str, int, float, bool, ResourceOptions, None]
-        ] = {}
-        if model_group.awsGpu is not None:
-            additional_args["ami_type"] = model_group.awsGpu.amiId
-
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
             f"{project}-{kubify_name(model_group.name)}-group",
             node_group_name=f"{project}-{kubify_name(model_group.name)}-group",
             cluster=cluster,
             instance_types=[model_group.nodeType],
-            # Set the desired size of the node group to the minimum number of instances
-            # specified for the model group.
-            # Note: Scaling down to 0 is not supported, since cold starting time is
-            # too long for model group services.
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(
                 desired_size=model_group.minInstances,
                 min_size=model_group.minInstances,
@@ -102,8 +92,6 @@ def create_node_group_for_model_group(
             },
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
-            # Apply taints to ensure that only pods belonging to the same model group
-            # can be scheduled on this node group.
             taints=[
                 aws.eks.NodeGroupTaintArgs(
                     effect="NO_SCHEDULE", key="app", value="model-group"
@@ -112,7 +100,12 @@ def create_node_group_for_model_group(
                     effect="NO_SCHEDULE", key="model", value=model_group.name
                 ),
             ],
-            **additional_args,
+            # Supported AMI types https://docs.aws.amazon.com/eks/latest/APIReference/API_Nodegroup.html#AmazonEKS-Type-Nodegroup-amiType
+            ami_type=(
+                "AL2_x86_64_GPU"
+                if model_group.awsGpu and model_group.awsGpu.enabled
+                else None
+            ),
         )
 
 
@@ -309,6 +302,9 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
         enable_cloudwatch(config, k8s_provider)
         create_prometheus(config, k8s_provider)
         create_zipkin(config, k8s_provider)
+        # Install the NVIDIA device plugin for GPU support
+        # Even if the cluster doesn't have GPUs, this won't cause any issues
+        install_nvidia_device_plugin(k8s_provider)
 
         # TODO: Set timeout to be the one used by knative
         update_elb_idle_timeout(kubeconfig_json, 300)
