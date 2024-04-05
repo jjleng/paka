@@ -1,0 +1,25 @@
+aws:
+  cluster:
+    name: invoice-extraction
+    region: us-west-2
+    namespace: default
+    nodeType: t2.medium
+    minNodes: 2
+    maxNodes: 4
+  prometheus:
+    enabled: false
+  tracing:
+    enabled: false
+  modelGroups:
+    - nodeType: c7a.xlarge
+      minInstances: 1
+      maxInstances: 3
+      name: llama2-7b
+      resourceRequest:
+        cpu: 3600m
+        memory: 6Gi
+      autoScaleTriggers:
+        - type: cpu
+          metadata:
+            type: Utilization
+            value: "50"
