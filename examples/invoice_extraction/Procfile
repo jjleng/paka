@@ -1,0 +1,2 @@
+web: python serve.py
+serve: python serve.py
