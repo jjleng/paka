@@ -3,7 +3,7 @@ import pulumi_kubernetes as k8s
 
 
 def install_nvidia_device_plugin(
-    k8s_provider: k8s.Provider, version: str = "main"
+    k8s_provider: k8s.Provider, version: str = "v0.15.0-rc.2"
 ) -> None:
     """
     Installs the NVIDIA device plugin for GPU support in the cluster.
@@ -17,9 +17,71 @@ def install_nvidia_device_plugin(
     Returns:
         None
     """
-    # This will install a DaemonSet in the kube-system namespace
-    k8s.yaml.ConfigFile(
-        "nvidia-device-plugin",
-        file=f"https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/{version}/nvidia-device-plugin.yml",
+
+    k8s.apps.v1.DaemonSet(
+        "nvidia-device-plugin-daemonset",
+        metadata=k8s.meta.v1.ObjectMetaArgs(
+            namespace="kube-system",
+        ),
+        spec=k8s.apps.v1.DaemonSetSpecArgs(
+            selector=k8s.meta.v1.LabelSelectorArgs(
+                match_labels={
+                    "name": "nvidia-device-plugin-ds",
+                },
+            ),
+            update_strategy=k8s.apps.v1.DaemonSetUpdateStrategyArgs(
+                type="RollingUpdate",
+            ),
+            template=k8s.core.v1.PodTemplateSpecArgs(
+                metadata=k8s.meta.v1.ObjectMetaArgs(
+                    labels={
+                        "name": "nvidia-device-plugin-ds",
+                    },
+                ),
+                spec=k8s.core.v1.PodSpecArgs(
+                    tolerations=[
+                        k8s.core.v1.TolerationArgs(
+                            key="nvidia.com/gpu",
+                            operator="Exists",
+                            effect="NoSchedule",
+                        ),
+                        k8s.core.v1.TolerationArgs(operator="Exists"),
+                    ],
+                    priority_class_name="system-node-critical",
+                    containers=[
+                        k8s.core.v1.ContainerArgs(
+                            image=f"nvcr.io/nvidia/k8s-device-plugin:{version}",
+                            name="nvidia-device-plugin-ctr",
+                            env=[
+                                k8s.core.v1.EnvVarArgs(
+                                    name="FAIL_ON_INIT_ERROR",
+                                    value="false",
+                                )
+                            ],
+                            security_context=k8s.core.v1.SecurityContextArgs(
+                                allow_privilege_escalation=False,
+                                capabilities=k8s.core.v1.CapabilitiesArgs(
+                                    drop=["ALL"],
+                                ),
+                            ),
+                            volume_mounts=[
+                                k8s.core.v1.VolumeMountArgs(
+                                    name="device-plugin",
+                                    mount_path="/var/lib/kubelet/device-plugins",
+                                )
+                            ],
+                        )
+                    ],
+                    volumes=[
+                        k8s.core.v1.VolumeArgs(
+                            name="device-plugin",
+                            host_path=k8s.core.v1.HostPathVolumeSourceArgs(
+                                path="/var/lib/kubelet/device-plugins",
+                            ),
+                        )
+                    ],
+                ),
+            ),
+        ),
         opts=pulumi.ResourceOptions(provider=k8s_provider),
     )
