@@ -317,3 +317,13 @@ def random_str(length: int = 5) -> str:
         str: The generated random string.
     """
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+
+def get_item(data: list[Any], index: int) -> Any:
+    """
+    Get an item from a list by index and return None if the index is out of bounds.
+    """
+    try:
+        return data[index]
+    except IndexError:
+        return None
