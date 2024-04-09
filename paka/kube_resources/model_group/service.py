@@ -118,8 +118,11 @@ def create_pod(
         ],
         "env": [
             client.V1EnvVar(
-                name="USE_MLOCK",  # Model weights are locked in RAM or not
-                value="1",
+                name="N_GPU_LAYERS",
+                # -1 means all layers are GPU layers, 0 means no GPU layers
+                value=(
+                    "-1" if model_group.awsGpu and model_group.awsGpu.enabled else "0"
+                ),
             ),
             client.V1EnvVar(
                 name="MODEL",
@@ -164,11 +167,11 @@ def create_pod(
 
     if model_group.awsGpu and model_group.awsGpu.enabled:
         if "resources" not in container_args:
-            container_args["resources"] = client.V1ResourceRequirements(
-                requests={},
-            )
+            container_args["resources"] = client.V1ResourceRequirements()
+        if container_args["resources"].limits is None:
+            container_args["resources"].limits = {}
         # Ah, we only support nvidia GPUs for now
-        container_args["resources"].requests["nvidia.com/gpu"] = 1
+        container_args["resources"].limits["nvidia.com/gpu"] = 1
 
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
