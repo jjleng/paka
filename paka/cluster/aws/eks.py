@@ -106,6 +106,7 @@ def create_node_group_for_model_group(
                 if model_group.awsGpu and model_group.awsGpu.enabled
                 else None
             ),
+            disk_size=40 if model_group.awsGpu and model_group.awsGpu.enabled else 20,
         )
 
 
