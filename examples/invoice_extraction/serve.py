@@ -49,8 +49,11 @@ def extract(pdf_path: str) -> str:
      Only returns the extracted JSON object, don't say anything else.
     """
 
+    # Future paka code will be able to handle this
+    chat_template = f"[INST] <<SYS>><</SYS>>\n\n{template} [/INST]\n"
+
     prompt = PromptTemplate(
-        template=template,
+        template=chat_template,
         input_variables=["invoice_text"],
         partial_variables={
             "format_instructions": invoice_parser.get_format_instructions()
@@ -60,7 +63,6 @@ def extract(pdf_path: str) -> str:
     llm = LlamaCpp(
         model_url=LLM_URL,
         temperature=0,
-        max_tokens=2500,
         streaming=False,
     )
 
