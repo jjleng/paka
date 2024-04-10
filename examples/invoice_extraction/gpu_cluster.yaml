@@ -1,0 +1,30 @@
+aws:
+  cluster:
+    name: invoice-extraction
+    region: us-west-2
+    namespace: default
+    nodeType: t2.medium
+    minNodes: 2
+    maxNodes: 4
+  prometheus:
+    enabled: true
+  tracing:
+    enabled: false
+  modelGroups:
+    - nodeType: g4dn.xlarge
+      minInstances: 1
+      maxInstances: 1
+      name: llama2-7b
+      resourceRequest:
+        cpu: 3600m
+        memory: 14Gi
+      awsGpu: # This would enable inference on CUDA devices
+        diskSize: 40
+      autoScaleTriggers:
+        - type: prometheus
+          metadata:
+            serverAddress: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
+            metricName: max_qps
+            threshold: '5'
+            query: |
+              max(rate(istio_requests_total{destination_service_name="llama2-7b", destination_app="model-group", response_code="200"}[1m]))
