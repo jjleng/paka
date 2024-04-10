@@ -190,6 +190,7 @@ def test_parse_yaml() -> None:
               minInstances: 1
               maxInstances: 1
               name: llama2-7b
+              awsGpu:
         vectorStore:
             nodeType: t2.small
             replicas: 2
@@ -211,9 +212,35 @@ def test_parse_yaml() -> None:
     assert model_group.minInstances == 1
     assert model_group.maxInstances == 1
     assert model_group.name == "llama2-7b"
+    assert model_group.awsGpu is None
     assert config.aws.vectorStore is not None
     assert config.aws.vectorStore.nodeType == "t2.small"
     assert config.aws.vectorStore.replicas == 2
+
+    yaml_str = """
+    aws:
+        cluster:
+            name: test_cluster
+            region: us-west-2
+            nodeType: t2.medium
+            minNodes: 2
+            maxNodes: 4
+        modelGroups:
+            - nodeType: c7a.xlarge
+              minInstances: 1
+              maxInstances: 1
+              name: llama2-7b
+              awsGpu:
+                diskSize: 100
+    """
+    config = parse_yaml(yaml_str)
+    assert isinstance(config, Config)
+    assert config.aws is not None
+    assert config.aws.modelGroups is not None
+    assert len(config.aws.modelGroups) == 1
+    model_group = config.aws.modelGroups[0]
+    assert model_group.awsGpu is not None
+    assert model_group.awsGpu.diskSize == 100
 
 
 def test_round_trip() -> None:
