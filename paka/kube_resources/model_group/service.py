@@ -120,9 +120,7 @@ def create_pod(
             client.V1EnvVar(
                 name="N_GPU_LAYERS",
                 # -1 means all layers are GPU layers, 0 means no GPU layers
-                value=(
-                    "-1" if model_group.awsGpu and model_group.awsGpu.enabled else "0"
-                ),
+                value=("-1" if model_group.awsGpu else "0"),
             ),
             client.V1EnvVar(
                 name="MODEL",
@@ -165,7 +163,7 @@ def create_pod(
             },
         )
 
-    if model_group.awsGpu and model_group.awsGpu.enabled:
+    if model_group.awsGpu:
         if "resources" not in container_args:
             container_args["resources"] = client.V1ResourceRequirements()
         if container_args["resources"].limits is None:
@@ -506,11 +504,7 @@ def create_model_group_service(
         namespace,
         config,
         model_group,
-        (
-            LLAMA_CPP_PYTHON_CUDA
-            if model_group.awsGpu and model_group.awsGpu.enabled
-            else LLAMA_CPP_PYTHON_IMAGE
-        ),
+        (LLAMA_CPP_PYTHON_CUDA if model_group.awsGpu else LLAMA_CPP_PYTHON_IMAGE),
         port,
     )
 
