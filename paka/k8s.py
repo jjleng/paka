@@ -621,5 +621,11 @@ def tail_logs(namespace: str, pod_name: str, container_name: str) -> None:
         logger.info(event)
 
 
+def remove_crd_finalizers(name: str) -> None:
+    api = client.ApiextensionsV1Api()
+    body = [{"op": "remove", "path": "/metadata/finalizers"}]
+    api.patch_custom_resource_definition(name, body)
+
+
 # Load the kubeconfig when this module is imported
 try_load_kubeconfig()
