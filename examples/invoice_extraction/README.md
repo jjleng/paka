@@ -28,6 +28,9 @@ Follow the steps below to run the example:
 
   # Provision the cluster and update ~/.kube/config
   paka cluster up -f cluster.yaml -u
+
+  # Provision a cluster with Nvidia GPUs
+  paka cluster up -f gpu_cluster.yaml -u
   ```
 
 4. **Deploy the App:**
