@@ -33,10 +33,12 @@ class ResourceRequest(BaseModel):
     Attributes:
         cpu (str): The amount of CPU to request.
         memory (str): The amount of memory to request.
+        gpu (Optional[int]): The number of GPUs to request. Defaults to None.
     """
 
     cpu: str
     memory: str
+    gpu: Optional[int] = None
 
     @field_validator("cpu", mode="before")
     def validate_cpu(cls, v: str) -> str:
@@ -71,6 +73,24 @@ class ResourceRequest(BaseModel):
             ValueError: If the format of the input value is invalid.
         """
         return validate_size(v, "Invalid memory format")
+
+    @field_validator("gpu")
+    def validate_gpu(cls, v: Optional[int]) -> Optional[int]:
+        """
+        Validates the value of the gpu field.
+
+        Args:
+            v (Optional[int]): The value of the gpu field.
+
+        Returns:
+            Optional[int]: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the value is less than 0.
+        """
+        if v is not None and v < 0:
+            raise ValueError("GPU count cannot be less than 0")
+        return v
 
 
 class AwsGpuNode(BaseModel):

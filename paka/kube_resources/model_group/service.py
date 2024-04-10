@@ -168,8 +168,11 @@ def create_pod(
             container_args["resources"] = client.V1ResourceRequirements()
         if container_args["resources"].limits is None:
             container_args["resources"].limits = {}
+        gpu_count = 1
+        if model_group.resourceRequest and model_group.resourceRequest.gpu:
+            gpu_count = model_group.resourceRequest.gpu
         # Ah, we only support nvidia GPUs for now
-        container_args["resources"].limits["nvidia.com/gpu"] = 1
+        container_args["resources"].limits["nvidia.com/gpu"] = gpu_count
 
     return client.V1Pod(
         metadata=client.V1ObjectMeta(
