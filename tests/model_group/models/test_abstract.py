@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 from paka.kube_resources.model_group.models.abstract import Model
 
@@ -21,7 +21,7 @@ class TestModel(unittest.TestCase):
             s3_max_concurrency=10,
         )
         self.assertEqual(self.model.name, "TheBloke/Llama-2-7B-Chat-GGUF")
-        self.assertEqual(self.model.bucket, "test_bucket")
+        self.assertEqual(self.model.s3_bucket, "test_bucket")
         self.assertEqual(self.model.s3_chunk_size, 4 * 1024 * 1024)
         self.assertEqual(self.model.download_max_concurrency, 5)
         self.assertEqual(self.model.s3_max_concurrency, 10)
@@ -63,22 +63,17 @@ class TestModel(unittest.TestCase):
             "models/TheBloke/Llama-2-7B-Chat-GGUF/llama-2-7b-chat.Q4_0.gguf",
         )
 
-    # @patch("paka.kube_resources.model_group.models.abstract.logger")
-    # @patch("paka.kube_resources.model_group.models.abstract.requests.get")
-    # @patch("paka.kube_resources.model_group.models.abstract.Model.download")
-    # async def test_download_all(
-    #     self, mock_download: Mock, mock_requests_get: Mock, mock_logger: Mock
-    # ) -> None:
-    #     urls = [
-    #         "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_0.gguf",
-    #         "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q2_K.gguf",
-    #     ]
-    #     sha256s: list[str | None] = [
-    #         "9958ee9b670594147b750bbc7d0540b928fa12dcc5dd4c58cc56ed2eb85e371b",
-    #         "c0dd304d761e8e05d082cc2902d7624a7f87858fdfaa4ef098330ffe767ff0d3",
-    #     ]
-    #     mock_download = AsyncMock()
-    #     await self.model.download_all(urls, sha256s)
-    #     # Create a mock async iterator
-    #     mock_download.assert_awaited_with(urls[0], sha256s[0])
-    #     mock_download.assert_awaited_with(urls[1], sha256s[1])
+    @patch.object(Model, "download")
+    def test_download_all(self, mock_download: Mock) -> None:
+        urls = [
+            "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_0.gguf",
+            "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q2_K.gguf",
+        ]
+        sha256s: list[str | None] = [
+            "9958ee9b670594147b750bbc7d0540b928fa12dcc5dd4c58cc56ed2eb85e371b",
+            None,
+        ]
+
+        self.model.download_all(urls, sha256s)
+        self.assertEqual(mock_download.call_count, 2)
+        mock_download.assert_called_with(ANY, ANY)

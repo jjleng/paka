@@ -1,78 +1,115 @@
-from huggingface_hub import hf_hub_url, snapshot_download
+import concurrent.futures
+from typing import Any
+
+from huggingface_hub import HfFileSystem
 
 from paka.kube_resources.model_group.models.abstract import Model
 from paka.logger import logger
 
 
 class HuggingFaceModel(Model):
-    """
-    A class representing a Hugging Face model.
+    def __init__(
+        self,
+        repo_id: str,
+        files: list[str],
+        inference_devices: list[str] = ["cpu"],
+        quantization: str = "GPTQ",
+        runtime: str = "llama.cpp",
+        prompt_template: str = "chatml",
+        download_max_concurrency: int = 10,
+        s3_chunk_size: int = 8 * 1024 * 1024,
+        s3_max_concurrency: int = 20,
+    ) -> None:
+        super().__init__(
+            repo_id,
+            inference_devices,
+            quantization,
+            runtime,
+            prompt_template,
+            download_max_concurrency,
+            s3_chunk_size,
+            s3_max_concurrency,
+        )
+        self.repo_id = repo_id
+        self.fs = HfFileSystem()
+        self.files = self.validate_files(files)
 
-    Args:
-        name (str): The name of the model.
-        files (list[tuple[str, str] | str], optional): A list of files to download for the model. Each file can be specified as a tuple containing the filename and its corresponding SHA256 hash, or as a string representing the filename. Defaults to None.
-
-    Attributes:
-        urls (list[str]): A list of URLs to download the files.
-        sha256s (list[str]): A list of SHA256 hashes corresponding to the files.
-
-    Methods:
-        define_urls(files: list[tuple[str, str] | str]) -> None: Defines the URLs and SHA256 hashes for the files.
-        download() -> None: Downloads the files.
-        snapshot_download(destination: str) -> None: Downloads the model using the Hugging Face snapshot_download function.
-
-    """
-
-    def __init__(self, name: str, files: list[tuple[str, str] | str] = []):
-        super().__init__(name)
-        self.urls: list[str] = []
-        self.sha256s: list[str | None] = []
-        if len(files) > 0:
-            self.define_urls(files)
-
-    def define_urls(self, files: list[tuple[str, str] | str]) -> None:
+    def validate_files(self, files: list[str]) -> list[str]:
         """
-        Defines the URLs and SHA256 hashes for the files.
-
-        Args:
-            files (list[tuple[str, str] | str]): A list of files to download for the model. Each file can be specified as a tuple containing the filename and its corresponding SHA256 hash, or as a string representing the filename.
-
-        Returns:
-            None
-
+        Validates the list of files to download.
         """
+        verified_files: list[str] = []
         for file in files:
-            if isinstance(file, tuple):
-                self.urls.append(hf_hub_url(repo_id=self.name, filename=file[0]))
-                self.sha256s.append(file[1])
-            elif file is not None and file != "":
-                self.urls.append(hf_hub_url(repo_id=self.name, filename=file))
-                self.sha256s.append(None)
+            match_files = self.fs.glob(f"{self.repo_id}/{file}")
+            if len(match_files) > 0:
+                verified_files = verified_files + match_files
+            else:
+                logger.warn(f"File {file} not found in repository {self.repo_id}")
+        return verified_files
 
-    def save_to_s3(self) -> None:
+    def get_file_info(self, hf_file_path: str) -> dict[str, Any]:
         """
-        Downloads the files.
-
-        Returns:
-            None
-
-        """
-        if len(self.urls) == 0:
-            logger.info("No files to download.")
-            return None
-        self.download_all(self.urls, self.sha256s)
-
-    def snapshot_download(self, destination: str) -> None:
-        """
-        Downloads the model using the Hugging Face snapshot_download function.
+        Get information about a file on Hugging Face.
 
         Args:
-            destination (str): The destination directory to save the downloaded model.
+            hf_file_path (str): The path to the file on Hugging Face.
+
+        Returns:
+            dict: A dictionary containing information about the file.
+        """
+        # Get the file information
+        file_info: dict[str, Any] = self.fs.stat(hf_file_path)
+
+        return file_info
+
+    def upload_file_to_s3(self, hf_file_path: str) -> None:
+        """
+        Upload a file from Hugging Face to S3.
+
+        Args:
+            hf_file_path (str): The path to the file on Hugging Face.
 
         Returns:
             None
-
         """
-        # Implement the download logic for Hugging Face models here
-        snapshot_download(self.name, library_name="transformers", cache_dir=destination)
-        pass
+        full_model_file_path = self.get_s3_file_path(hf_file_path)
+        if self.s3_file_exists(full_model_file_path):
+            logger.info(f"Model file {full_model_file_path} already exists.")
+            return
+
+        logger.info(f"Downloading model from {hf_file_path}")
+        completed_upload_id = None
+        file_info = self.get_file_info(hf_file_path)
+        total_size = file_info["size"]
+        sha256 = file_info["lfs"]["sha256"] if "lfs" in file_info else None
+        try:
+            with self.fs.open(hf_file_path, "rb") as hf_file:
+                upload_id, sha256_value = self.upload_fs_to_s3(
+                    hf_file, total_size, full_model_file_path
+                )
+                if sha256 is not None and sha256 != sha256_value:
+                    self.delete_s3_file(full_model_file_path)
+                    raise Exception(
+                        f"SHA256 hash of the downloaded file does not match the expected value. {full_model_file_path}"
+                    )
+                completed_upload_id = upload_id
+        except Exception as e:
+            logger.error(f"An error occurred, download: {str(e)}")
+            raise e
+        finally:
+            # If an error occurred and upload was not completed
+            if completed_upload_id is None:
+                self.s3.abort_multipart_upload(
+                    Bucket=self.s3_bucket, Key=full_model_file_path, UploadId=upload_id
+                )
+
+    def upload_files(self) -> None:
+        """
+        Upload multiple files from Hugging Face to S3 in parallel.
+        Returns:
+            None
+        """
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.download_max_concurrency
+        ) as executor:
+            executor.map(self.upload_file_to_s3, self.files)
