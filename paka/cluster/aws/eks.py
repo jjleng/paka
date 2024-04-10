@@ -101,12 +101,12 @@ def create_node_group_for_model_group(
                 ),
             ],
             # Supported AMI types https://docs.aws.amazon.com/eks/latest/APIReference/API_Nodegroup.html#AmazonEKS-Type-Nodegroup-amiType
-            ami_type=(
-                "AL2_x86_64_GPU"
-                if model_group.awsGpu and model_group.awsGpu.enabled
-                else None
+            ami_type=("AL2_x86_64_GPU" if model_group.awsGpu else None),
+            disk_size=(
+                model_group.awsGpu.diskSize
+                if model_group.awsGpu
+                else model_group.diskSize
             ),
-            disk_size=40 if model_group.awsGpu and model_group.awsGpu.enabled else 20,
         )
 
 

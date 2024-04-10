@@ -9,6 +9,7 @@ aws:
     logRetentionDays: 14
   modelGroups:
     - nodeType: t2.micro
+      diskSize: 20
       name: test-model-group
       minInstances: 1
       maxInstances: 2

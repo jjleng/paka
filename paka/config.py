@@ -78,10 +78,10 @@ class AwsGpuNode(BaseModel):
     Represents a configuration for an AWS GPU node.
 
     Attributes:
-        enabled (bool): Indicates whether the GPU node is enabled or not.
+        diskSize (int): The size of the disk for the GPU node in GB.
     """
 
-    enabled: bool = False
+    diskSize: int
 
 
 class GcpGpuNode(BaseModel):
@@ -93,7 +93,7 @@ class GcpGpuNode(BaseModel):
         acceleratorType (str): The type of accelerator used for the GPU node.
         acceleratorCount (int): The number of accelerators attached to the GPU node.
         diskType (str): The type of disk used for the GPU node.
-        diskSize (int): The size of the disk attached to the GPU node.
+        diskSize (int): The size of the disk attached to the GPU node in GB.
     """
 
     imageType: str
@@ -109,11 +109,13 @@ class CloudNode(BaseModel):
 
     Attributes:
         nodeType (str): The type of the node.
-        awsGpu (Optional[AwsGpuNode]): The AWS GPU node configuration.
-        gcpGpu (Optional[GcpGpuNode]): The GCP GPU node configuration.
+        diskSize (int): The size of the disk attached to the node in GB.
+        awsGpu (Optional[AwsGpuNode]): The AWS GPU node configuration, if applicable.
+        gcpGpu (Optional[GcpGpuNode]): The GCP GPU node configuration, if applicable.
     """
 
     nodeType: str
+    diskSize: int = 20
     awsGpu: Optional[AwsGpuNode] = None
     gcpGpu: Optional[GcpGpuNode] = None
 
