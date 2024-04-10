@@ -52,6 +52,11 @@ def test_invalid_memory_resource_request() -> None:
         ResourceRequest(cpu="500m", memory="2G")
 
 
+def test_invalid_gpu_resource_request() -> None:
+    with pytest.raises(ValueError, match="GPU count cannot be less than 0"):
+        ResourceRequest(cpu="500m", memory="2Gi", gpu=-1)
+
+
 def test_model_group() -> None:
     # Test with valid minInstances and maxInstances
     model_group = ModelGroup(name="test", minInstances=1, maxInstances=2)
