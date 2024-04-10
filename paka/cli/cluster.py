@@ -4,6 +4,7 @@ import click
 import typer
 
 from paka.cli.utils import load_cluster_manager
+from paka.k8s import remove_crd_finalizers
 from paka.k8s import update_kubeconfig as merge_update_kubeconfig
 from paka.logger import logger
 
@@ -64,6 +65,18 @@ def down(
         "all resources and data will be permanently deleted.",
         default=False,
     ):
+        # Sometime finalizers might block CRD deletion, so we need to force delete those
+        # TODO: better way to handle this
+        remove_crd_finalizers(
+            "scaledobjects.keda.sh",
+        )
+        remove_crd_finalizers(
+            "routes.serving.knative.dev",
+        )
+        remove_crd_finalizers(
+            "ingresses.networking.internal.knative.dev",
+        )
+
         cluster_manager = load_cluster_manager(cluster_config)
         cluster_manager.destroy()
 
