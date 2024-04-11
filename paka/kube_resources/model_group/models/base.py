@@ -8,7 +8,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 from paka.logger import logger
-from paka.utils import get_item, read_current_cluster_data
+from paka.utils import read_current_cluster_data
 
 MODEL_PATH_PREFIX = "models"
 
@@ -191,8 +191,8 @@ class Model:
         return upload_id, sha256_value
 
     def upload_fs_to_s3(
-        self, fs: Any, total_size: int, s3_file_name: str
-    ) -> tuple[Any, str]:
+        self, fs: Any, total_size: int, s3_file_name: str, upload_id: str
+    ) -> str:
         """
         Uploads a single file to S3.
 
@@ -200,17 +200,14 @@ class Model:
             fs (Any): The file stream object.
             total_size (int): The total size of the file.
             s3_file_name (str): The name of the file in S3.
+            upload_id: The upload ID of the multipart upload.
 
         Returns:
-            tuple: A tuple containing the upload ID and the SHA256 hash of the file.
+            tuple: the SHA256 hash of the file.
         """
         logger.info(f"Uploading model to {s3_file_name}")
         sha256 = hashlib.sha256()
         processed_size = 0
-        upload = self.s3.create_multipart_upload(
-            Bucket=self.s3_bucket, Key=s3_file_name
-        )
-        upload_id = upload["UploadId"]
         parts = []
 
         with concurrent.futures.ThreadPoolExecutor(
@@ -259,7 +256,7 @@ class Model:
         logger.info(f"File uploaded to S3: {s3_file_name}")
         sha256_value = sha256.hexdigest()
         logger.info(f"SHA256 hash of the file: {sha256_value}")
-        return upload_id, sha256_value
+        return sha256_value
 
     def upload_part(
         self,

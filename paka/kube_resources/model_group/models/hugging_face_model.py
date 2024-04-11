@@ -1,17 +1,18 @@
 import concurrent.futures
 from typing import Any
 
+import boto3
 from huggingface_hub import HfFileSystem
 from pydantic import BaseModel
 
-from paka.kube_resources.model_group.models.abstract import Model
+from paka.kube_resources.model_group.models.base import Model
 from paka.logger import logger
 from paka.utils import to_yaml
 
 
 class Manifest(BaseModel):
     repo_id: str
-    files: list[str]
+    files: list[tuple[str, str]]
     inference_devices: list[str]
     quantization: str
     runtime: str
@@ -47,6 +48,7 @@ class HuggingFaceModel(Model):
         self.repo_id = repo_id
         self.fs = HfFileSystem()
         self.files = self.validate_files(files)
+        self.completed_files: list[tuple[str, str]] = []
 
     def validate_files(self, files: list[str]) -> list[str]:
         """
@@ -94,32 +96,37 @@ class HuggingFaceModel(Model):
             return
 
         self.logging_for_class(f"Downloading huggingface model from {hf_file_path}")
-        completed_upload_id = None
+        upload_id = None
+        file_uploaded = False
         file_info = self.get_file_info(hf_file_path)
         total_size = file_info["size"]
         sha256 = file_info["lfs"]["sha256"] if "lfs" in file_info else None
         try:
             with self.fs.open(hf_file_path, "rb") as hf_file:
-                upload_id, sha256_value = self.upload_fs_to_s3(
-                    hf_file, total_size, full_model_file_path
+                upload = self.s3.create_multipart_upload(
+                    Bucket=self.s3_bucket, Key=full_model_file_path
+                )
+                upload_id = upload["UploadId"]
+                sha256_value = self.upload_fs_to_s3(
+                    hf_file, total_size, full_model_file_path, upload_id
                 )
                 if sha256 is not None and sha256 != sha256_value:
                     self.delete_s3_file(full_model_file_path)
                     raise Exception(
                         f"SHA256 hash of the downloaded file does not match the expected value. {full_model_file_path}"
                     )
-                completed_upload_id = upload_id
+                file_uploaded = True
         except Exception as e:
             self.logging_for_class(f"An error occurred, download: {str(e)}", "error")
             raise e
         finally:
             # If an error occurred and upload was not completed
-            if completed_upload_id is None:
+            if upload_id is not None and not file_uploaded:
                 self.s3.abort_multipart_upload(
                     Bucket=self.s3_bucket, Key=full_model_file_path, UploadId=upload_id
                 )
             else:
-                self.save_manifest_yml()
+                self.completed_files.append((hf_file_path, sha256))
                 self.logging_for_class(
                     f"Model file {full_model_file_path} uploaded successfully."
                 )
@@ -139,7 +146,7 @@ class HuggingFaceModel(Model):
         """
         manifest = Manifest(
             repo_id=self.repo_id,
-            files=self.files,
+            files=self.completed_files,
             inference_devices=self.inference_devices,
             quantization=self.quantization,
             runtime=self.runtime,
@@ -147,7 +154,8 @@ class HuggingFaceModel(Model):
         )
         manifest_yaml = to_yaml(manifest.model_dump(exclude_none=True))
         file_path = self.get_s3_file_path(f"{self.repo_id}/manifest.yml")
-        self.s3.Object(self.s3_bucket, file_path).put(Body=manifest_yaml)
+        s3 = boto3.resource("s3")
+        s3.Object(self.s3_bucket, file_path).put(Body=manifest_yaml)
         self.logging_for_class(f"Manifest file saved to {file_path}")
 
     def upload_files(self) -> None:
@@ -159,7 +167,25 @@ class HuggingFaceModel(Model):
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.download_max_concurrency
         ) as executor:
-            executor.map(self.upload_file_to_s3, self.files)
+            futures = [
+                executor.submit(self.upload_file_to_s3, file) for file in self.files
+            ]
+            concurrent.futures.wait(futures)
+            # Callback function to handle completion of all workers
+            self.handle_upload_completion()
+
+    def handle_upload_completion(self) -> None:
+        """
+        Callback function to handle completion of all workers.
+        This function will be called after all files have been uploaded.
+        Returns:
+            None
+        """
+        # Add your code here to handle the completion of all workers
+        # For example, you can log a message or perform any post-processing tasks
+        self.save_manifest_yml()
+        self.completed_files = []
+        self.logging_for_class("All files have been uploaded.")
 
     def logging_for_class(self, message: str, type: str = "info") -> None:
         """

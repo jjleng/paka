@@ -1,15 +1,15 @@
 import unittest
 from unittest.mock import ANY, MagicMock, Mock, patch
 
-from paka.kube_resources.model_group.models.abstract import Model
+from paka.kube_resources.model_group.models.base import Model
 
 
 class TestModel(unittest.TestCase):
     def setUp(self) -> None:
         self.model = Model("TheBloke/Llama-2-7B-Chat-GGUF")
 
-    @patch("paka.kube_resources.model_group.models.abstract.read_current_cluster_data")
-    @patch("paka.kube_resources.model_group.models.abstract.boto3.client")
+    @patch("paka.kube_resources.model_group.models.base.read_current_cluster_data")
+    @patch("paka.kube_resources.model_group.models.base.boto3.client")
     def test_init(
         self, mock_boto3_client: Mock, mock_read_current_cluster_data: Mock
     ) -> None:
@@ -28,11 +28,11 @@ class TestModel(unittest.TestCase):
         mock_read_current_cluster_data.assert_called_once_with("bucket")
         # mock_boto3_client.assert_called_once_with("s3", config=MagicMock(signature_version="s3v4"))
 
-    @patch("paka.kube_resources.model_group.models.abstract.logger")
-    @patch("paka.kube_resources.model_group.models.abstract.requests.get")
-    @patch("paka.kube_resources.model_group.models.abstract.Model.s3_file_exists")
-    @patch("paka.kube_resources.model_group.models.abstract.Model.upload_part")
-    @patch("paka.kube_resources.model_group.models.abstract.Model.upload_to_s3")
+    @patch("paka.kube_resources.model_group.models.base.logger")
+    @patch("paka.kube_resources.model_group.models.base.requests.get")
+    @patch("paka.kube_resources.model_group.models.base.Model.s3_file_exists")
+    @patch("paka.kube_resources.model_group.models.base.Model.upload_part")
+    @patch("paka.kube_resources.model_group.models.base.Model.upload_to_s3")
     def test_download(
         self,
         mock_upload_to_s3: Mock,
