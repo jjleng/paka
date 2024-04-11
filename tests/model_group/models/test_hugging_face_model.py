@@ -25,8 +25,10 @@ class TestHuggingFaceModel(unittest.TestCase):
     @patch.object(HuggingFaceModel, "get_file_info")
     @patch.object(HuggingFaceModel, "upload_fs_to_s3")
     @patch.object(HuggingFaceModel, "s3_file_exists")
+    @patch.object(HuggingFaceModel, "save_manifest_yml")
     def test_upload_file_to_s3(
         self,
+        mock_save_manifest_yml: Mock,
         mock_s3_file_exists: Mock,
         mock_upload_fs_to_s3: Mock,
         mock_get_file_info: Mock,

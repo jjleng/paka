@@ -2,12 +2,26 @@ import concurrent.futures
 from typing import Any
 
 from huggingface_hub import HfFileSystem
+from pydantic import BaseModel
 
 from paka.kube_resources.model_group.models.abstract import Model
 from paka.logger import logger
+from paka.utils import to_yaml
+
+
+class Manifest(BaseModel):
+    repo_id: str
+    files: list[str]
+    inference_devices: list[str]
+    quantization: str
+    runtime: str
+    prompt_template: str
 
 
 class HuggingFaceModel(Model):
+    def __str__(self) -> str:
+        return "HuggingFaceModel"
+
     def __init__(
         self,
         repo_id: str,
@@ -44,7 +58,9 @@ class HuggingFaceModel(Model):
             if len(match_files) > 0:
                 verified_files = verified_files + match_files
             else:
-                logger.warn(f"File {file} not found in repository {self.repo_id}")
+                self.logging_for_class(
+                    f"File {file} not found in repository {self.repo_id}", "warn"
+                )
         return verified_files
 
     def get_file_info(self, hf_file_path: str) -> dict[str, Any]:
@@ -74,10 +90,10 @@ class HuggingFaceModel(Model):
         """
         full_model_file_path = self.get_s3_file_path(hf_file_path)
         if self.s3_file_exists(full_model_file_path):
-            logger.info(f"Model file {full_model_file_path} already exists.")
+            self.logging_for_class(f"Model file {full_model_file_path} already exists.")
             return
 
-        logger.info(f"Downloading model from {hf_file_path}")
+        self.logging_for_class(f"Downloading huggingface model from {hf_file_path}")
         completed_upload_id = None
         file_info = self.get_file_info(hf_file_path)
         total_size = file_info["size"]
@@ -94,7 +110,7 @@ class HuggingFaceModel(Model):
                     )
                 completed_upload_id = upload_id
         except Exception as e:
-            logger.error(f"An error occurred, download: {str(e)}")
+            self.logging_for_class(f"An error occurred, download: {str(e)}", "error")
             raise e
         finally:
             # If an error occurred and upload was not completed
@@ -102,6 +118,37 @@ class HuggingFaceModel(Model):
                 self.s3.abort_multipart_upload(
                     Bucket=self.s3_bucket, Key=full_model_file_path, UploadId=upload_id
                 )
+            else:
+                self.save_manifest_yml()
+                self.logging_for_class(
+                    f"Model file {full_model_file_path} uploaded successfully."
+                )
+
+    def save_manifest_yml(self) -> None:
+        """
+        Saves the manifest YAML file for the model.
+
+        This method creates a `Manifest` object with the specified parameters and converts it to YAML format.
+        The resulting YAML is then saved to an S3 bucket with the file path "{repo_id}/manifest.yml".
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        manifest = Manifest(
+            repo_id=self.repo_id,
+            files=self.files,
+            inference_devices=self.inference_devices,
+            quantization=self.quantization,
+            runtime=self.runtime,
+            prompt_template=self.prompt_template,
+        )
+        manifest_yaml = to_yaml(manifest.model_dump(exclude_none=True))
+        file_path = self.get_s3_file_path(f"{self.repo_id}/manifest.yml")
+        self.s3.Object(self.s3_bucket, file_path).put(Body=manifest_yaml)
+        self.logging_for_class(f"Manifest file saved to {file_path}")
 
     def upload_files(self) -> None:
         """
@@ -113,3 +160,22 @@ class HuggingFaceModel(Model):
             max_workers=self.download_max_concurrency
         ) as executor:
             executor.map(self.upload_file_to_s3, self.files)
+
+    def logging_for_class(self, message: str, type: str = "info") -> None:
+        """
+        Logs an informational message.
+
+        Args:
+            message (str): The message to log.
+
+        Returns:
+            None
+        """
+        if type == "info":
+            logger.info(f"HuggingFaceModel ({self.repo_id}): {message}")
+        elif type == "warn":
+            logger.warn(f"HuggingFaceModel ({self.repo_id}): {message}")
+        elif type == "error":
+            logger.error(f"HuggingFaceModel ({self.repo_id}): {message}")
+        else:
+            logger.info(f"HuggingFaceModel ({self.repo_id}): {message}")
