@@ -91,6 +91,7 @@ class Model:
                     response, full_model_file_path
                 )
                 if sha256 is not None and sha256 != sha256_value:
+                    self.delete_s3_file(full_model_file_path)
                     raise Exception(
                         f"SHA256 hash of the downloaded file does not match the expected value. {full_model_file_path}"
                     )
