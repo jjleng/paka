@@ -15,6 +15,9 @@ pip install paka
 # - EKS
 # - EC2
 aws configure
+
+# Install pack CLI and verify it is working (https://buildpacks.io/docs/for-platform-operators/how-to/integrate-ci/pack/)
+pack --version
 ```
 
 ### Make sure docker daemon is running
