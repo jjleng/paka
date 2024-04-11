@@ -1,5 +1,7 @@
 from collections import namedtuple
 
+from paka.kube_resources.model_group.models.hugging_face_model import HuggingFaceModel
+
 Model = namedtuple("Model", ["name", "url", "sha256"])
 
 SUPPORTED_MODELS = {
@@ -22,5 +24,16 @@ SUPPORTED_MODELS = {
         name="gte-base",
         url="https://huggingface.co/jjleng/gte-base-gguf/resolve/main/gte-base.q4_0.gguf",
         sha256="2413866ece3b8b9eedf6c2a4393d4b56dbfa363c173ca3ba3a2f2a44db158982",
+    ),
+}
+
+SUPPORTED_MODELS_V2 = {
+    "llama2-7b": HuggingFaceModel(
+        repo_id="TheBloke/Llama-2-7B-Chat-GGUF",
+        files=["*.json", "llama-2-7b-chat.Q4_0.gguf", "llama-2-7b-chat.Q3_K_S.gguf"],
+    ),
+    "gte-base": HuggingFaceModel(
+        repo_id="jjleng/gte-base-gguf",
+        files=["gte-base.q4_0.gguf", "gte-base.f32.gguf", "gte-base.f16.gguf"],
     ),
 }
