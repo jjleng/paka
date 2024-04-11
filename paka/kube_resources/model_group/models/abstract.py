@@ -76,7 +76,7 @@ class Model:
             Exception: If the SHA256 hash of the downloaded file does not match the expected value.
         """
         full_model_file_path = self.get_s3_file_path(
-            f"{self.name}/{url.split(" / ")[-1]}"
+            f"{self.name}/{url.split('/')[-1]}"
         )
         if self.s3_file_exists(full_model_file_path):
             logger.info(f"Model file {full_model_file_path} already exists.")
