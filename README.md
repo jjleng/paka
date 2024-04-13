@@ -106,6 +106,7 @@ paka cluster down -f cluster.yaml
 ## Dependencies
 - docker daemon
 - pack cli (https://buildpacks.io/docs/for-platform-operators/how-to/integrate-ci/pack/)
+- pulumi cli (https://www.pulumi.com/docs/install/)
 - aws cli and credentials for the AWS deployment
 ```bash
 # Make sure aws credentials and cli are set up. Your aws credentials should have access to the following services:

@@ -18,6 +18,9 @@ Follow the steps below to run the example:
 
   # Install pack CLI and verify it is working (https://buildpacks.io/docs/for-platform-operators/how-to/integrate-ci/pack/)
   pack --version
+
+  # Install pulumi CLI and verify it is working (https://www.pulumi.com/docs/install/)
+  pulumi version
   ```
 
 2. **Ensure the Docker daemon is running:**
