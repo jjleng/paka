@@ -45,17 +45,19 @@ class HuggingFaceModel(Model):
             s3_chunk_size,
             s3_max_concurrency,
         )
-        self.repo_id = repo_id
+        self.repo_id: str = repo_id
         self.fs = HfFileSystem()
-        self.files = self.validate_files(files)
+        self.orginal_files = files
+        self.files: list[str] = []
+        self.files_sha256: dict[str, str] = {}
         self.completed_files: list[tuple[str, str]] = []
 
-    def validate_files(self, files: list[str]) -> list[str]:
+    def validate_files(self) -> None:
         """
         Validates the list of files to download.
         """
         verified_files: list[str] = []
-        for file in files:
+        for file in self.orginal_files:
             match_files = self.fs.glob(f"{self.repo_id}/{file}")
             if len(match_files) > 0:
                 verified_files = verified_files + match_files
@@ -63,7 +65,17 @@ class HuggingFaceModel(Model):
                 self.logging_for_class(
                     f"File {file} not found in repository {self.repo_id}", "warn"
                 )
-        return verified_files
+
+        for file in verified_files:
+            file_info = self.get_file_info(file)
+            self.files_size[file] = file_info["size"]
+            self.files_sha256[file] = (
+                file_info["lfs"]["sha256"]
+                if "lfs" in file_info and file_info["lfs"]
+                else None
+            )
+
+        self.files = verified_files
 
     def get_file_info(self, hf_file_path: str) -> dict[str, Any]:
         """
@@ -92,15 +104,13 @@ class HuggingFaceModel(Model):
         """
         full_model_file_path = self.get_s3_file_path(hf_file_path)
         if self.s3_file_exists(full_model_file_path):
-            self.logging_for_class(f"Model file {full_model_file_path} already exists.")
+            self.pbar.postfix(f"Model file {full_model_file_path} already exists.")
+            self.counter[full_model_file_path] = self.files_size[hf_file_path]
             return
 
-        self.logging_for_class(f"Downloading huggingface model from {hf_file_path}")
         upload_id = None
         file_uploaded = False
-        file_info = self.get_file_info(hf_file_path)
-        total_size = file_info["size"]
-        sha256 = file_info["lfs"]["sha256"] if "lfs" in file_info else None
+        sha256 = self.files_sha256[hf_file_path]
         try:
             with self.fs.open(hf_file_path, "rb") as hf_file:
                 upload = self.s3.create_multipart_upload(
@@ -108,7 +118,7 @@ class HuggingFaceModel(Model):
                 )
                 upload_id = upload["UploadId"]
                 sha256_value = self.upload_fs_to_s3(
-                    hf_file, total_size, full_model_file_path, upload_id
+                    hf_file, full_model_file_path, upload_id
                 )
                 if sha256 is not None and sha256 != sha256_value:
                     self.delete_s3_file(full_model_file_path)
@@ -164,6 +174,9 @@ class HuggingFaceModel(Model):
         Returns:
             None
         """
+        self.logging_for_class("Uploading files to S3...")
+        self.validate_files()
+        self.create_pbar()
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.download_max_concurrency
         ) as executor:
@@ -185,23 +198,6 @@ class HuggingFaceModel(Model):
         # For example, you can log a message or perform any post-processing tasks
         self.save_manifest_yml()
         self.completed_files = []
+        self.clear_counter()
+        self.close_pbar()
         self.logging_for_class("All files have been uploaded.")
-
-    def logging_for_class(self, message: str, type: str = "info") -> None:
-        """
-        Logs an informational message.
-
-        Args:
-            message (str): The message to log.
-
-        Returns:
-            None
-        """
-        if type == "info":
-            logger.info(f"HuggingFaceModel ({self.repo_id}): {message}")
-        elif type == "warn":
-            logger.warn(f"HuggingFaceModel ({self.repo_id}): {message}")
-        elif type == "error":
-            logger.error(f"HuggingFaceModel ({self.repo_id}): {message}")
-        else:
-            logger.info(f"HuggingFaceModel ({self.repo_id}): {message}")

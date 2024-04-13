@@ -1,11 +1,13 @@
 import concurrent.futures
 import hashlib
+from threading import Lock
 from typing import Any, Dict, List
 
 import boto3
 import requests
 from botocore.client import Config
 from botocore.exceptions import ClientError
+from tqdm import tqdm
 
 from paka.logger import logger
 from paka.utils import read_current_cluster_data
@@ -51,6 +53,11 @@ class Model:
         self.download_max_concurrency = download_max_concurrency
         self.s3_max_concurrency = s3_max_concurrency
         self.s3 = boto3.client("s3", config=Config(signature_version="s3v4"))
+        # Shared counter
+        self.counter: dict[str, int] = {}
+        self.counter_lock = Lock()
+        self.pbar: tqdm = None
+        self.files_size: dict[str, int] = {}
 
     def get_s3_file_path(self, file_path: str) -> str:
         """
@@ -191,22 +198,19 @@ class Model:
         logger.info(f"SHA256 hash of the file: {sha256_value}")
         return upload_id, sha256_value
 
-    def upload_fs_to_s3(
-        self, fs: Any, total_size: int, s3_file_name: str, upload_id: str
-    ) -> str:
+    def upload_fs_to_s3(self, fs: Any, s3_file_name: str, upload_id: str) -> str:
         """
         Uploads a single file to S3.
 
         Args:
             fs (Any): The file stream object.
-            total_size (int): The total size of the file.
             s3_file_name (str): The name of the file in S3.
             upload_id: The upload ID of the multipart upload.
 
         Returns:
             tuple: the SHA256 hash of the file.
         """
-        logger.info(f"Uploading model to {s3_file_name}")
+        self.pbar.postfix = f"{s3_file_name}"
         sha256 = hashlib.sha256()
         processed_size = 0
         parts = []
@@ -239,8 +243,10 @@ class Model:
                 futures.append(future)
                 part_number += 1
                 processed_size += len(chunk)
-                progress = (processed_size / total_size) * 100
-                print(f"Progress: {progress:.2f}%", end="\r")
+                with self.counter_lock:
+                    self.counter[s3_file_name] = processed_size
+                    total_progress = sum(self.counter.values())
+                    self.pbar.update(total_progress - self.pbar.n)
 
             # Wait for all remaining uploads to complete
             for future in concurrent.futures.as_completed(futures):
@@ -253,10 +259,8 @@ class Model:
             UploadId=upload_id,
             MultipartUpload={"Parts": parts},
         )
-
-        logger.info(f"File uploaded to S3: {s3_file_name}")
         sha256_value = sha256.hexdigest()
-        logger.info(f"SHA256 hash of the file: {sha256_value}")
+        self.pbar.set_postfix(f"Uploaded {s3_file_name}, SHA256: {sha256_value}")
         return sha256_value
 
     def upload_part(
@@ -334,3 +338,34 @@ class Model:
             logger.info(f"{s3_file_name} deleted.")
         else:
             logger.info(f"{s3_file_name} not found.")
+
+    def clear_counter(self) -> None:
+        with self.counter_lock:
+            self.counter = {}
+
+    def create_pbar(self) -> None:
+        total_size = sum(self.files_size.values())
+        self.pbar = tqdm(total=total_size, unit="B", unit_scale=True, desc="Uploading")
+
+    def close_pbar(self) -> None:
+        self.pbar.close()
+        self.pbar = None
+
+    def logging_for_class(self, message: str, type: str = "info") -> None:
+        """
+        Logs an informational message.
+
+        Args:
+            message (str): The message to log.
+
+        Returns:
+            None
+        """
+        if type == "info":
+            logger.info(f"{self.__str__()} ({self.name}): {message}")
+        elif type == "warn":
+            logger.warn(f"{self.__str__()} ({self.name}): {message}")
+        elif type == "error":
+            logger.error(f"{self.__str__()} ({self.name}): {message}")
+        else:
+            logger.info(f"{self.__str__()} ({self.name}): {message}")
