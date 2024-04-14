@@ -71,13 +71,13 @@ def test_download_model() -> None:
         return_value=False,
     ) as mock_exists, patch(
         "paka.kube_resources.model_group.model.download_file_to_s3",
-        return_value=SUPPORTED_MODELS["llama2-7b"].sha256,
+        return_value=SUPPORTED_MODELS["mistral-7b"].sha256,
     ) as mock_download, patch(
         "paka.kube_resources.model_group.model.delete_s3_file"
     ) as mock_delete, patch(
         "paka.kube_resources.model_group.model.save_string_to_s3"
     ) as mock_save:
-        download_model("llama2-7b")
+        download_model("mistral-7b")
 
         mock_exists.assert_called_once()
         mock_download.assert_called_once()
