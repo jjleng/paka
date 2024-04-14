@@ -19,10 +19,8 @@ class TestHuggingFaceModel(unittest.TestCase):
     @patch.object(HuggingFaceModel, "upload_fs_to_s3")
     @patch.object(HuggingFaceModel, "s3_file_exists")
     @patch.object(HuggingFaceModel, "save_manifest_yml")
-    @patch.object(HuggingFaceModel, "pbar")
     def test_upload_file_to_s3(
         self,
-        mock_pbar: Mock,
         mock_save_manifest_yml: Mock,
         mock_s3_file_exists: Mock,
         mock_upload_fs_to_s3: Mock,
@@ -34,8 +32,6 @@ class TestHuggingFaceModel(unittest.TestCase):
 
         hf_file_path = "TheBloke/Llama-2-7B-Chat-GGUF/llama-2-7b-chat.Q4_0.gguf"
         full_model_file_path = self.model.get_s3_file_path(hf_file_path)
-        mock_pbar = MagicMock()
-        mock_pbar.postfix = MagicMock()
 
         # Act
         self.model.s3 = MagicMock()
