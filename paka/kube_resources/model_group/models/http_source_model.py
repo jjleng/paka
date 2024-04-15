@@ -12,7 +12,7 @@ from paka.utils import to_yaml
 
 class HttpSourceManifest(BaseModel):
     name: str
-    urls: list[str]
+    urls: list[tuple[str, str]]
     inference_devices: list[str]
     quantization: str
     runtime: str
