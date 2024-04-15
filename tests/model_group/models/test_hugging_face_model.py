@@ -76,13 +76,11 @@ class TestHuggingFaceModel(unittest.TestCase):
     @patch.object(HuggingFaceModel, "get_file_info")
     @patch.object(HuggingFaceModel, "download")
     def test_upload(self, mock_download: Mock, mock_get_file_info: Mock) -> None:
-        # Arrange
         hf_file_path = "TheBloke/Llama-2-7B-Chat-GGUF/llama-2-7b-chat.Q4_0.gguf"
         hf_file = MagicMock()
         self.model.fs = MagicMock()
         self.model.fs.open = MagicMock()
         self.model.fs.open.return_value.__enter__.return_value = hf_file
-        mock_download = MagicMock()
         mock_get_file_info.return_value = {"size": 100, "lfs": {"sha256": "abc123"}}
         sha256 = "abc123"
 
@@ -179,7 +177,6 @@ class TestHuggingFaceModel(unittest.TestCase):
             ("TheBloke/Llama-2-7B-Chat-GGUF/llama-2-7b-chat.Q4_0.gguf", "abc123"),
             ("TheBloke/Llama-2-7B-Chat-GGUF/llama-2-7b-chat.Q2_K.gguf", "edb322"),
         ]
-        mock_logging_for_class = MagicMock()
 
         # Act
         self.model.handle_upload_completion()
