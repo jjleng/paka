@@ -11,6 +11,7 @@ from paka.kube_resources.model_group.manifest import Manifest
 from paka.kube_resources.model_group.supported_models import (
     SUPPORTED_MODELS,
     SUPPORTED_MODELS_V2,
+    SUPPORTED_MODELS_V3,
 )
 from paka.logger import logger
 from paka.utils import read_current_cluster_data, to_yaml
@@ -207,12 +208,17 @@ def download_model(name: str) -> None:
     Returns:
         None
     """
-
-    if name in SUPPORTED_MODELS_V2:
-        # new version of the model class
-        new_model = SUPPORTED_MODELS_V2[name]
-        if str(new_model) == "HuggingFaceModel":
-            new_model.upload_files()
+    if name in SUPPORTED_MODELS_V3:
+        # http source model class
+        hugging_face_model = SUPPORTED_MODELS_V3[name]
+        if str(hugging_face_model) == "HttpSourceModel":
+            hugging_face_model.upload_files()
+            return
+    elif name in SUPPORTED_MODELS_V2:
+        # hugging face model class
+        http_source_model = SUPPORTED_MODELS_V2[name]
+        if str(http_source_model) == "HuggingFaceModel":
+            http_source_model.upload_files()
             return
     else:
         # old version

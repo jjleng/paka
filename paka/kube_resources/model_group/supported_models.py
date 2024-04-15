@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+from paka.kube_resources.model_group.models.http_source_model import HttpSourceModel
 from paka.kube_resources.model_group.models.hugging_face_model import HuggingFaceModel
 
 Model = namedtuple("Model", ["name", "url", "sha256"])
@@ -35,5 +36,15 @@ SUPPORTED_MODELS_V2 = {
     "gte-base": HuggingFaceModel(
         repo_id="jjleng/gte-base-gguf",
         files=["gte-base.q4_0.gguf", "gte-base.f32.gguf", "gte-base.f16.gguf"],
+    ),
+}
+
+SUPPORTED_MODELS_V3 = {
+    "gte-base": HttpSourceModel(
+        name="jjleng/gte-base-gguf",
+        urls=[
+            "https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_0.gguf",
+            "https://huggingface.co/jjleng/gte-base-gguf/resolve/main/gte-base.q4_0.gguf",
+        ],
     ),
 }
