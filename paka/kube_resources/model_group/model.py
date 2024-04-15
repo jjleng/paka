@@ -1,20 +1,19 @@
 import concurrent.futures
 import hashlib
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import boto3
 import requests
-from botocore.client import BaseClient, Config
+from botocore.client import Config
 from botocore.exceptions import ClientError
 
 from paka.kube_resources.model_group.manifest import Manifest
-from paka.kube_resources.model_group.supported_models import (
-    SUPPORTED_MODELS,
-    SUPPORTED_MODELS_V2,
-    SUPPORTED_MODELS_V3,
-)
+from paka.kube_resources.model_group.supported_models import SUPPORTED_MODELS
 from paka.logger import logger
 from paka.utils import read_current_cluster_data, to_yaml
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3.client import S3Client
 
 MODEL_PATH_PREFIX = "models"
 
@@ -52,7 +51,7 @@ def save_string_to_s3(bucket_name: str, file_name: str, data: str) -> None:
 
 
 def upload_part(
-    s3: BaseClient,
+    s3: "S3Client",
     bucket_name: str,
     s3_file_name: str,
     upload_id: str,
@@ -208,61 +207,48 @@ def download_model(name: str) -> None:
     Returns:
         None
     """
-    if name in SUPPORTED_MODELS_V3:
-        # http source model class
-        hugging_face_model = SUPPORTED_MODELS_V3[name]
-        if str(hugging_face_model) == "HttpSourceModel":
-            hugging_face_model.upload_files()
-            return
-    elif name in SUPPORTED_MODELS_V2:
-        # hugging face model class
-        http_source_model = SUPPORTED_MODELS_V2[name]
-        if str(http_source_model) == "HuggingFaceModel":
-            http_source_model.upload_files()
-            return
-    else:
-        # old version
-        if name not in SUPPORTED_MODELS:
-            logger.error(
-                f"Model {name} is not supported."
-                f"Available models are: {', '.join(SUPPORTED_MODELS.keys())}"
-            )
-            raise Exception(f"Model {name} is not supported.")
 
-        model = SUPPORTED_MODELS[name]
-
-        logger.info(f"Downloading model from {model.url}...")
-        # Get the model name from the URL
-        model_file_name = model.url.split("/")[-1]
-        model_path = f"{MODEL_PATH_PREFIX}/{name}"
-
-        full_model_file_path = f"{model_path}/{model_file_name}"
-        bucket = read_current_cluster_data("bucket")
-
-        if s3_file_prefix_exists(bucket, f"{model_path}/"):
-            logger.info(f"Model {name} already exists.")
-            return
-
-        sha256 = download_file_to_s3(model.url, bucket, full_model_file_path)
-        if sha256 != model.sha256:
-            logger.error(f"SHA256 hash of the downloaded file does not match.")
-            # Delete the file
-            delete_s3_file(bucket, full_model_file_path)
-            raise Exception(f"SHA256 hash of the downloaded file does not match.")
-
-        # Save model manifest
-        manifest = Manifest(
-            name=name,
-            sha256=model.sha256,
-            url=model.url,
-            type="gguf",  # TODO: hard-coded for now
-            file=model_file_name,
+    if name not in SUPPORTED_MODELS:
+        logger.error(
+            f"Model {name} is not supported."
+            f"Available models are: {', '.join(SUPPORTED_MODELS.keys())}"
         )
+        raise Exception(f"Model {name} is not supported.")
 
-        manifest_yaml = to_yaml(manifest.model_dump(exclude_none=True))
-        save_string_to_s3(bucket, f"{model_path}/manifest.yaml", manifest_yaml)
+    model = SUPPORTED_MODELS[name]
 
-        logger.info(f"Model {name} downloaded successfully.")
+    logger.info(f"Downloading model from {model.url}...")
+    # Get the model name from the URL
+    model_file_name = model.url.split("/")[-1]
+    model_path = f"{MODEL_PATH_PREFIX}/{name}"
+
+    full_model_file_path = f"{model_path}/{model_file_name}"
+    bucket = read_current_cluster_data("bucket")
+
+    if s3_file_prefix_exists(bucket, f"{model_path}/"):
+        logger.info(f"Model {name} already exists.")
+        return
+
+    sha256 = download_file_to_s3(model.url, bucket, full_model_file_path)
+    if sha256 != model.sha256:
+        logger.error(f"SHA256 hash of the downloaded file does not match.")
+        # Delete the file
+        delete_s3_file(bucket, full_model_file_path)
+        raise Exception(f"SHA256 hash of the downloaded file does not match.")
+
+    # Save model manifest
+    manifest = Manifest(
+        name=name,
+        sha256=model.sha256,
+        url=model.url,
+        type="gguf",  # TODO: hard-coded for now
+        file=model_file_name,
+    )
+
+    manifest_yaml = to_yaml(manifest.model_dump(exclude_none=True))
+    save_string_to_s3(bucket, f"{model_path}/manifest.yaml", manifest_yaml)
+
+    logger.info(f"Model {name} downloaded successfully.")
 
 
 def get_model_file_name(model_name: str) -> str:
