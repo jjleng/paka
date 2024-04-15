@@ -1,11 +1,13 @@
 import concurrent.futures
 import hashlib
+from threading import Lock
 from typing import Any, Dict, List
 
 import boto3
 import requests
 from botocore.client import Config
 from botocore.exceptions import ClientError
+from tqdm import tqdm
 
 from paka.logger import logger
 from paka.utils import read_current_cluster_data
@@ -51,6 +53,11 @@ class Model:
         self.download_max_concurrency = download_max_concurrency
         self.s3_max_concurrency = s3_max_concurrency
         self.s3 = boto3.client("s3", config=Config(signature_version="s3v4"))
+        # Shared counter
+        self.counter: dict[str, int] = {}
+        self.counter_lock = Lock()
+        self.pbar: tqdm = None
+        self.completed_files: list[tuple[str, str]] = []
 
     def get_s3_file_path(self, file_path: str) -> str:
         """
@@ -64,7 +71,13 @@ class Model:
         """
         return f"{MODEL_PATH_PREFIX}/{file_path}"
 
-    def download(self, url: str, sha256: str | None = None) -> None:
+    def download(
+        self,
+        url: str,
+        response: requests.Response | Any,
+        total_size: int,
+        sha256: str = "",
+    ) -> None:
         """
         Downloads a single file from a URL.
 
@@ -75,189 +88,127 @@ class Model:
         Raises:
             Exception: If the SHA256 hash of the downloaded file does not match the expected value.
         """
+        with self.counter_lock:
+            if self.pbar is None:
+                self.create_pbar(total_size)
+
         full_model_file_path = self.get_s3_file_path(
             f"{self.name}/{url.split('/')[-1]}"
         )
-        if self.s3_file_exists(full_model_file_path):
-            logger.info(f"Model file {full_model_file_path} already exists.")
-            return
 
-        logger.info(f"Downloading model from {url}")
-        completed_upload_id = None
+        upload_id = None
+        file_uploaded = False
         try:
-            with requests.get(url, stream=True) as response:
-                response.raise_for_status()
-                upload_id, sha256_value = self.upload_to_s3(
-                    response, full_model_file_path
+            if full_model_file_path not in self.counter:
+                with self.counter_lock:
+                    if self.pbar is not None:
+                        self.pbar.total += total_size
+                        self.pbar.refresh()
+
+            if self.s3_file_exists(full_model_file_path):
+                logger.info(f"Model source already exists in {full_model_file_path}.")
+                self.update_progress(full_model_file_path, total_size)
+                return
+
+            upload = self.s3.create_multipart_upload(
+                Bucket=self.s3_bucket, Key=full_model_file_path
+            )
+            upload_id = upload["UploadId"]
+            sha256_value = self.upload_to_s3(response, full_model_file_path, upload_id)
+            if sha256 and sha256 != sha256_value:
+                self.delete_s3_file(full_model_file_path)
+                raise Exception(
+                    f"SHA256 hash of the downloaded file does not match the expected value. {full_model_file_path}"
                 )
-                if sha256 is not None and sha256 != sha256_value:
-                    self.delete_s3_file(full_model_file_path)
-                    raise Exception(
-                        f"SHA256 hash of the downloaded file does not match the expected value. {full_model_file_path}"
-                    )
-                completed_upload_id = upload_id
+            file_uploaded = True
         except Exception as e:
-            logger.error(f"An error occurred, download: {str(e)}")
+            self.logging_for_class(f"An error occurred: {str(e)}", "error")
             raise e
         finally:
             # If an error occurred and upload was not completed
-            if completed_upload_id is None:
+            if upload_id is not None and not file_uploaded:
                 self.s3.abort_multipart_upload(
                     Bucket=self.s3_bucket, Key=full_model_file_path, UploadId=upload_id
                 )
-
-    def download_all(self, urls: list[str], sha256s: list[str | None] = []) -> None:
-        """
-        Downloads multiple files from a list of URLs.
-
-        Args:
-            urls (list[str]): A list of URLs of the files to download.
-            sha256s (list[str], optional): A list of expected SHA256 hashes for the downloaded files.
-        """
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.download_max_concurrency
-        ) as executor:
-            executor.map(self.download, urls, sha256s)
+            else:
+                self.logging_for_class(
+                    f"Model file {full_model_file_path} uploaded successfully."
+                )
+                self.completed_files.append((url, sha256))
+                self.update_progress()
 
     def upload_to_s3(
-        self, response: requests.Response, s3_file_name: str
-    ) -> tuple[Any, str]:
-        """
-        Uploads a single file to S3.
-
-        Args:
-            response (requests.Response): The response object from the file download.
-            s3_file_name (str): The name of the file in S3.
-
-        Returns:
-            tuple: A tuple containing the upload ID and the SHA256 hash of the file.
-        """
-        logger.info(f"Uploading model to {s3_file_name}")
-        sha256 = hashlib.sha256()
-        total_size = int(response.headers.get("content-length", 0))
-        processed_size = 0
-
-        upload = self.s3.create_multipart_upload(
-            Bucket=self.s3_bucket, Key=s3_file_name
-        )
-        upload_id = upload["UploadId"]
-        parts = []
-
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.s3_max_concurrency
-        ) as executor:
-            futures: List[concurrent.futures.Future] = []
-            part_number = 1
-
-            for chunk in response.iter_content(chunk_size=self.s3_chunk_size):
-                sha256.update(chunk)
-                while len(futures) >= self.s3_max_concurrency:
-                    # Wait for one of the uploads to complete
-                    done, _ = concurrent.futures.wait(
-                        futures, return_when=concurrent.futures.FIRST_COMPLETED
-                    )
-                    for future in done:
-                        parts.append(future.result())
-                        futures.remove(future)
-
-                # Submit new chunk for upload
-                future = executor.submit(
-                    self.upload_part,
-                    s3_file_name,
-                    upload_id,
-                    part_number,
-                    chunk,
-                )
-                futures.append(future)
-                part_number += 1
-                processed_size += len(chunk)
-                progress = (processed_size / total_size) * 100
-                print(f"Progress: {progress:.2f}%", end="\r")
-
-            # Wait for all remaining uploads to complete
-            for future in concurrent.futures.as_completed(futures):
-                parts.append(future.result())
-
-        parts.sort(key=lambda part: part["PartNumber"])
-        self.s3.complete_multipart_upload(
-            Bucket=self.s3_bucket,
-            Key=s3_file_name,
-            UploadId=upload_id,
-            MultipartUpload={"Parts": parts},
-        )
-
-        logger.info(f"File uploaded to S3: {s3_file_name}")
-        sha256_value = sha256.hexdigest()
-        logger.info(f"SHA256 hash of the file: {sha256_value}")
-        return upload_id, sha256_value
-
-    def upload_fs_to_s3(
-        self, fs: Any, total_size: int, s3_file_name: str, upload_id: str
+        self,
+        response: Any,
+        s3_file_name: str,
+        upload_id: str,
     ) -> str:
         """
         Uploads a single file to S3.
 
         Args:
-            fs (Any): The file stream object.
-            total_size (int): The total size of the file.
+            response (requests.Response | FileStream): The response object from the file download or the file stream object.
             s3_file_name (str): The name of the file in S3.
-            upload_id: The upload ID of the multipart upload.
+            upload_id (str): The upload ID of the multipart upload.
 
         Returns:
-            tuple: the SHA256 hash of the file.
+            str: The SHA256 hash of the uploaded file.
         """
-        logger.info(f"Uploading model to {s3_file_name}")
-        sha256 = hashlib.sha256()
-        processed_size = 0
-        parts = []
+        try:
+            self.pbar.postfix = f"{s3_file_name}"
+            sha256 = hashlib.sha256()
+            processed_size = 0
+            parts = []
 
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.s3_max_concurrency
-        ) as executor:
-            futures: List[concurrent.futures.Future] = []
-            part_number = 1
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.s3_max_concurrency
+            ) as executor:
+                futures: List[concurrent.futures.Future] = []
+                part_number = 1
+                for chunk in (
+                    response.iter_content(chunk_size=self.s3_chunk_size)
+                    if "Response" in str(response)
+                    else iter(lambda: response.read(self.s3_chunk_size), b"")
+                ):
+                    sha256.update(chunk)
+                    while len(futures) >= self.s3_max_concurrency:
+                        done, _ = concurrent.futures.wait(
+                            futures, return_when=concurrent.futures.FIRST_COMPLETED
+                        )
+                        for future in done:
+                            parts.append(future.result())
+                            futures.remove(future)
 
-            for chunk in iter(lambda: fs.read(self.s3_chunk_size), b""):
-                sha256.update(chunk)
-                while len(futures) >= self.s3_max_concurrency:
-                    # Wait for one of the uploads to complete
-                    done, _ = concurrent.futures.wait(
-                        futures, return_when=concurrent.futures.FIRST_COMPLETED
+                    future = executor.submit(
+                        self.upload_part,
+                        s3_file_name,
+                        upload_id,
+                        part_number,
+                        chunk,
                     )
-                    for future in done:
-                        parts.append(future.result())
-                        futures.remove(future)
+                    futures.append(future)
+                    part_number += 1
+                    processed_size += len(chunk)
+                    self.update_progress(s3_file_name, processed_size)
 
-                # Submit new chunk for upload
-                future = executor.submit(
-                    self.upload_part,
-                    s3_file_name,
-                    upload_id,
-                    part_number,
-                    chunk,
-                )
-                futures.append(future)
-                part_number += 1
-                processed_size += len(chunk)
-                progress = (processed_size / total_size) * 100
-                print(f"Progress: {progress:.2f}%", end="\r")
+                for future in concurrent.futures.as_completed(futures):
+                    parts.append(future.result())
 
-            # Wait for all remaining uploads to complete
-            for future in concurrent.futures.as_completed(futures):
-                parts.append(future.result())
+            parts.sort(key=lambda part: part["PartNumber"])
+            self.s3.complete_multipart_upload(
+                Bucket=self.s3_bucket,
+                Key=s3_file_name,
+                UploadId=upload_id,
+                MultipartUpload={"Parts": parts},
+            )
 
-        parts.sort(key=lambda part: part["PartNumber"])
-        self.s3.complete_multipart_upload(
-            Bucket=self.s3_bucket,
-            Key=s3_file_name,
-            UploadId=upload_id,
-            MultipartUpload={"Parts": parts},
-        )
-
-        logger.info(f"File uploaded to S3: {s3_file_name}")
-        sha256_value = sha256.hexdigest()
-        logger.info(f"SHA256 hash of the file: {sha256_value}")
-        return sha256_value
+            sha256_value = sha256.hexdigest()
+            return sha256_value
+        except Exception as e:
+            self.logging_for_class(
+                f"An error occurred in upload_to_s3: {str(e)}", "error"
+            )
+            raise e
 
     def upload_part(
         self,
@@ -334,3 +285,40 @@ class Model:
             logger.info(f"{s3_file_name} deleted.")
         else:
             logger.info(f"{s3_file_name} not found.")
+
+    def clear_counter(self) -> None:
+        with self.counter_lock:
+            self.counter = {}
+
+    def create_pbar(self, total_size: int) -> None:
+        self.pbar = tqdm(total=total_size, unit="B", unit_scale=True, desc="Uploading")
+
+    def close_pbar(self) -> None:
+        self.pbar.close()
+        self.pbar = None
+
+    def update_progress(self, key: str = "", value: int = 0) -> None:
+        with self.counter_lock:
+            if key:
+                self.counter[key] = value
+            total_progress = sum(self.counter.values())
+            self.pbar.update(total_progress - self.pbar.n)
+
+    def logging_for_class(self, message: str, type: str = "info") -> None:
+        """
+        Logs an informational message.
+
+        Args:
+            message (str): The message to log.
+
+        Returns:
+            None
+        """
+        if type == "info":
+            logger.info(f"{self.__str__()} ({self.name}): {message}")
+        elif type == "warn":
+            logger.warn(f"{self.__str__()} ({self.name}): {message}")
+        elif type == "error":
+            logger.error(f"{self.__str__()} ({self.name}): {message}")
+        else:
+            logger.info(f"{self.__str__()} ({self.name}): {message}")
