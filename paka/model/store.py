@@ -114,21 +114,26 @@ class S3ModelStore(ModelStore):
 
         self.progress_bar.update_progress_bar(path, total_size)
 
-        if self.file_exists(path):
+        try:
+            if self.file_exists(path):
+                self.progress_bar.advance_progress_bar(path, total_size)
+                return
+
+            sha256_value = self._upload_to_s3(stream, path)
+            if sha256 and sha256 != sha256_value:
+                message = f"SHA256 hash of the downloaded file does not match the expected value for {path}"
+                # Log the error message so that users know why the file was deleted
+                logger.error(message)
+                self.delete_file(path)
+
+                raise Exception(message)
+
+            if not self.with_progress_bar:
+                logger.info(f"Model file {path} is saved successfully.")
             self.progress_bar.advance_progress_bar(path, total_size)
-            return
-
-        sha256_value = self._upload_to_s3(stream, path)
-        if sha256 and sha256 != sha256_value:
+        except Exception:
             self.progress_bar.close_progress_bar()
-            message = f"SHA256 hash of the downloaded file does not match the expected value for {path}"
-            logger.error(message)
-            self.delete_file(path)
-            raise Exception(message)
-
-        if not self.with_progress_bar:
-            logger.info(f"Model file {path} is saved successfully.")
-        self.progress_bar.advance_progress_bar(path, total_size)
+            raise
 
     def _upload_to_s3(
         self,

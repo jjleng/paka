@@ -58,10 +58,10 @@ class HuggingFaceModel(BaseMLModel):
 
     def _save_single_file(self, hf_file_path: str) -> None:
         """
-        Uploads a Hugging Face model file to the specified file system.
+        Saves a HuggingFace model file to the specified model store.
 
         Args:
-            hf_file_path (str): The path to the Hugging Face model file.
+            hf_file_path (str): The path to the HuggingFace model file.
 
         Returns:
             None
