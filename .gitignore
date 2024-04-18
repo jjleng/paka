@@ -132,7 +132,6 @@ cython_debug/
 
 
 # Poetry specific
-poetry.lock
 .pypoetry-cache
 
 # Jupyter Notebook

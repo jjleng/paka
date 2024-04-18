@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
 
 class ModelSettings(BaseModel):
-    inference_devices: list[str] = Field(
+    inference_devices: List[str] = Field(
         description="The list of inference devices (cpu, gpu, tpu, etc) to use.",
     )
     quantization: str = Field(

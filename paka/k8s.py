@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import os
 import re
@@ -6,22 +8,13 @@ import socket
 import threading
 import time
 from functools import partial
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Protocol,
-    Tuple,
-    TypeAlias,
-)
+from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple
 
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import portforward
 from ruamel.yaml import YAML
+from typing_extensions import TypeAlias
 
 from paka.logger import logger
 from paka.utils import get_project_data_dir, read_yaml_file

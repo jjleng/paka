@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import concurrent.futures
 import hashlib
 from typing import TYPE_CHECKING, Any, Dict, List
