@@ -7,6 +7,7 @@ def test_progress_bar() -> None:
 
     pb.create_progress_bar(100)
     fake_pb.create_progress_bar(100)
+    assert pb.progress_bar is not None
     assert pb.progress_bar.total == 100
     assert pb.progress_bar.desc == "Testing"
 

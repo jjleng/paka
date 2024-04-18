@@ -1,3 +1,4 @@
+import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
 
@@ -24,31 +25,36 @@ def odic_role_for_sa(
     """
     project = config.cluster.name
 
+    oidc_url = cluster.core.oidc_provider.url
+    oidc_arn = cluster.core.oidc_provider.arn
+
+    assume_role_policy = pulumi.Output.all(oidc_url, oidc_arn).apply(
+        lambda args: aws.iam.get_policy_document(
+            statements=[
+                aws.iam.GetPolicyDocumentStatementArgs(
+                    effect="Allow",
+                    principals=[
+                        aws.iam.GetPolicyDocumentStatementPrincipalArgs(
+                            type="Federated",
+                            identifiers=[str(args[1])],
+                        )
+                    ],
+                    actions=["sts:AssumeRoleWithWebIdentity"],
+                    conditions=[
+                        aws.iam.GetPolicyDocumentStatementConditionArgs(
+                            test="StringEquals",
+                            variable=f"{args[0]}:sub",
+                            values=[f"system:serviceaccount:{ns_service_account}"],
+                        )
+                    ],
+                )
+            ],
+        ).json
+    )
+
     role = aws.iam.Role(
         f"{project}-{role_name}-role",
-        assume_role_policy=cluster.core.oidc_provider.url.apply(
-            lambda url: aws.iam.get_policy_document(
-                statements=[
-                    aws.iam.GetPolicyDocumentStatementArgs(
-                        effect="Allow",
-                        principals=[
-                            aws.iam.GetPolicyDocumentStatementPrincipalArgs(
-                                type="Federated",
-                                identifiers=[cluster.core.oidc_provider.arn],
-                            )
-                        ],
-                        actions=["sts:AssumeRoleWithWebIdentity"],
-                        conditions=[
-                            aws.iam.GetPolicyDocumentStatementConditionArgs(
-                                test="StringEquals",
-                                variable=f"{url}:sub",
-                                values=[f"system:serviceaccount:{ns_service_account}"],
-                            )
-                        ],
-                    )
-                ],
-            ).json
-        ),
+        assume_role_policy=assume_role_policy,
     )
 
     return role
