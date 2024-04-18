@@ -1,15 +1,17 @@
+from __future__ import annotations
+
 from threading import Lock
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 from tqdm import tqdm
 
 
 class ProgressBar:
     def __init__(self, message: str = "Downloading") -> None:
-        self.counter: dict[str, int] = {}
+        self.counter: Dict[str, int] = {}
         self.lock = Lock()
         self.progress_bar: tqdm = None
-        self.completed_files: list[tuple[str, str]] = []
+        self.completed_files: List[Tuple[str, str]] = []
         self.message = message
 
     def __getattr__(self, name: str) -> Any:

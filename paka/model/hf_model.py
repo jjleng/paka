@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import concurrent.futures
 import os
 from typing import Any, Dict, List, Optional
@@ -38,7 +40,7 @@ class HuggingFaceModel(BaseMLModel):
         """
         Saves the model to a model store.
         """
-        files: list[str] = []
+        files: List[str] = []
         for file in self._files:
             match_files = self.fs.glob(f"{self.repo_id}/{file}")
 

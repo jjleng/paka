@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import concurrent.futures
 import functools
 import hashlib
 from abc import ABC, abstractmethod
 from io import IOBase
-from typing import Any, Callable, Dict, List, TypeAlias, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, TypeVar, Union, cast
 
 import boto3
 import requests
 from botocore.client import Config
 from botocore.exceptions import ClientError
+from typing_extensions import TypeAlias
 
 from paka.logger import logger
 from paka.model.progress_bar import NullProgressBar, ProgressBar
