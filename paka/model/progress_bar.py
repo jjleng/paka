@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from threading import Lock
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from tqdm import tqdm
 
@@ -10,7 +10,7 @@ class ProgressBar:
     def __init__(self, message: str = "Downloading") -> None:
         self.counter: Dict[str, int] = {}
         self.lock = Lock()
-        self.progress_bar: tqdm = None
+        self.progress_bar: Optional[tqdm] = None
         self.completed_files: List[Tuple[str, str]] = []
         self.message = message
 
@@ -18,6 +18,8 @@ class ProgressBar:
         return getattr(self.progress_bar, name)
 
     def set_postfix_str(self, *args: Any, **kwargs: Any) -> None:
+        if self.progress_bar is None:
+            return
         self.progress_bar.set_postfix_str(*args, **kwargs)
 
     def clear_counter(self) -> None:
@@ -45,12 +47,16 @@ class ProgressBar:
                 self.progress_bar.refresh()
 
     def close_progress_bar(self) -> None:
+        if self.progress_bar is None:
+            return
         with self.lock:
             self.counter = {}
             self.progress_bar.close()
             self.progress_bar = None
 
     def advance_progress_bar(self, key: str = "", value: int = 0) -> None:
+        if self.progress_bar is None:
+            return
         with self.lock:
             if key:
                 self.counter[key] = value
