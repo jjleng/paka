@@ -50,17 +50,17 @@ tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "p
 
 [[package]]
 name = "boto3"
-version = "1.34.86"
+version = "1.34.87"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.34.86-py3-none-any.whl", hash = "sha256:be594c449a0079bd1898ba1b7d90e0e5ac6b5803b2ada03993da01179073808d"},
-    {file = "boto3-1.34.86.tar.gz", hash = "sha256:992ba74459fef2bf1572050408db73d33c43e7531d81bda85a027f39156926a1"},
+    {file = "boto3-1.34.87-py3-none-any.whl", hash = "sha256:b709dbf8d5c241a86406b0634461b9c8a7a7934ca35502347c2d1d6b8a97ab8a"},
+    {file = "boto3-1.34.87.tar.gz", hash = "sha256:c630597a4d8018dc5ca364176104f10d3c96ef21009d28b398090822d49a57f1"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.86,<1.35.0"
+botocore = ">=1.34.87,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -69,13 +69,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.34.86"
-description = "Type annotations for boto3 1.34.86 generated with mypy-boto3-builder 7.23.2"
+version = "1.34.87"
+description = "Type annotations for boto3 1.34.87 generated with mypy-boto3-builder 7.23.2"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3_stubs-1.34.86-py3-none-any.whl", hash = "sha256:325b3c6a765aa9ffb0123c7700938f39560c37f9e5174f717749ffc9994ee34f"},
-    {file = "boto3_stubs-1.34.86.tar.gz", hash = "sha256:d6b77891a52d5c160cc8c6a5958d96d54e2a964f881d65fa4b09dc85c376ef54"},
+    {file = "boto3_stubs-1.34.87-py3-none-any.whl", hash = "sha256:f4475e79c212c8ef4925066d9e712f891dfb9304258be8b0ce283ec9235c12f1"},
+    {file = "boto3_stubs-1.34.87.tar.gz", hash = "sha256:7c6202efc9b7df67d773c21844273003fa66c78d73ee4284e2ef4bf6bacc087a"},
 ]
 
 [package.dependencies]
@@ -127,7 +127,7 @@ bedrock-agent = ["mypy-boto3-bedrock-agent (>=1.34.0,<1.35.0)"]
 bedrock-agent-runtime = ["mypy-boto3-bedrock-agent-runtime (>=1.34.0,<1.35.0)"]
 bedrock-runtime = ["mypy-boto3-bedrock-runtime (>=1.34.0,<1.35.0)"]
 billingconductor = ["mypy-boto3-billingconductor (>=1.34.0,<1.35.0)"]
-boto3 = ["boto3 (==1.34.86)", "botocore (==1.34.86)"]
+boto3 = ["boto3 (==1.34.87)", "botocore (==1.34.87)"]
 braket = ["mypy-boto3-braket (>=1.34.0,<1.35.0)"]
 budgets = ["mypy-boto3-budgets (>=1.34.0,<1.35.0)"]
 ce = ["mypy-boto3-ce (>=1.34.0,<1.35.0)"]
@@ -473,13 +473,13 @@ xray = ["mypy-boto3-xray (>=1.34.0,<1.35.0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.86"
+version = "1.34.87"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.86-py3-none-any.whl", hash = "sha256:57c1e3b2e1db745d22c45cbd761bbc0c143d2cfc2b532e3245cf5d874aa30b6d"},
-    {file = "botocore-1.34.86.tar.gz", hash = "sha256:2fd62b63d8788e15629bfc95be1bd2d99c0da6c1d45ef1f40c0a0101e412f6b5"},
+    {file = "botocore-1.34.87-py3-none-any.whl", hash = "sha256:854c6de3c34fa6836f57cc4427651e57b7cfe90f297a60e4cc686886cb47140c"},
+    {file = "botocore-1.34.87.tar.gz", hash = "sha256:a3a4d857f0941d98a1e5ce8cd64c39062271fea0be4d9f3d0d6aff6cb58123b9"},
 ]
 
 [package.dependencies]
@@ -495,13 +495,13 @@ crt = ["awscrt (==0.20.9)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.34.86"
+version = "1.34.87"
 description = "Type annotations and code completion for botocore"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "botocore_stubs-1.34.86-py3-none-any.whl", hash = "sha256:24276781a437702c96e05cba01a808ef6d9c5d2df8f615e540cf2e55987fe7bf"},
-    {file = "botocore_stubs-1.34.86.tar.gz", hash = "sha256:2e0d170d627454a1d8b685ef3f4eed8c0adf634f19e9c96f195ca3aef737a62e"},
+    {file = "botocore_stubs-1.34.87-py3-none-any.whl", hash = "sha256:ea77b0b9cf028973212f5c2079a2ac8635172153d3aab322b33c18b73f76ebe9"},
+    {file = "botocore_stubs-1.34.87.tar.gz", hash = "sha256:0f2ebbbc5ee609cd7dc33fc89fa6f88bec8bbe2afcf814ad7a88be00ea7741d6"},
 ]
 
 [package.dependencies]
@@ -831,13 +831,13 @@ files = [
 
 [[package]]
 name = "exceptiongroup"
-version = "1.2.0"
+version = "1.2.1"
 description = "Backport of PEP 654 (exception groups)"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "exceptiongroup-1.2.0-py3-none-any.whl", hash = "sha256:4bfd3996ac73b41e9b9628b04e079f193850720ea5945fc96a08633c66912f14"},
-    {file = "exceptiongroup-1.2.0.tar.gz", hash = "sha256:91f5c769735f051a4290d52edd0858999b57e5876e9f85937691bd4c9fa3ed68"},
+    {file = "exceptiongroup-1.2.1-py3-none-any.whl", hash = "sha256:5258b9ed329c5bbdd31a309f53cbfb0b155341807f6ff7606a1e801a891b29ad"},
+    {file = "exceptiongroup-1.2.1.tar.gz", hash = "sha256:a4785e48b045528f5bfe627b6ad554ff32def154f42372786903b7abcfe1aa16"},
 ]
 
 [package.extras]
@@ -1485,12 +1485,12 @@ files = [
 
 [[package]]
 name = "pulumi"
-version = "3.113.0"
+version = "3.105.0"
 description = "Pulumi's Python SDK"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pulumi-3.113.0-py3-none-any.whl", hash = "sha256:c27cc210153cb7bbee332068a0e7ccc855b155666bbf154c0e96e81423bbd89a"},
+    {file = "pulumi-3.105.0-py3-none-any.whl", hash = "sha256:72e764f905b8e299a45858b8646166967a6ad123e544c6c1e04dcba42f5e553a"},
 ]
 
 [package.dependencies]
@@ -1571,18 +1571,18 @@ semver = ">=2.8.1"
 
 [[package]]
 name = "pulumi-kubernetes"
-version = "4.10.0"
+version = "4.9.0"
 description = "A Pulumi package for creating and managing Kubernetes resources."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pulumi_kubernetes-4.10.0-py3-none-any.whl", hash = "sha256:1b6e029fb2378064f70bf531343082280b6e59df345b2439d6ff97f1d586e5f1"},
-    {file = "pulumi_kubernetes-4.10.0.tar.gz", hash = "sha256:49b5c3e53e1f6952278793c06fe9a21c716c85ea469a597b931186b03fef7f85"},
+    {file = "pulumi_kubernetes-4.9.0-py3-none-any.whl", hash = "sha256:ab03fdf25b0bc15a016502323f017f066fb160dc9705705c73d622679b28ab12"},
+    {file = "pulumi_kubernetes-4.9.0.tar.gz", hash = "sha256:0e2c6d45e174b5a05ab1fbd567b6e29fd51bafa199541b786224b777c30c0b58"},
 ]
 
 [package.dependencies]
 parver = ">=0.2.1"
-pulumi = ">=3.109.0,<4.0.0"
+pulumi = ">=3.25.0,<4.0.0"
 requests = ">=2.21,<3.0"
 semver = ">=2.8.1"
 
@@ -2348,4 +2348,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "99074c18bb417284507e76df7b16e6ed24834ec9971fec768c98bddbbcfce64f"
+content-hash = "297a7e6ac337e0e2d18a28d4053c5379d1d9d2f10007278cef17e530ce9ac7d9"
