@@ -30,12 +30,12 @@ paka = "paka.cli.__main__:main"
 python = "^3.8"
 pydantic = "^2.7.0"
 ruamel-yaml = "^0.18.6"
-pulumi = "^3.113.0"
+pulumi = "3.105.0"
 pulumi-aws = "^6.31.0"
 typer = "^0.12.3"
 pulumi-eks = "^2.3.0"
 pulumi-awsx = "^2.7.0"
-pulumi-kubernetes = "^4.10.0"
+pulumi-kubernetes = "^4.8.1"
 pathspec = "^0.12.1"
 requests = "^2.31.0"
 kubernetes = "^29.0.0"
@@ -56,7 +56,7 @@ isort = "^5.13.2"
 types-tabulate = "^0.9.0.20240106"
 pulumi-policy = "^1.11.0"
 moto = "^5.0.5"
-boto3-stubs = { extras = ["s3"], version = "^1.34.86" }
+boto3-stubs = { extras = ["s3"], version = "^1.34.87" }
 types-tqdm = "^4.66.0.20240417"
 
 [build-system]
