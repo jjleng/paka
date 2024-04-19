@@ -53,13 +53,16 @@ def test_installation_on_different_systems(
     ) as mock_requests, patch(
         "tempfile.NamedTemporaryFile"
     ), patch(
-        "tarfile.open"
+        "tarfile.open",
+        return_value=MagicMock(),
     ) as mock_tarfile, patch(
         "zipfile.ZipFile"
     ) as mock_zipfile, patch(
         "os.makedirs"
     ), patch(
         "os.unlink"
+    ), patch(
+        "os.chmod"
     ):
         install_pack()
 
