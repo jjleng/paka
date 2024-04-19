@@ -46,6 +46,8 @@ class ModelSettings(BaseModel):
             "GGUF_Q5_K_S",
             "GGUF_Q6_K",
             "GGUF_Q8_0",
+            "GGUF_fp16",
+            "GGUF_fp32",
         ]
         if v not in valid_methods:
             raise ValueError("Invalid quantization method")
@@ -83,6 +85,7 @@ class ModelSettings(BaseModel):
             "chatglm3",
             "openchat",
             "saiga",
+            "codellama",
         ]
         if v is not None and v not in valid_templates:
             raise ValueError("Invalid prompt template name")
