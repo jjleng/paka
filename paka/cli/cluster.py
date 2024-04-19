@@ -67,17 +67,21 @@ def down(
         "all resources and data will be permanently deleted.",
         default=False,
     ):
-        # Sometime finalizers might block CRD deletion, so we need to force delete those
-        # TODO: better way to handle this
-        remove_crd_finalizers(
-            "scaledobjects.keda.sh",
-        )
-        remove_crd_finalizers(
-            "routes.serving.knative.dev",
-        )
-        remove_crd_finalizers(
-            "ingresses.networking.internal.knative.dev",
-        )
+        try:
+            # Sometime finalizers might block CRD deletion, so we need to force delete those.
+            # This is best effort and might not work in all cases.
+            # TODO: better way to handle this
+            remove_crd_finalizers(
+                "scaledobjects.keda.sh",
+            )
+            remove_crd_finalizers(
+                "routes.serving.knative.dev",
+            )
+            remove_crd_finalizers(
+                "ingresses.networking.internal.knative.dev",
+            )
+        except Exception:
+            pass
 
         cluster_manager = load_cluster_manager(cluster_config)
         cluster_manager.destroy()
@@ -107,3 +111,20 @@ def preview(
         cluster_manager.preview(policy_packs=policy_packs)
     else:
         cluster_manager.preview()
+
+
+@cluster_app.command()
+def refresh(
+    cluster_config: str = typer.Option(
+        "",
+        "--file",
+        "-f",
+        help="Path to the cluster config file. The cluster config file is a "
+        "YAML file that contains the configuration of the cluster",
+    ),
+) -> None:
+    """
+    Synchronize the local cluster state with the state in the cloud.
+    """
+    cluster_manager = load_cluster_manager(cluster_config)
+    cluster_manager.refresh()
