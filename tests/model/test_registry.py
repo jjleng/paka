@@ -1,9 +1,14 @@
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 
-from paka.model.registry import HuggingFaceModel, get_model, model_registry
+from paka.model.hf_model import BaseMLModel
 
 
-def test_get_model() -> None:
+@patch.object(BaseMLModel, "get_model_store", return_value=MagicMock())
+def test_get_model(get_model_store_mock: Mock) -> None:
+    from paka.model.registry import HuggingFaceModel, get_model, model_registry
+
     model_registry.append(
         HuggingFaceModel(
             name="test_model",
