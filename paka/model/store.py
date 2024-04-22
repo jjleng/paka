@@ -56,7 +56,6 @@ class ModelStore(ABC):
     def file_exists(self, path: str, prefix_match: bool = False) -> bool:
         pass
 
-    @resolve_path
     @abstractmethod
     def delete_file(self, path: str) -> None:
         pass

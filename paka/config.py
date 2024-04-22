@@ -150,6 +150,35 @@ class CloudNode(BaseModel):
         return values
 
 
+class Runtime(BaseModel):
+    """
+    Represents a runtime for a model.
+
+    Attributes:
+        image (str): The Docker image to use for the runtime.
+        command (List[str], optional): The command to run in the Docker container.
+    """
+
+    image: str
+    command: Optional[List[str]] = None
+
+
+class Model(BaseModel):
+    """
+    Represents a model.
+
+    Attributes:
+        hfRepoId (str, optional): The HuggingFace repository ID for the model.
+        files (List[str], optional): The list of files to include from the repository. Defaults to all files ("*").
+        useModelStore (bool, optional): Whether to save the model to a model store, such as s3. Defaults to True.
+    """
+
+    hfRepoId: Optional[str] = None
+    files: List[str] = ["*"]
+
+    useModelStore: bool = True
+
+
 class ModelGroup(BaseModel):
     """
     Represents a group of VMs that serve the inference for a specific type of model.
@@ -158,11 +187,16 @@ class ModelGroup(BaseModel):
         name (str): The name of the model group.
         minInstances (int): The minimum number of instances to provision.
         maxInstances (int): The maximum number of instances to provision.
+        model (Optional[Model]): The model to deploy in the model group. If None, runtime image is responsible for loading the model.
+        runtime (Runtime): The runtime for the model group.
     """
 
     name: str
     minInstances: int
     maxInstances: int
+
+    model: Optional[Model] = None
+    runtime: Runtime
 
     @model_validator(mode="before")
     def check_instances_num(cls, values: Dict[str, int]) -> Dict[str, int]:

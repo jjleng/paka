@@ -13,3 +13,5 @@ aws:
       name: test-model-group
       minInstances: 1
       maxInstances: 2
+      runtime:
+        image: test-image
