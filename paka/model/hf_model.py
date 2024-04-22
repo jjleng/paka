@@ -17,17 +17,13 @@ class HuggingFaceModel(BaseMLModel):
         name: str,
         repo_id: str,
         files: List[str],
-        inference_devices: List[str],
-        quantization: str,
-        runtime: str,
+        quantization: Optional[str] = None,
         prompt_template_name: Optional[str] = None,
         prompt_template_str: Optional[str] = None,
     ) -> None:
         super().__init__(
             name=name,
-            inference_devices=inference_devices,
             quantization=quantization,
-            runtime=runtime,
             prompt_template_name=prompt_template_name,
             prompt_template_str=prompt_template_str,
         )

@@ -57,9 +57,7 @@ model_registry.extend(
             name="llama2-7b",
             repo_id=repo_id,
             files=[f"llama-2-7b.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
         )
         for quant in quantization
     ]
@@ -74,9 +72,7 @@ model_registry.extend(
             name="llama2-7b-chat",
             repo_id=repo_id,
             files=[f"llama-2-7b-chat.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
             prompt_template_name="llama-2",
             prompt_template_str=prompt_templates["llama-2"],
         )
@@ -92,9 +88,7 @@ model_registry.extend(
             name="llama2-13b",
             repo_id=repo_id,
             files=[f"llama-2-13b.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
         )
         for quant in quantization
     ]
@@ -108,9 +102,7 @@ model_registry.extend(
             name="llama2-13b-chat",
             repo_id=repo_id,
             files=[f"llama-2-13b-chat.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
             prompt_template_name="llama-2",
             prompt_template_str=prompt_templates["llama-2"],
         )
@@ -126,9 +118,7 @@ model_registry.extend(
             name="llama2-70b",
             repo_id=repo_id,
             files=[f"llama-2-70b.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
         )
         for quant in quantization
     ]
@@ -142,9 +132,7 @@ model_registry.extend(
             name="llama2-70b-chat",
             repo_id=repo_id,
             files=[f"llama-2-70b-chat.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
             prompt_template_name="llama-2",
             prompt_template_str=prompt_templates["llama-2"],
         )
@@ -160,9 +148,7 @@ model_registry.extend(
             name="mistral-7b-instruct-v0.2",
             repo_id=repo_id,
             files=[f"mistral-7b-instruct-v0.2.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
             prompt_template_name="mistral-instruct",
             prompt_template_str=prompt_templates["mistral-instruct"],
         )
@@ -178,9 +164,7 @@ model_registry.extend(
             name="mistral-7b-instruct-v0.1",
             repo_id=repo_id,
             files=[f"mistral-7b-instruct-v0.1.{quant}.gguf"],
-            inference_devices=["cpu", "gpu"],
             quantization=f"GGUF_{quant}",
-            runtime="llama.cpp",
             prompt_template_name="mistral-instruct",
             prompt_template_str=prompt_templates["mistral-instruct"],
         )
@@ -199,9 +183,7 @@ for size in codellama_sizes:
                 name=f"codellama-{size}",
                 repo_id=repo_id,
                 files=[f"codellama-{size}.{quant}.gguf"],
-                inference_devices=["cpu", "gpu"],
                 quantization=f"GGUF_{quant}",
-                runtime="llama.cpp",
             )
             for quant in quantization
         ]
@@ -217,9 +199,7 @@ for size in codellama_sizes:
                 name=f"codellama-{size}-instruct",
                 repo_id=repo_id,
                 files=[f"codellama-{size}-instruct.{quant}.gguf"],
-                inference_devices=["cpu", "gpu"],
                 quantization=f"GGUF_{quant}",
-                runtime="llama.cpp",
                 prompt_template_name="codellama",
                 prompt_template_str=prompt_templates["codellama"],
             )
@@ -237,9 +217,7 @@ for size in codellama_sizes:
                 name=f"codellama-{size}-python",
                 repo_id=repo_id,
                 files=[f"codellama-{size}-python.{quant}.gguf"],
-                inference_devices=["cpu", "gpu"],
                 quantization=f"GGUF_{quant}",
-                runtime="llama.cpp",
                 prompt_template_name="codellama",
                 prompt_template_str=prompt_templates["codellama"],
             )
@@ -260,9 +238,7 @@ for variant in gte_variants:
                 name=f"gte-{variant}",
                 repo_id=repo_id,
                 files=[f"gte-{variant}.{quant}.gguf"],
-                inference_devices=["cpu", "gpu"],
                 quantization=f"GGUF_{quant}",
-                runtime="llama.cpp",
             )
             for quant in gte_quantization
         ]

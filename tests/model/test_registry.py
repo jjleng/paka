@@ -14,9 +14,7 @@ def test_get_model(get_model_store_mock: Mock) -> None:
             name="test_model",
             repo_id="test_repo",
             files=[],
-            inference_devices=["cpu"],
             quantization="GGUF_Q4_0",
-            runtime="llama.cpp",
         )
     )
 
@@ -35,9 +33,7 @@ def test_get_model(get_model_store_mock: Mock) -> None:
             name="test_model",
             repo_id="test_repo_2",
             files=[],
-            inference_devices=["cpu"],
             quantization="GGUF_Q4_0",
-            runtime="llama.cpp",
         )
     )
     with pytest.raises(ValueError):
