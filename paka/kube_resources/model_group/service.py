@@ -1,22 +1,59 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 from kubernetes import client
 
 from paka.config import CloudConfig, CloudModelGroup, Config
 from paka.constants import ACCESS_ALL_SA
 from paka.k8s import CustomResource, apply_resource, try_load_kubeconfig
-from paka.kube_resources.model_group.model import MODEL_PATH_PREFIX, download_model
+from paka.kube_resources.model_group.runtime.llama_cpp import (
+    get_runtime_command_llama_cpp,
+    is_llama_cpp_image,
+)
+from paka.model.hf_model import HuggingFaceModel
+from paka.model.store import MODEL_PATH_PREFIX
 from paka.utils import kubify_name, read_cluster_data
 
-# `latest` will be stale because of the `IfNotPresent` policy
-# We hardcode the image here for now, we can make it configurable later
-LLAMA_CPP_PYTHON_IMAGE = "ghcr.io/abetlen/llama-cpp-python:latest"
-
-LLAMA_CPP_PYTHON_CUDA = "jijunleng/llama-cpp-python-cuda:latest"
-
 try_load_kubeconfig()
+
+
+def get_runtime_command(model_group: CloudModelGroup, port: int) -> List[str]:
+    """
+    Gets the runtime command for a machine learning model group.
+
+    Args:
+        model_group (CloudModelGroup): The model group to get the runtime command for.
+
+    Returns:
+        List[str]: The runtime command.
+    """
+    command = []  # Default to the command in images
+    runtime = model_group.runtime
+    if runtime.command and not is_llama_cpp_image(runtime.image):
+        command = runtime.command
+
+    # If user did not provide a command, we need to provide a default command with heuristics.
+    if is_llama_cpp_image(runtime.image):
+        command = get_runtime_command_llama_cpp(model_group)
+
+        # Add or replace the port in the command
+        for i in range(len(command)):
+            if command[i] == "--port":
+                command[i + 1] = str(port)
+                break
+        else:
+            command.extend(["--port", str(port)])
+
+    return command
+
+
+def get_health_check_paths(model_group: CloudModelGroup) -> Tuple[str, str]:
+    # Return a tuple for ready and live probes
+    if is_llama_cpp_image(model_group.runtime.image):
+        return ("/health", "/health")
+
+    raise ValueError("Unsupported runtime image for health check paths.")
 
 
 def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Container:
@@ -52,38 +89,10 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
     )
 
 
-def init_parse_manifest() -> client.V1Container:
-    """
-    Initializes a container for creating a symbolic link to the model file.
-
-    Returns:
-        client.V1Container: The initialized container for handling the manifest.
-    """
-    return client.V1Container(
-        name="init-parse-manifest",
-        image="busybox",
-        command=[
-            "sh",
-            "-c",
-            "model_type=$(cat /data/manifest.yaml | grep 'type' | cut -d ':' -f2 | tr -d ' '); "
-            'if [ "$model_type" != "gguf" ]; then echo \'Invalid model type\' && exit 1; fi; '
-            "model_file=$(cat /data/manifest.yaml | grep 'file' | cut -d ':' -f2 | tr -d ' '); "
-            "ln -s /data/${model_file} /data/my_model.gguf",
-        ],
-        volume_mounts=[
-            client.V1VolumeMount(
-                name="model-data",
-                mount_path="/data",
-            )
-        ],
-    )
-
-
 def create_pod(
     namespace: str,
     config: Config,
     model_group: CloudModelGroup,
-    runtime_image: str,
     port: int,
 ) -> client.V1Pod:
     """
@@ -109,9 +118,12 @@ def create_pod(
     if config.aws is None:
         raise ValueError("Only AWS is supported at this time")
 
+    ready_probe_path, live_probe_path = get_health_check_paths(model_group)
+
     container_args = {
         "name": f"{kubify_name(model_group.name)}",
-        "image": runtime_image,
+        "image": model_group.runtime.image,
+        "command": get_runtime_command(model_group, port),
         "volume_mounts": [
             client.V1VolumeMount(
                 name="model-data",
@@ -120,22 +132,13 @@ def create_pod(
         ],
         "env": [
             client.V1EnvVar(
-                name="N_GPU_LAYERS",
-                # -1 means all layers are GPU layers, 0 means no GPU layers
-                value=("-1" if model_group.awsGpu else "0"),
-            ),
-            client.V1EnvVar(
-                name="MODEL",
-                value=f"/data/my_model.gguf",
-            ),
-            client.V1EnvVar(
                 name="PORT",
                 value=str(port),
             ),
         ],
         "readiness_probe": client.V1Probe(
             http_get=client.V1HTTPGetAction(
-                path="/v1/models",
+                path=ready_probe_path,
                 port=port,
             ),
             initial_delay_seconds=60,
@@ -146,7 +149,7 @@ def create_pod(
         ),
         "liveness_probe": client.V1Probe(
             http_get=client.V1HTTPGetAction(
-                path="/v1/models",
+                path=live_probe_path,
                 port=port,
             ),
             initial_delay_seconds=240,
@@ -193,7 +196,12 @@ def create_pod(
                     empty_dir=client.V1EmptyDirVolumeSource(),
                 )
             ],
-            init_containers=[init_aws(config.aws, model_group), init_parse_manifest()],
+            # Download models from s3 only when s3 is used as a model store
+            init_containers=(
+                [init_aws(config.aws, model_group)]
+                if model_group.model and model_group.model.useModelStore
+                else []
+            ),
             containers=[client.V1Container(**container_args)],
             tolerations=[
                 client.V1Toleration(
@@ -501,7 +509,14 @@ def create_model_group_service(
         raise ValueError("Only AWS is supported at this time")
 
     # Download the model to S3 first
-    download_model(model_group.name)
+    if model_group.model and model_group.model.useModelStore:
+        if model_group.model.hfRepoId:
+            model = HuggingFaceModel(
+                name=model_group.name,
+                repo_id=model_group.model.hfRepoId,
+                files=model_group.model.files,
+            )
+            model.save()
 
     port = 8000
 
@@ -509,7 +524,6 @@ def create_model_group_service(
         namespace,
         config,
         model_group,
-        (LLAMA_CPP_PYTHON_CUDA if model_group.awsGpu else LLAMA_CPP_PYTHON_IMAGE),
         port,
     )
 

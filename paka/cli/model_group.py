@@ -8,7 +8,6 @@ from kubernetes import client
 from tabulate import tabulate
 
 from paka.k8s import try_load_kubeconfig
-from paka.kube_resources.model_group.model import SUPPORTED_MODELS
 from paka.kube_resources.model_group.service import MODEL_PATH_PREFIX, filter_services
 from paka.logger import logger
 from paka.utils import read_current_cluster_data
@@ -16,15 +15,6 @@ from paka.utils import read_current_cluster_data
 try_load_kubeconfig()
 
 model_group_app = typer.Typer()
-
-
-@model_group_app.command()
-def list_all_models() -> None:
-    """
-    List all supported models.
-    """
-    for model_name in SUPPORTED_MODELS:
-        logger.info(model_name)
 
 
 @model_group_app.command()
@@ -43,8 +33,7 @@ def list_downloaded_models() -> None:
                 key = key[len(f"{MODEL_PATH_PREFIX}/") :]
 
             key = key.split("/")[0]
-            if key in SUPPORTED_MODELS:
-                unique_models.add(key)
+            unique_models.add(key)
 
         for key in unique_models:
             logger.info(key)

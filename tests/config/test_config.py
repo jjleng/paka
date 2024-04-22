@@ -12,6 +12,7 @@ from paka.config import (
     Config,
     ModelGroup,
     ResourceRequest,
+    Runtime,
     generate_yaml,
     parse_yaml,
 )
@@ -28,7 +29,11 @@ cloud_config = CloudConfig(
     ),
     modelGroups=[
         CloudModelGroup(
-            name="test-model-group", minInstances=1, maxInstances=2, nodeType="t2.micro"
+            name="test-model-group",
+            minInstances=1,
+            maxInstances=2,
+            nodeType="t2.micro",
+            runtime=Runtime(image="test-image"),
         )
     ],
 )
@@ -61,7 +66,9 @@ def test_invalid_gpu_resource_request() -> None:
 
 def test_model_group() -> None:
     # Test with valid minInstances and maxInstances
-    model_group = ModelGroup(name="test", minInstances=1, maxInstances=2)
+    model_group = ModelGroup(
+        name="test", minInstances=1, maxInstances=2, runtime=Runtime(image="test-image")
+    )
     assert model_group.name == "test"
     assert model_group.minInstances == 1
     assert model_group.maxInstances == 2
@@ -70,11 +77,21 @@ def test_model_group() -> None:
     with pytest.raises(
         ValueError, match="maxInstances must be greater than or equal to minInstances"
     ):
-        ModelGroup(name="test", minInstances=2, maxInstances=1)
+        ModelGroup(
+            name="test",
+            minInstances=2,
+            maxInstances=1,
+            runtime=Runtime(image="test-image"),
+        )
 
     # Test with minInstances less than or equal to 0
     with pytest.raises(ValueError, match="minInstances must be greater than 0"):
-        ModelGroup(name="test", minInstances=0, maxInstances=2)
+        ModelGroup(
+            name="test",
+            minInstances=0,
+            maxInstances=2,
+            runtime=Runtime(image="test-image"),
+        )
 
 
 def test_cloud_vector_store() -> None:
@@ -112,10 +129,18 @@ def test_cloud_config() -> None:
         namespace="default",
     )
     model_group1 = CloudModelGroup(
-        nodeType="c7a.xlarge", name="test-group1", minInstances=1, maxInstances=2
+        nodeType="c7a.xlarge",
+        name="test-group1",
+        minInstances=1,
+        maxInstances=2,
+        runtime=Runtime(image="test-image"),
     )
     model_group2 = CloudModelGroup(
-        nodeType="c7a.xlarge", name="test-group2", minInstances=1, maxInstances=2
+        nodeType="c7a.xlarge",
+        name="test-group2",
+        minInstances=1,
+        maxInstances=2,
+        runtime=Runtime(image="test-image"),
     )
     resource_request = ResourceRequest(cpu="2000m", memory="2Gi")
     vector_store = CloudVectorStore(
@@ -135,10 +160,18 @@ def test_cloud_config() -> None:
 
     # Test with duplicate model group names
     model_group1 = CloudModelGroup(
-        nodeType="c7a.xlarge", name="test-group", minInstances=1, maxInstances=2
+        nodeType="c7a.xlarge",
+        name="test-group",
+        minInstances=1,
+        maxInstances=2,
+        runtime=Runtime(image="test-image"),
     )
     model_group2 = CloudModelGroup(
-        nodeType="c7a.xlarge", name="test-group", minInstances=1, maxInstances=2
+        nodeType="c7a.xlarge",
+        name="test-group",
+        minInstances=1,
+        maxInstances=2,
+        runtime=Runtime(image="test-image"),
     )
     with pytest.raises(ValueError, match="Duplicate model group names are not allowed"):
         CloudConfig(
@@ -197,6 +230,8 @@ def test_parse_yaml() -> None:
               minInstances: 1
               maxInstances: 1
               name: llama2-7b
+              runtime:
+                image: test-image
               awsGpu:
         vectorStore:
             nodeType: t2.small
@@ -237,6 +272,8 @@ def test_parse_yaml() -> None:
               minInstances: 1
               maxInstances: 1
               name: llama2-7b
+              runtime:
+                image: test-image
               awsGpu:
                 diskSize: 100
     """
