@@ -17,9 +17,7 @@ def test_http_source_model() -> None:
         model = HttpSourceModel(
             name="TestModel",
             urls=["http://example.com/file1", "http://example.com/file2"],
-            inference_devices=["cpu", "gpu"],
             quantization="GPTQ",
-            runtime="llama.cpp",
             prompt_template_name=None,
             prompt_template_str=None,
         )

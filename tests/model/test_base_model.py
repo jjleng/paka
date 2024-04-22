@@ -20,9 +20,7 @@ def test_base_ml_model() -> None:
     ) as mock_get_model_store:
         model = ConcreteMLModel(
             name="TestModel",
-            inference_devices=["cpu", "gpu"],
             quantization="GPTQ",
-            runtime="llama.cpp",
             prompt_template_name=None,
             prompt_template_str=None,
         )

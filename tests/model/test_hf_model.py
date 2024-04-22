@@ -20,9 +20,7 @@ def test_hf_model() -> None:
             name="TestModel",
             repo_id="test-repo",
             files=["file1", "file2"],
-            inference_devices=["cpu", "gpu"],
             quantization="GPTQ",
-            runtime="llama.cpp",
         )
 
         mock_hf_file_system.return_value.glob.return_value = ["file1", "file2"]

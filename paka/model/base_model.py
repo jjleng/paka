@@ -15,9 +15,7 @@ class BaseMLModel(ABC):
     def __init__(
         self,
         name: str,
-        inference_devices: List[str],
-        quantization: str,
-        runtime: str,
+        quantization: Optional[str],
         prompt_template_name: Optional[str],
         prompt_template_str: Optional[str],
         # Max concurrency for saving model streams
@@ -26,9 +24,7 @@ class BaseMLModel(ABC):
         self.name = name
         self.completed_files: List[Tuple[str, str]] = []
         self.settings = ModelSettings(
-            inference_devices=inference_devices,
             quantization=quantization,
-            runtime=runtime,
             prompt_template_name=prompt_template_name,
             prompt_template_str=prompt_template_str,
         )
@@ -52,9 +48,7 @@ class BaseMLModel(ABC):
                     ModelFile(name=name, sha256=sha256)
                     for (name, sha256) in self.completed_files
                 ],
-                inference_devices=self.settings.inference_devices,
                 quantization=self.settings.quantization,
-                runtime=self.settings.runtime,
                 prompt_template_name=self.settings.prompt_template_name,
                 prompt_template_str=self.settings.prompt_template_str,
             )

@@ -18,10 +18,7 @@ plugins = "pydantic.mypy"
 profile = "black"
 
 [tool.pytest.ini_options]
-filterwarnings = [
-  "ignore:pkg_resources is deprecated:DeprecationWarning",
-  "ignore:Waiting for.*:DeprecationWarning",
-]
+filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.poetry.scripts]
 paka = "paka.cli.__main__:main"
