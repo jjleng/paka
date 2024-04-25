@@ -6,8 +6,8 @@ import click
 import typer
 
 from paka.cli.utils import load_cluster_manager
-from paka.k8s import remove_crd_finalizers
-from paka.k8s import update_kubeconfig as merge_update_kubeconfig
+from paka.k8s.utils import remove_crd_finalizers
+from paka.k8s.utils import update_kubeconfig as merge_update_kubeconfig
 from paka.logger import logger
 
 cluster_app = typer.Typer()

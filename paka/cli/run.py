@@ -5,7 +5,7 @@ import typer
 from kubernetes import client
 
 from paka.cli.utils import resolve_image
-from paka.k8s import tail_logs, try_load_kubeconfig
+from paka.k8s.utils import tail_logs, try_load_kubeconfig
 from paka.logger import logger
 from paka.utils import kubify_name, random_str, read_current_cluster_data
 

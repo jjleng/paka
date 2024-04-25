@@ -6,11 +6,11 @@ from kubernetes import client
 
 from paka.config import CloudConfig, CloudModelGroup, Config
 from paka.constants import ACCESS_ALL_SA
-from paka.k8s import CustomResource, apply_resource, try_load_kubeconfig
-from paka.kube_resources.model_group.runtime.llama_cpp import (
+from paka.k8s.model_group.runtime.llama_cpp import (
     get_runtime_command_llama_cpp,
     is_llama_cpp_image,
 )
+from paka.k8s.utils import CustomResource, apply_resource, try_load_kubeconfig
 from paka.model.hf_model import HuggingFaceModel
 from paka.model.store import MODEL_PATH_PREFIX
 from paka.utils import kubify_name, read_cluster_data
