@@ -8,8 +8,8 @@ import typer
 from kubernetes import client
 
 from paka.cli.utils import resolve_image
-from paka.k8s import try_load_kubeconfig
-from paka.kube_resources.job.worker import create_workers, delete_workers
+from paka.k8s.job.worker import create_workers, delete_workers
+from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
 from paka.utils import kubify_name, read_current_cluster_data
 

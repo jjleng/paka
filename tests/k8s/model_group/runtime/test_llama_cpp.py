@@ -2,11 +2,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import paka.kube_resources.model_group.runtime.llama_cpp
+import paka.k8s.model_group.runtime.llama_cpp
 from paka.config import CloudModelGroup, Model, Runtime
-from paka.kube_resources.model_group.runtime.llama_cpp import (
-    get_runtime_command_llama_cpp,
-)
+from paka.k8s.model_group.runtime.llama_cpp import get_runtime_command_llama_cpp
 
 
 @pytest.fixture
@@ -26,13 +24,13 @@ def model_group() -> CloudModelGroup:
 def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
     mock_store = MagicMock()
     with patch.object(
-        paka.kube_resources.model_group.runtime.llama_cpp.BaseMLModel,
+        paka.k8s.model_group.runtime.llama_cpp.BaseMLModel,
         "get_model_store",
         return_value=mock_store,
     ) as mock_get_model_store, patch.object(
-        paka.kube_resources.model_group.runtime.llama_cpp, "HfFileSystem"
+        paka.k8s.model_group.runtime.llama_cpp, "HfFileSystem"
     ) as mock_hf_fs, patch.object(
-        paka.kube_resources.model_group.runtime.llama_cpp,
+        paka.k8s.model_group.runtime.llama_cpp,
         "validate_repo_id",
         return_value=True,
     ) as mock_validate_repo_id:

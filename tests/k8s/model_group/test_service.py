@@ -9,7 +9,7 @@ from paka.config import (
     ResourceRequest,
     Runtime,
 )
-from paka.kube_resources.model_group.service import create_pod
+from paka.k8s.model_group.service import create_pod
 
 
 def test_create_pod() -> None:

@@ -1,6 +1,10 @@
 from kubernetes import client
 
-from paka.k8s import CustomResource, apply_resource, delete_namespaced_custom_object
+from paka.k8s.utils import (
+    CustomResource,
+    apply_resource,
+    delete_namespaced_custom_object,
+)
 
 
 def create_autoscaler(

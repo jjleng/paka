@@ -4,8 +4,8 @@ import time
 from kubernetes import client
 
 from paka.constants import ACCESS_ALL_SA
-from paka.k8s import apply_resource, create_namespace, try_load_kubeconfig
-from paka.kube_resources.job.autoscaler import create_autoscaler, delete_autoscaler
+from paka.k8s.job.autoscaler import create_autoscaler, delete_autoscaler
+from paka.k8s.utils import apply_resource, create_namespace, try_load_kubeconfig
 from paka.logger import logger
 
 try_load_kubeconfig()

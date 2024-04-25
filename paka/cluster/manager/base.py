@@ -6,8 +6,8 @@ from typing import Any
 from pulumi import automation as auto
 
 from paka.config import CloudConfig, Config
-from paka.kube_resources.model_group.ingress import create_model_vservice
-from paka.kube_resources.model_group.service import create_model_group_service
+from paka.k8s.model_group.ingress import create_model_vservice
+from paka.k8s.model_group.service import create_model_group_service
 from paka.logger import logger
 from paka.utils import read_cluster_data, save_cluster_data
 

@@ -1,6 +1,6 @@
 import typer
 
-from paka.k8s import update_kubeconfig
+from paka.k8s.utils import update_kubeconfig
 from paka.logger import logger
 
 kube_app = typer.Typer()

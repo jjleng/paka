@@ -8,12 +8,12 @@ from kubernetes.dynamic.exceptions import NotFoundError
 from tabulate import tabulate
 
 from paka.cli.utils import resolve_image
-from paka.k8s import try_load_kubeconfig
-from paka.kube_resources.function.service import (
+from paka.k8s.function.service import (
     create_knative_service,
     delete_knative_service,
     list_knative_services,
 )
+from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
 from paka.utils import kubify_name, read_current_cluster_data
 

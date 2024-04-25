@@ -7,8 +7,8 @@ import typer
 from kubernetes import client
 from tabulate import tabulate
 
-from paka.k8s import try_load_kubeconfig
-from paka.kube_resources.model_group.service import MODEL_PATH_PREFIX, filter_services
+from paka.k8s.model_group.service import MODEL_PATH_PREFIX, filter_services
+from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
 from paka.utils import read_current_cluster_data
 

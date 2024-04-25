@@ -4,7 +4,7 @@ from typing import List
 
 from kubernetes import client
 
-from paka.k8s import CustomResource, apply_resource
+from paka.k8s.utils import CustomResource, apply_resource
 from paka.utils import kubify_name
 
 
