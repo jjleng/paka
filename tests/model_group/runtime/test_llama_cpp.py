@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,13 +18,18 @@ def model_group() -> CloudModelGroup:
         nodeType="t2.micro",
         runtime=Runtime(
             image="johndoe/llama.cpp:server",
-            command=["/server", "--model", "/data/model.ggml"],
+            command=["/server", "--model", "/data/model.gguf"],
         ),
     )
 
 
 def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
-    with patch("os.listdir") as mock_listdir, patch.object(
+    mock_store = MagicMock()
+    with patch.object(
+        paka.kube_resources.model_group.runtime.llama_cpp.BaseMLModel,
+        "get_model_store",
+        return_value=mock_store,
+    ) as mock_get_model_store, patch.object(
         paka.kube_resources.model_group.runtime.llama_cpp, "HfFileSystem"
     ) as mock_hf_fs, patch.object(
         paka.kube_resources.model_group.runtime.llama_cpp,
@@ -35,29 +40,29 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         assert get_runtime_command_llama_cpp(model_group) == [
             "/server",
             "--model",
-            "/data/model.ggml",
+            "/data/model.gguf",
         ]
 
         # Test case: model file is found in /data directory
         model_group.runtime.command = None
         model_group.model = Model(useModelStore=True)
         # Mock os.listdir to return a specific list of files
-        mock_listdir.return_value = ["model.ggml"]
+        mock_store.glob.return_value = ["model.gguf"]
         command = get_runtime_command_llama_cpp(model_group)
         assert "--model" in command, "Expected '--model' to be in command list"
         model_index = command.index("--model")
         assert (
-            command[model_index + 1] == "/data/model.ggml"
-        ), "Expected '--model' to be followed by '/data/model.ggml'"
+            command[model_index + 1] == "/data/model.gguf"
+        ), "Expected '--model' to be followed by '/data/model.gguf'"
 
         # Test case: model file is not found in /data directory but found in HuggingFace repo
         model_group.model = Model(
-            useModelStore=True, hfRepoId="repoId", files=["model.ggml"]
+            useModelStore=True, hfRepoId="repoId", files=["model.gguf"]
         )
         # Mock os.listdir to return an empty list
-        mock_listdir.return_value = []
+        mock_store.glob.return_value = []
         # Mock HfFileSystem.glob to return a specific list of files
-        mock_hf_fs.return_value.glob.return_value = ["model.ggml"]
+        mock_hf_fs.return_value.glob.return_value = ["model.gguf"]
         command = get_runtime_command_llama_cpp(model_group)
         assert "--hf-repo" in command, "Expected '--hf-repo' to be in command list"
         repo_index = command.index("--hf-repo")
@@ -68,15 +73,15 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         assert "--hf-file" in command, "Expected '--hf-file' to be in command list"
         file_index = command.index("--hf-file")
         assert (
-            command[file_index + 1] == "model.ggml"
-        ), "Expected '--hf-file' to be followed by 'model.ggml'"
+            command[file_index + 1] == "model.gguf"
+        ), "Expected '--hf-file' to be followed by 'model.gguf'"
 
         # Test case: model file is not found in /data directory and not found in HuggingFace repo
         model_group.model = Model(
-            useModelStore=True, hfRepoId="repoId", files=["model.ggml"]
+            useModelStore=True, hfRepoId="repoId", files=["model.gguf"]
         )
         # Mock os.listdir to return an empty list
-        mock_listdir.return_value = []
+        mock_store.glob.return_value = []
         # Mock HfFileSystem.glob to return an empty list
         mock_hf_fs.return_value.glob.return_value = []
         with pytest.raises(
@@ -87,7 +92,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         # Test case: Multiple model files found in /data directory
         model_group.model = Model(useModelStore=True)
         # Mock os.listdir to return multiple model files
-        mock_listdir.return_value = ["model1.ggml", "model2.ggml"]
+        mock_store.glob.return_value = ["model1.ggml", "model2.ggml"]
         with pytest.raises(
             ValueError, match="Multiple model files found in /data directory."
         ):
@@ -96,7 +101,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         # Test case: No model file found in /data directory
         model_group.model = Model(useModelStore=True)
         # Mock os.listdir to return an empty list
-        mock_listdir.return_value = []
+        mock_store.glob.return_value = []
         mock_hf_fs.return_value.glob.return_value = []
         with pytest.raises(ValueError, match="Did not find a model to load."):
             get_runtime_command_llama_cpp(model_group)
