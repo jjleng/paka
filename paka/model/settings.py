@@ -17,7 +17,10 @@ class ModelSettings(BaseModel):
     )
 
     @field_validator("quantization")
-    def validate_quantization(cls, v: str) -> str:
+    def validate_quantization(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+
         valid_methods = [
             "GPTQ",
             "AWQ",

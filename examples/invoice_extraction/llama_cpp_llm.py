@@ -28,7 +28,7 @@ class Client:
 
     def invoke(self, **kwargs: Any) -> Any:
         response = requests.post(
-            f"{self.url}/v1/completions",
+            f"{self.url}/completion",
             headers=self.headers,
             json=kwargs,
             verify=False,
@@ -37,7 +37,7 @@ class Client:
 
     def stream(self, **kwargs: Any) -> Any:
         with requests.post(
-            f"{self.url}/v1/completions",
+            f"{self.url}/completion",
             headers={**self.headers, "Accept": "text/event-stream"},
             json=kwargs,
             stream=True,
@@ -216,7 +216,7 @@ class LlamaCpp(LLM):
             params = self._get_parameters(stop)
             params = {**params, **kwargs}
             result = self.client.invoke(prompt=prompt, stream=False, **params)
-            return result["choices"][0]["text"]
+            return result["content"]
 
     def _stream(
         self,
@@ -251,16 +251,15 @@ class LlamaCpp(LLM):
                 )
                 for chunk in llm.stream("Ask 'Hi, how are you?' like a pirate:'",
                         stop=["'","\n"]):
-                    result = chunk["choices"][0]
-                    print(result["text"], end='', flush=True)
+                    print(chunk["content"], end='', flush=True)
 
         """
         params = {**self._get_parameters(stop), **kwargs}
         result = self.client.stream(prompt=prompt, stream=True, **params)
         for part in result:
-            logprobs = part["choices"][0].get("logprobs", None)
+            logprobs = part.get("logprobs", None)
             chunk = GenerationChunk(
-                text=part["choices"][0]["text"],
+                text=part["content"],
                 generation_info={"logprobs": logprobs},
             )
             yield chunk

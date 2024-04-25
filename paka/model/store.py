@@ -3,6 +3,7 @@ from __future__ import annotations
 import concurrent.futures
 import functools
 import hashlib
+import re
 from abc import ABC, abstractmethod
 from io import IOBase
 from typing import Any, Callable, Dict, List, TypeVar, Union, cast
@@ -58,6 +59,10 @@ class ModelStore(ABC):
 
     @abstractmethod
     def delete_file(self, path: str) -> None:
+        pass
+
+    @abstractmethod
+    def glob(self, path_pattern: str) -> List[str]:
         pass
 
 
@@ -296,3 +301,20 @@ class S3ModelStore(ModelStore):
             logger.info(f"{path} deleted.")
         else:
             logger.info(f"{path} not found.")
+
+    @resolve_path
+    def glob(self, path_pattern: str) -> List[str]:
+        """
+        Lists all files in the S3 bucket that match the specified pattern.
+
+        Args:
+            path_pattern (str): The pattern to match.
+
+        Returns:
+            List[str]: A list of file paths that match the pattern.
+        """
+        s3 = boto3.resource("s3")
+        bucket = s3.Bucket(self.s3_bucket)
+
+        pattern = re.compile(path_pattern)
+        return [obj.key for obj in bucket.objects.all() if pattern.match(obj.key)]

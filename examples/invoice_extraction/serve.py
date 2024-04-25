@@ -12,7 +12,7 @@ from langchain_core.prompts import PromptTemplate
 from llama_cpp_llm import LlamaCpp
 from output_parser import invoice_parser
 
-LLM_URL = "http://llama2-7b"
+LLM_URL = "http://llama2-7b-chat"
 
 port = int(os.getenv("PORT", 8080))
 app = FastAPI(
