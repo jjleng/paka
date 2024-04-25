@@ -136,6 +136,7 @@ def create_pod(
                 value=str(port),
             ),
         ],
+        "ports": [client.V1ContainerPort(container_port=port)],
         "readiness_probe": client.V1Probe(
             http_get=client.V1HTTPGetAction(
                 path=ready_probe_path,

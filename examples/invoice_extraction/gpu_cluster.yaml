@@ -14,7 +14,12 @@ aws:
     - nodeType: g4dn.xlarge
       minInstances: 1
       maxInstances: 1
-      name: llama2-7b
+      name: llama2-7b-chat
+      runtime:
+        image: ghcr.io/ggerganov/llama.cpp:server-cuda
+      model:
+        hfRepoId: TheBloke/Llama-2-7B-Chat-GGUF
+        files: ["*.Q4_0.gguf"]
       resourceRequest:
         cpu: 3600m
         memory: 14Gi

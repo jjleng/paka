@@ -18,6 +18,11 @@ aws:
       minInstances: 1
       maxInstances: 3
       name: gte-base
+      runtime:
+        image: ghcr.io/ggerganov/llama.cpp:server
+      model:
+        hfRepoId: jjleng/gte-base-gguf
+        files: ["*.q4_0.gguf"]
       resourceRequest:
         cpu: 3600m
         memory: 6Gi
@@ -30,6 +35,11 @@ aws:
       minInstances: 1
       maxInstances: 3
       name: llama2-7b
+      runtime:
+        image: ghcr.io/ggerganov/llama.cpp:server
+      model:
+        hfRepoId: TheBloke/Llama-2-7B-GGUF
+        files: ["*.Q4_0.gguf"]
       resourceRequest:
         cpu: 3600m
         memory: 6Gi
