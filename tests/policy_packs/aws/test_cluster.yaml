@@ -10,6 +10,11 @@ aws:
       minInstances: 1
       maxInstances: 1
       name: llama2-7b
+      runtime:
+        image: ghcr.io/ggerganov/llama.cpp:server
+      model:
+        hfRepoId: TheBloke/Llama-2-7B-GGUF
+        files: ["*.Q4_0.gguf"]
   vectorStore:
      nodeType: t2.small
      replicas: 2
