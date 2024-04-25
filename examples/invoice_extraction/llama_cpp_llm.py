@@ -28,7 +28,7 @@ class Client:
 
     def invoke(self, **kwargs: Any) -> Any:
         response = requests.post(
-            f"{self.url}/completion",
+            f"{self.url}/v1/completions",
             headers=self.headers,
             json=kwargs,
             verify=False,
@@ -37,7 +37,7 @@ class Client:
 
     def stream(self, **kwargs: Any) -> Any:
         with requests.post(
-            f"{self.url}/completion",
+            f"{self.url}/v1/completions",
             headers={**self.headers, "Accept": "text/event-stream"},
             json=kwargs,
             stream=True,
@@ -60,7 +60,7 @@ class Client:
             json={"input": text},
             verify=False,
         )
-        return response.json()["usage"]["total_tokens"]
+        return response.json()["usage"]["prompt_tokens"]
 
 
 class LlamaCpp(LLM):

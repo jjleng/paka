@@ -13,7 +13,7 @@ aws:
   modelGroups:
     - nodeType: c7a.xlarge
       minInstances: 1
-      maxInstances: 3
+      maxInstances: 1
       name: llama2-7b-chat
       runtime:
         image: ghcr.io/ggerganov/llama.cpp:server

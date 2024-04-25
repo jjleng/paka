@@ -60,7 +60,7 @@ class Client:
             json={"input": text},
             verify=False,
         )
-        return response.json()["usage"]["total_tokens"]
+        return response.json()["usage"]["prompt_tokens"]
 
 
 class LlamaCpp(LLM):
@@ -216,7 +216,7 @@ class LlamaCpp(LLM):
             params = self._get_parameters(stop)
             params = {**params, **kwargs}
             result = self.client.invoke(prompt=prompt, stream=False, **params)
-            return result["choices"][0]["text"]
+            return result["content"]
 
     def _stream(
         self,
@@ -251,16 +251,15 @@ class LlamaCpp(LLM):
                 )
                 for chunk in llm.stream("Ask 'Hi, how are you?' like a pirate:'",
                         stop=["'","\n"]):
-                    result = chunk["choices"][0]
-                    print(result["text"], end='', flush=True)
+                    print(chunk["content"], end='', flush=True)
 
         """
         params = {**self._get_parameters(stop), **kwargs}
         result = self.client.stream(prompt=prompt, stream=True, **params)
         for part in result:
-            logprobs = part["choices"][0].get("logprobs", None)
+            logprobs = part.get("logprobs", None)
             chunk = GenerationChunk(
-                text=part["choices"][0]["text"],
+                text=part["content"],
                 generation_info={"logprobs": logprobs},
             )
             yield chunk

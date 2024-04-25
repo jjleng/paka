@@ -100,16 +100,17 @@ def get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> List[str]:
         "--host",
         "0.0.0.0",
         "--parallel",  # Number of parallel requests to handle
-        "4",
+        "1",
         "--cont-batching",  # Enable continuous batching
-        "--ctx-size",  # Total KV size of the context. On avg, each slot/client can process 32768/32 = 1024 tokens
-        "8192",
+        "--ctx-size",
+        "4096",
         "--batch-size",  # Maximum number of tokens to decode in a batch
-        "2048",
+        "512",
         "--ubatch-size",  # Physical batch size
         "512",
         "--n-predict",  # Maximum number of tokens to predict.
         "-1",
+        "--embedding",
     ]
 
     if model_group.awsGpu:
