@@ -78,7 +78,10 @@ class BaseMLModel(ABC):
         self.completed_files.append((fname, sha256))
 
     def finish(self) -> None:
+        self.try_close_progress_bar()
         self.save_manifest_yml()
+
+    def try_close_progress_bar(self) -> None:
         pb = getattr(self.model_store, "progress_bar", None)
         if pb:
             pb.close_progress_bar()
