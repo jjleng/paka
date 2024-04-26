@@ -6,7 +6,6 @@ from typing import Any
 from pulumi import automation as auto
 
 from paka.config import CloudConfig, Config
-from paka.k8s.model_group.ingress import create_model_vservice
 from paka.k8s.model_group.service import create_model_group_service
 from paka.logger import logger
 from paka.utils import read_cluster_data, save_cluster_data
@@ -72,7 +71,6 @@ class ClusterManager(ABC):
 
         for model_group in self.config.modelGroups:
             create_model_group_service(namespace, self._orig_config, model_group)
-            create_model_vservice(namespace, model_group.name)
 
     def destroy(self) -> None:
         logger.info("Destroying resources...")
