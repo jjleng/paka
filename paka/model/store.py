@@ -128,6 +128,8 @@ class S3ModelStore(ModelStore):
 
             sha256_value = self._upload_to_s3(stream, path)
             if sha256 and sha256 != sha256_value:
+                self.progress_bar.close_progress_bar()
+
                 message = f"SHA256 hash of the downloaded file does not match the expected value for {path}"
                 # Log the error message so that users know why the file was deleted
                 logger.error(message)
@@ -221,7 +223,6 @@ class S3ModelStore(ModelStore):
             return sha256_value
 
         except Exception as e:
-            logger.error(f"An error occurred in upload_to_s3: {str(e)}")
             raise e
 
         finally:
