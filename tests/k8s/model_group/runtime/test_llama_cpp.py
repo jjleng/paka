@@ -4,6 +4,7 @@ import pytest
 
 import paka.k8s.model_group.runtime.llama_cpp
 from paka.config import CloudModelGroup, Model, Runtime
+from paka.constants import MODEL_MOUNT_PATH
 from paka.k8s.model_group.runtime.llama_cpp import get_runtime_command_llama_cpp
 
 
@@ -16,7 +17,7 @@ def model_group() -> CloudModelGroup:
         nodeType="t2.micro",
         runtime=Runtime(
             image="johndoe/llama.cpp:server",
-            command=["/server", "--model", "/data/model.gguf"],
+            command=["/server", "--model", f"{MODEL_MOUNT_PATH}/model.gguf"],
         ),
     )
 
@@ -38,10 +39,10 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         assert get_runtime_command_llama_cpp(model_group) == [
             "/server",
             "--model",
-            "/data/model.gguf",
+            f"{MODEL_MOUNT_PATH}/model.gguf",
         ]
 
-        # Test case: model file is found in /data directory
+        # Test case: model file is found in model store
         model_group.runtime.command = None
         model_group.model = Model(useModelStore=True)
         # Mock os.listdir to return a specific list of files
@@ -50,10 +51,10 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         assert "--model" in command, "Expected '--model' to be in command list"
         model_index = command.index("--model")
         assert (
-            command[model_index + 1] == "/data/model.gguf"
-        ), "Expected '--model' to be followed by '/data/model.gguf'"
+            command[model_index + 1] == f"{MODEL_MOUNT_PATH}/model.gguf"
+        ), f"Expected '--model' to be followed by '{MODEL_MOUNT_PATH}/model.gguf'"
 
-        # Test case: model file is not found in /data directory but found in HuggingFace repo
+        # Test case: model file is not found in the model store but found in HuggingFace repo
         model_group.model = Model(
             useModelStore=True, hfRepoId="repoId", files=["model.gguf"]
         )
@@ -74,7 +75,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
             command[file_index + 1] == "model.gguf"
         ), "Expected '--hf-file' to be followed by 'model.gguf'"
 
-        # Test case: model file is not found in /data directory and not found in HuggingFace repo
+        # Test case: model file is not found in the model store and not found in HuggingFace repo
         model_group.model = Model(
             useModelStore=True, hfRepoId="repoId", files=["model.gguf"]
         )
@@ -87,16 +88,17 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         ):
             get_runtime_command_llama_cpp(model_group)
 
-        # Test case: Multiple model files found in /data directory
+        # Test case: Multiple model files found in the model store
         model_group.model = Model(useModelStore=True)
         # Mock os.listdir to return multiple model files
         mock_store.glob.return_value = ["model1.ggml", "model2.ggml"]
         with pytest.raises(
-            ValueError, match="Multiple model files found in /data directory."
+            ValueError,
+            match=f"Multiple model files found in {model_group.name}/ directory.",
         ):
             get_runtime_command_llama_cpp(model_group)
 
-        # Test case: No model file found in /data directory
+        # Test case: No model file found in the model store
         model_group.model = Model(useModelStore=True)
         # Mock os.listdir to return an empty list
         mock_store.glob.return_value = []

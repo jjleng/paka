@@ -5,7 +5,7 @@ from typing import Any, List, Optional, Tuple
 from kubernetes import client
 
 from paka.config import CloudConfig, CloudModelGroup, Config
-from paka.constants import ACCESS_ALL_SA
+from paka.constants import ACCESS_ALL_SA, MODEL_MOUNT_PATH
 from paka.k8s.model_group.runtime.llama_cpp import (
     get_runtime_command_llama_cpp,
     is_llama_cpp_image,
@@ -77,13 +77,13 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
             "s3",
             "cp",
             f"s3://{bucket}/{MODEL_PATH_PREFIX}/{model_group.name}/",
-            "/data/",
+            f"{MODEL_MOUNT_PATH}/",
             "--recursive",
         ],
         volume_mounts=[
             client.V1VolumeMount(
                 name="model-data",
-                mount_path="/data",
+                mount_path=MODEL_MOUNT_PATH,
             )
         ],
     )
@@ -127,7 +127,7 @@ def create_pod(
         "volume_mounts": [
             client.V1VolumeMount(
                 name="model-data",
-                mount_path="/data",
+                mount_path=MODEL_MOUNT_PATH,
             )
         ],
         "env": [

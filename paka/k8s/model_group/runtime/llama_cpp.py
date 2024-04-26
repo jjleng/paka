@@ -8,6 +8,7 @@ from huggingface_hub import HfFileSystem
 from huggingface_hub.utils import validate_repo_id
 
 from paka.config import CloudModelGroup
+from paka.constants import MODEL_MOUNT_PATH
 from paka.model.base_model import BaseMLModel
 
 
@@ -21,7 +22,7 @@ def get_model_file_from_model_store(
 ) -> Optional[str]:
     if model_group.model and model_group.model.useModelStore:
         store = BaseMLModel.get_model_store(with_progress_bar=False)
-        # Find the file that ends with .gguf or .ggml from directory /data
+        # Find the file that ends with .gguf or .ggml
         model_files = [
             file
             for file in store.glob(f"{model_group.name}/*")
@@ -39,7 +40,9 @@ def get_model_file_from_model_store(
             ]
 
         if len(model_files) > 1:
-            raise ValueError("Multiple model files found in /data directory.")
+            raise ValueError(
+                f"Multiple model files found in {model_group.name}/ directory."
+            )
 
         if len(model_files) == 1:
             return os.path.basename(model_files[0])
@@ -66,7 +69,7 @@ def get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> List[str]:
 
     def attach_model_to_command(command: List[str]) -> List[str]:
         if model_file:
-            return command + ["--model", f"/data/{model_file}"]
+            return command + ["--model", f"{MODEL_MOUNT_PATH}/{model_file}"]
         elif model_group.model and model_group.model.hfRepoId:
 
             validate_repo_id(model_group.model.hfRepoId)

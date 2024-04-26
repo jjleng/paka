@@ -9,6 +9,7 @@ from paka.config import (
     ResourceRequest,
     Runtime,
 )
+from paka.constants import MODEL_MOUNT_PATH
 from paka.k8s.model_group.service import create_pod
 
 
@@ -22,7 +23,7 @@ def test_create_pod() -> None:
         awsGpu=AwsGpuNode(diskSize=100),
         runtime=Runtime(
             image="johndoe/llama.cpp:server",
-            command=["/server", "--model", "/data/model.ggml"],
+            command=["/server", "--model", f"{MODEL_MOUNT_PATH}/model.ggml"],
         ),
     )
 
@@ -54,7 +55,7 @@ def test_create_pod() -> None:
     assert container.resources.limits["nvidia.com/gpu"] == 2
     assert len(container.volume_mounts) == 1
     assert container.volume_mounts[0].name == "model-data"
-    assert container.volume_mounts[0].mount_path == "/data"
+    assert container.volume_mounts[0].mount_path == MODEL_MOUNT_PATH
     assert len(container.env) == 1
     assert container.env[0].name == "PORT"
     assert container.env[0].value == "8080"
