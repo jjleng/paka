@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 
 from kubernetes import client
 
 from paka.config import CloudConfig, CloudModelGroup, Config
 from paka.constants import ACCESS_ALL_SA, MODEL_MOUNT_PATH
+from paka.k8s.model_group.ingress import create_model_vservice
 from paka.k8s.model_group.runtime.llama_cpp import (
     get_runtime_command_llama_cpp,
     is_llama_cpp_image,
@@ -293,7 +294,7 @@ def create_service_monitor(namespace: str, model_group: CloudModelGroup) -> None
         kind="ServiceMonitor",
         plural="servicemonitors",
         metadata=client.V1ObjectMeta(
-            name=f"{model_group.name}-monitor", namespace=namespace
+            name=kubify_name(model_group.name), namespace=namespace
         ),
         spec={
             "selector": {
@@ -362,7 +363,7 @@ def create_service(
     )
 
 
-def filter_services(namespace: str) -> List[Any]:
+def filter_services(namespace: str) -> List[client.V1Service]:
     """
     Filters the Kubernetes Services in a namespace that belong to a model group.
 
@@ -540,3 +541,90 @@ def create_model_group_service(
     scaled_object = create_scaled_object(namespace, model_group, deployment)
     if scaled_object:
         apply_resource(scaled_object)
+
+    # Create a vservice to export the model group to the outside world
+    create_model_vservice(namespace, model_group.name)
+
+
+def cleanup_model_group_service_by_name(
+    namespace: str,
+    model_group_name: str,
+) -> None:
+    """
+    Cleans up a Kubernetes service for a machine learning model group.
+
+    Args:
+        namespace (str): The namespace to clean up the service in.
+        model_group_name (str): The name of the model group to clean up the service for.
+
+    Returns:
+        None
+    """
+
+    api_client = client.AppsV1Api()
+
+    # Delete the deployment
+    api_client.delete_namespaced_deployment(
+        name=kubify_name(model_group_name),
+        namespace=namespace,
+        body=client.V1DeleteOptions(
+            propagation_policy="Foreground", grace_period_seconds=30
+        ),
+    )
+
+    # Delete the service
+    api_client = client.CoreV1Api()
+
+    # Delete the service
+    api_client.delete_namespaced_service(
+        name=kubify_name(model_group_name),
+        namespace=namespace,
+        body=client.V1DeleteOptions(
+            propagation_policy="Foreground", grace_period_seconds=30
+        ),
+    )
+
+    api_client = client.CustomObjectsApi()
+
+    # Best effort deletion
+    try:
+        # Delete the service monitor
+        api_client.delete_namespaced_custom_object(
+            group="monitoring.coreos.com",
+            version="v1",
+            namespace=namespace,
+            plural="servicemonitors",
+            name=kubify_name(model_group_name),
+            body=client.V1DeleteOptions(),
+        )
+    except:
+        pass
+
+    # Delete the scaled object
+    try:
+        api_client.delete_namespaced_custom_object(
+            group="keda.sh",
+            version="v1alpha1",
+            namespace=namespace,
+            plural="scaledobjects",
+            name=kubify_name(model_group_name),
+            body=client.V1DeleteOptions(),
+        )
+    except:
+        pass
+
+
+def cleanup_staled_model_group_services(
+    namespace: str, source_of_truth_model_groups: List[str]
+) -> None:
+    services = filter_services(namespace)
+    model_groups: List[str] = [
+        cast(client.V1ServiceSpec, service.spec).selector.get("model")
+        for service in services
+    ]
+
+    source_of_truth_model_groups_set = set(source_of_truth_model_groups)
+
+    for model_group in model_groups:
+        if model_group not in source_of_truth_model_groups_set:
+            cleanup_model_group_service_by_name(namespace, model_group)
