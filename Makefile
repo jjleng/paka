@@ -1,10 +1,13 @@
-.PHONY: install test lint setup policy-pack type-check check-all
+.PHONY: install test lint setup policy-pack type-check check-all e2e
 
 install:
 	poetry install
 
 test:
-	poetry run pytest
+	poetry run pytest tests
+
+e2e:
+	poetry run pytest --cluster-config e2e/test_cluster.yaml e2e
 
 type-check:
 	poetry run mypy paka tests
@@ -18,4 +21,4 @@ setup:
 lint: setup
 	poetry run pre-commit run --all-files --show-diff-on-failure
 
-check-all: lint type-check test policy-pack
+check-all: lint type-check test e2e

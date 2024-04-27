@@ -136,3 +136,6 @@ cython_debug/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# ptest-kin
+.pytest-kind

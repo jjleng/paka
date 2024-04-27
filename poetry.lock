@@ -1785,6 +1785,23 @@ tomli = {version = ">=1", markers = "python_version < \"3.11\""}
 testing = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
+name = "pytest-order"
+version = "1.2.1"
+description = "pytest plugin to run your tests in a specific order"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pytest-order-1.2.1.tar.gz", hash = "sha256:4451bd8821ba4fa2109455a2fcc882af60ef8e53e09d244d67674be08f56eac3"},
+    {file = "pytest_order-1.2.1-py3-none-any.whl", hash = "sha256:c3082fc73f9ddcf13e4a22dda9bbcc2f39865bf537438a1d50fa241e028dd743"},
+]
+
+[package.dependencies]
+pytest = [
+    {version = ">=5.0", markers = "python_version < \"3.10\""},
+    {version = ">=6.2.4", markers = "python_version >= \"3.10\""},
+]
+
+[[package]]
 name = "pytest-snapshot"
 version = "0.9.0"
 description = "A plugin for snapshot testing with pytest."
@@ -2348,4 +2365,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "297a7e6ac337e0e2d18a28d4053c5379d1d9d2f10007278cef17e530ce9ac7d9"
+content-hash = "30397269ca9b580f7663636852d47eae6d0bfa966e9a109ce8a7a0cee2c78212"

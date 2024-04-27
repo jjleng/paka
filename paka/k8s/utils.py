@@ -171,7 +171,6 @@ def apply_resource(
         ValueError: If the resource kind is unsupported.
         ApiException: If an error occurs while creating or updating the resource.
     """
-
     # Determine the resource kind and prepare the appropriate API client
     kind = resource.kind
     namespace = resource.metadata.namespace
@@ -478,9 +477,13 @@ def run_port_forward(
 
 
 def setup_port_forward(
-    label_selector: str, namespace: str, container_port: int
+    label_selector: str,
+    namespace: str,
+    container_port: int,
+    local_port: Optional[int] = None,
 ) -> Tuple[str, Callable[[], None]]:
-    local_port = find_free_port()
+    if local_port is None:
+        local_port = find_free_port()
 
     max_duration = 2
 
@@ -513,6 +516,7 @@ def setup_port_forward(
 
 def try_load_kubeconfig() -> bool:
     try:
+        # read kube config from the file specified by env var KUBECONFIG or the default location ~/.kube/config
         config.load_kube_config()
         return True
     except Exception as e:
