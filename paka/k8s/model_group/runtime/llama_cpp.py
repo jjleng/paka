@@ -89,7 +89,11 @@ def get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> List[str]:
                 "--hf-repo",
                 model_group.model.hfRepoId,
                 "--hf-file",
-                model_group.model.files[0],
+                files[0],
+                "--model",
+                os.path.basename(
+                    files[0]
+                ),  # This is the model file name that the huggingface model is saved as
             ]
         else:
             raise ValueError("Did not find a model to load.")

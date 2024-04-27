@@ -74,6 +74,11 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         assert (
             command[file_index + 1] == "model.gguf"
         ), "Expected '--hf-file' to be followed by 'model.gguf'"
+        assert "--model" in command, "Expected '--model' to be in command list"
+        model_index = command.index("--model")
+        assert (
+            command[model_index + 1] == f"model.gguf"
+        ), f"Expected '--model' to be followed by 'model.gguf'"
 
         # Test case: model file is not found in the model store and not found in HuggingFace repo
         model_group.model = Model(
