@@ -61,7 +61,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         # Mock os.listdir to return an empty list
         mock_store.glob.return_value = []
         # Mock HfFileSystem.glob to return a specific list of files
-        mock_hf_fs.return_value.glob.return_value = ["model.gguf"]
+        mock_hf_fs.return_value.glob.return_value = ["repoId/model.gguf"]
         command = get_runtime_command_llama_cpp(model_group)
         assert "--hf-repo" in command, "Expected '--hf-repo' to be in command list"
         repo_index = command.index("--hf-repo")
