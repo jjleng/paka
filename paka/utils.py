@@ -87,7 +87,7 @@ def get_project_data_dir() -> str:
         str: The absolute path of the project data directory.
     """
     return os.environ.get(
-        HOME_ENV_VAR, os.path.join(Path.home(), f".{camel_to_kebab(PROJECT_NAME)}")
+        HOME_ENV_VAR, str(Path.home() / f".{camel_to_kebab(PROJECT_NAME)}")
     )
 
 
