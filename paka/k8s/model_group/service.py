@@ -12,6 +12,7 @@ from paka.k8s.model_group.runtime.llama_cpp import (
     is_llama_cpp_image,
 )
 from paka.k8s.utils import CustomResource, apply_resource, try_load_kubeconfig
+from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
 from paka.model.store import MODEL_PATH_PREFIX
 from paka.utils import kubify_name, read_cluster_data
@@ -518,7 +519,15 @@ def create_model_group_service(
                 repo_id=model_group.model.hfRepoId,
                 files=model_group.model.files,
             )
-            model.save()
+            # If the model is not already in the model store, save it
+            # That means users cannot update the model in the model store
+            # They have to create a new model group or delete the old one
+            if not model.model_store.glob(f"{model_group.name}/*"):
+                model.save()
+            else:
+                logger.info(
+                    f"Model {model_group.name} already exists in the model store. Skipping download."
+                )
 
     port = 8000
 

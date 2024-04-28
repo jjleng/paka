@@ -167,7 +167,6 @@ def create_service_account() -> None:
 
     v1 = client.CoreV1Api()
 
-    # Define the service account
     service_account = client.V1ServiceAccount(
         metadata=client.V1ObjectMeta(
             namespace=config.cluster.namespace,
@@ -187,25 +186,6 @@ def create_service_account() -> None:
             )
         else:
             raise
-
-
-def label_nodes() -> None:
-    v1 = client.CoreV1Api()
-
-    # Get the list of nodes
-    nodes = v1.list_node().items
-
-    # Define the labels
-    labels_group_1 = {"group": "worker_group_1"}
-    labels_group_2 = {"group": "worker_group_2"}
-
-    # Add labels to the nodes in the first group
-    for node in nodes[:1]:
-        v1.patch_node(node.metadata.name, {"metadata": {"labels": labels_group_1}})
-
-    # Add labels to the nodes in the second group
-    for node in nodes[2:4]:
-        v1.patch_node(node.metadata.name, {"metadata": {"labels": labels_group_2}})
 
 
 @pytest.mark.order(1)
