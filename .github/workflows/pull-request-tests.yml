@@ -30,4 +30,4 @@ jobs:
         run: poetry install
 
       - name: Test with pytest
-        run: make lint type-check test
+        run: make check-all
