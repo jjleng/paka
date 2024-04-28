@@ -13,7 +13,7 @@ from paka.cluster.manager.base import ClusterManager
 from paka.config import parse_yaml
 from paka.constants import BP_BUILDER_ENV_VAR
 from paka.container.ecr import push_to_ecr
-from paka.container.pack import install_pack
+from paka.container.pack import ensure_pack
 from paka.logger import logger
 from paka.utils import get_pulumi_root, read_current_cluster_data
 
@@ -35,7 +35,7 @@ def build(
     Returns:
         str: The image tag of the built Docker image.
     """
-    install_pack()
+    pack_bin = ensure_pack()
 
     source_dir = os.path.abspath(os.path.expanduser(source_dir))
 
@@ -74,7 +74,7 @@ def build(
         builder = os.environ.get(BP_BUILDER_ENV_VAR, "paketobuildpacks/builder:base")
 
         pack_command = [
-            "pack",
+            pack_bin,
             "build",
             image_name,
             "--builder",
