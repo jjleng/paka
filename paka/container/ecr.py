@@ -1,8 +1,29 @@
-import shlex
+import base64
 import subprocess
+
+import boto3
 
 from paka.logger import logger
 from paka.utils import random_str
+
+
+def authenticate_docker_to_ecr(
+    aws_region: str,
+) -> str:
+    ecr_client = boto3.client("ecr", region_name=aws_region)
+    token = ecr_client.get_authorization_token()
+    username, password = (
+        base64.b64decode(token["authorizationData"][0]["authorizationToken"])
+        .decode("utf-8")
+        .split(":")
+    )
+    ecr_url = token["authorizationData"][0]["proxyEndpoint"]
+
+    # Authenticate Docker to the ECR
+    subprocess.run(
+        ["docker", "login", "-u", username, "-p", password, ecr_url], check=True
+    )
+    return ecr_url
 
 
 def push_to_ecr(
@@ -33,15 +54,6 @@ def push_to_ecr(
         str: The version tag of the image that was pushed.
     """
     try:
-        # Get ECR login password
-        login_password = (
-            subprocess.check_output(
-                ["aws", "ecr", "get-login-password", "--region", aws_region]
-            )
-            .decode()
-            .strip()
-        )
-
         # Generate a random version number
         version = random_str()
 
@@ -71,14 +83,14 @@ def push_to_ecr(
             check=True,
         )
 
-        # Perform Docker login and push in one command
-        login_push_cmd = (
-            f"echo {shlex.quote(login_password)} | "
-            f"docker login --username AWS --password-stdin {repository_uri} && "
-            f"docker push {repository_uri}:{version_tag} && "
-            f"docker push {repository_uri}:{latest_tag}"
+        # Authenticate Docker to the ECR
+        authenticate_docker_to_ecr(aws_region)
+
+        # Push the image to the ECR repository
+        subprocess.run(
+            ["docker", "push", f"{repository_uri}:{version_tag}"], check=True
         )
-        subprocess.run(login_push_cmd, shell=True, check=True, executable="/bin/sh")
+        subprocess.run(["docker", "push", f"{repository_uri}:{latest_tag}"], check=True)
 
         logger.info(f"Successfully pushed {image_name} to {repository_uri}")
         return version_tag
