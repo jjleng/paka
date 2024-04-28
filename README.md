@@ -1,6 +1,6 @@
 # Welcome to Paka
 
-<img src="docs/img/paka.svg" alt="paka.svg" width="200" height="200">
+<img src="https://raw.githubusercontent.com/jjleng/paka/main/docs/img/paka.svg" alt="paka.svg" width="200" height="200">
 
 **paka** is a versatile LLMOps tool that simplifies the deployment and management of large language model (LLM) apps with a single command.
 
@@ -105,7 +105,6 @@ paka cluster down -f cluster.yaml
 
 ## Dependencies
 - docker daemon
-- pack cli (https://buildpacks.io/docs/for-platform-operators/how-to/integrate-ci/pack/)
 - pulumi cli (https://www.pulumi.com/docs/install/)
 - aws cli and credentials for the AWS deployment
 ```bash
