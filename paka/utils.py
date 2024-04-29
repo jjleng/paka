@@ -11,6 +11,7 @@ from io import StringIO
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
+import requests
 from ruamel.yaml import YAML
 
 from paka.constants import HOME_ENV_VAR, PROJECT_NAME
@@ -339,3 +340,22 @@ def calculate_sha256(file_path: str) -> str:
             sha256_hash.update(byte_block)
 
     return sha256_hash.hexdigest()
+
+
+def get_gh_release_latest_version(repo: str) -> str:
+    """
+    Get the latest release version of a GitHub repository.
+
+    This function queries the GitHub API to get the latest release version of a repository.
+
+    Args:
+        repo (str): The GitHub repository in the format 'owner/repo'.
+
+    Returns:
+        str: The latest release version of the repository.
+    """
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
+    return data["tag_name"]

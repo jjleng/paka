@@ -13,14 +13,7 @@ import requests
 from kubernetes import config
 
 from paka.k8s.utils import setup_port_forward
-
-
-def get_latest_kind_version() -> str:
-    url = "https://api.github.com/repos/kubernetes-sigs/kind/releases/latest"
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
-    return data["tag_name"]
+from paka.utils import get_gh_release_latest_version
 
 
 def get_latest_kubectl_version() -> str:
@@ -30,7 +23,9 @@ def get_latest_kubectl_version() -> str:
     return response.text
 
 
-KIND_VERSION = os.environ.get("KIND_VERSION", get_latest_kind_version())
+KIND_VERSION = os.environ.get(
+    "KIND_VERSION", get_gh_release_latest_version("kubernetes-sigs/kind")
+)
 KUBECTL_VERSION = os.environ.get("KUBECTL_VERSION", get_latest_kubectl_version())
 
 
