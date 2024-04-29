@@ -5,6 +5,7 @@ from typing import Any
 
 from pulumi import automation as auto
 
+from paka.cluster.pulumi import ensure_pulumi
 from paka.config import CloudConfig, Config
 from paka.k8s.model_group.service import create_model_group_service
 from paka.logger import logger
@@ -46,6 +47,8 @@ class ClusterManager(ABC):
 
     @property
     def _stack(self) -> auto.Stack:
+        ensure_pulumi()
+
         def program() -> None:
             self.provision_k8s()
 

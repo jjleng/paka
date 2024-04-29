@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import random
@@ -186,7 +187,7 @@ def get_pulumi_root() -> str:
     Returns:
         str: The pulumi data directory.
     """
-    return get_project_data_dir()
+    return str(Path(get_project_data_dir()) / "pulumi")
 
 
 def save_kubeconfig(cluster_name: str, kubeconfig_json: Optional[str]) -> None:
@@ -319,3 +320,22 @@ def random_str(length: int = 5) -> str:
         str: The generated random string.
     """
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+
+def calculate_sha256(file_path: str) -> str:
+    """
+    Calculate the SHA-256 hash of a file.
+
+    Args:
+        file_path (str): The path to the file for which the SHA-256 hash is to be calculated.
+
+    Returns:
+        str: The SHA-256 hash of the file, as a hexadecimal string.
+    """
+    sha256_hash = hashlib.sha256()
+
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+
+    return sha256_hash.hexdigest()
