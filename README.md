@@ -99,19 +99,14 @@ paka cluster down -f cluster.yaml
 ```
 
 ## Contributing
+- code changes
+- `make check-all`
 - Open a PR
-- Format and lint code with `make lint`
-- Run tests with `make test`
 
 ## Dependencies
-- docker daemon
-- pulumi cli (https://www.pulumi.com/docs/install/)
-- aws cli and credentials for the AWS deployment
+- docker daemon and CLI
+- credentials for the AWS cloud
 ```bash
-# Make sure aws credentials and cli are set up. Your aws credentials should have access to the following services:
-# - S3
-# - ECR
-# - EKS
-# - EC2
-aws configure
+# Ensure your AWS credentials are correctly configured. Execute the command below and verify that the keys `aws_access_key_id` and `aws_secret_access_key` are present.
+cat ~/.aws/credentials
 ```
