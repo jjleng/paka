@@ -1,4 +1,3 @@
-import hashlib
 import os
 import platform
 import tarfile
@@ -9,7 +8,7 @@ from pathlib import Path
 import requests
 
 from paka.logger import logger
-from paka.utils import get_project_data_dir
+from paka.utils import calculate_sha256, get_project_data_dir
 
 
 def get_latest_pack_version() -> str:
@@ -18,16 +17,6 @@ def get_latest_pack_version() -> str:
     response.raise_for_status()
     data = response.json()
     return data["tag_name"]
-
-
-def calculate_sha256(file_path: str) -> str:
-    sha256_hash = hashlib.sha256()
-
-    with open(file_path, "rb") as f:
-        for byte_block in iter(lambda: f.read(4096), b""):
-            sha256_hash.update(byte_block)
-
-    return sha256_hash.hexdigest()
 
 
 def ensure_pack() -> str:

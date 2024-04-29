@@ -243,3 +243,5 @@ def init_pulumi() -> None:
     os.environ["PULUMI_BACKEND_URL"] = os.environ.get(
         "PULUMI_BACKEND_URL", f"file://{pulumi_root}"
     )
+    os.environ["PULUMI_DEBUG"] = os.environ.get("PULUMI_DEBUG", "false")
+    os.environ["PULUMI_HOME"] = os.environ.get("PULUMI_HOME", pulumi_root)
