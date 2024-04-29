@@ -67,21 +67,20 @@ def down(
         "all resources and data will be permanently deleted.",
         default=False,
     ):
-        try:
-            # Sometime finalizers might block CRD deletion, so we need to force delete those.
-            # This is best effort and might not work in all cases.
-            # TODO: better way to handle this
-            remove_crd_finalizers(
-                "scaledobjects.keda.sh",
-            )
-            remove_crd_finalizers(
-                "routes.serving.knative.dev",
-            )
-            remove_crd_finalizers(
-                "ingresses.networking.internal.knative.dev",
-            )
-        except Exception:
-            pass
+        # Sometime finalizers might block CRD deletion, so we need to force delete those.
+        # This is best effort and might not work in all cases.
+        # TODO: better way to handle this
+        crds = [
+            "scaledobjects.keda.sh",
+            "routes.serving.knative.dev",
+            "ingresses.networking.internal.knative.dev",
+        ]
+
+        for crd in crds:
+            try:
+                remove_crd_finalizers(crd)
+            except Exception as e:
+                pass
 
         cluster_manager = load_cluster_manager(cluster_config)
         cluster_manager.destroy()
