@@ -8,15 +8,11 @@ from pathlib import Path
 import requests
 
 from paka.logger import logger
-from paka.utils import calculate_sha256, get_project_data_dir
-
-
-def get_latest_pack_version() -> str:
-    url = "https://api.github.com/repos/buildpacks/pack/releases/latest"
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
-    return data["tag_name"]
+from paka.utils import (
+    calculate_sha256,
+    get_gh_release_latest_version,
+    get_project_data_dir,
+)
 
 
 def ensure_pack() -> str:
@@ -29,7 +25,7 @@ def ensure_pack() -> str:
     if pack_files:
         return str(pack_files[0])
 
-    pack_version = get_latest_pack_version()
+    pack_version = get_gh_release_latest_version("buildpacks/pack")
 
     new_pack_path = bin_dir / f"pack-{pack_version}"
 

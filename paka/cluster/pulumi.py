@@ -15,14 +15,6 @@ from paka.utils import calculate_sha256, get_project_data_dir
 PULUMI_VERSION = "v3.114.0"
 
 
-def get_latest_pulumi_version() -> str:
-    url = "https://api.github.com/repos/pulumi/pulumi/releases/latest"
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
-    return data["tag_name"]
-
-
 def change_permissions_recursive(path: Path, mode: int) -> None:
     for child in path.iterdir():
         if child.is_file():
