@@ -9,15 +9,8 @@ To run the example, first install the necessary dependencies:
 ```bash
 pip install paka
 
-# Make sure aws credentials and cli are set up. Your aws credentials should have access to the following services:
-# - S3
-# - ECR
-# - EKS
-# - EC2
-aws configure
-
-# Install pulumi CLI and verify it is working (https://www.pulumi.com/docs/install/)
-pulumi version
+# Ensure your AWS credentials are correctly configured. Execute the command below and verify that the keys `aws_access_key_id` and `aws_secret_access_key` are present.
+cat ~/.aws/credentials
 ```
 
 ### Make sure docker daemon is running
