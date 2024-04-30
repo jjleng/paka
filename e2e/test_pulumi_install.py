@@ -1,5 +1,4 @@
 import os
-import shutil
 import tempfile
 from unittest.mock import patch
 
@@ -25,11 +24,21 @@ def test_installation(system: str, arch: str) -> None:
         "platform.machine", return_value=arch
     ), tempfile.TemporaryDirectory() as temp_dir:
         os.environ[HOME_ENV_VAR] = temp_dir
+        orig_path = os.environ["PATH"]
 
-        ensure_pulumi()
+        try:
+            ensure_pulumi()
+            bin = "pulumi"
+            if system == "windows":
+                bin += ".exe"
+            paths = os.environ["PATH"].split(":")
+            list_of_list = [p.split(";") for p in paths if p]
+            paths = [item for sublist in list_of_list for item in sublist]
 
-        bin = "pulumi"
-        if system == "windows":
-            bin += ".exe"
-
-        assert shutil.which(bin) is not None
+            for path in paths:
+                if os.path.exists(os.path.join(path, bin)):
+                    break
+            else:
+                pytest.fail(f"{bin} not found in PATH")
+        finally:
+            os.environ["PATH"] = orig_path

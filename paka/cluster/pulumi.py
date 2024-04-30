@@ -30,19 +30,21 @@ def ensure_pulumi() -> None:
     bin_dir = paka_home / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
 
+    system = platform.system().lower()
+    arch = platform.machine().lower()
+
+    env_separator = ";" if system == "windows" else ":"
+
     current_path = os.environ.get("PATH", "")
 
     pulumi_files = list(bin_dir.glob("pulumi-*"))
     if pulumi_files:
-        os.environ["PATH"] = f"{pulumi_files[0]}:{current_path}"
+        os.environ["PATH"] = f"{pulumi_files[0]}{env_separator}{current_path}"
         return
 
     pulumi_version = PULUMI_VERSION
 
     new_pulumi_path = bin_dir / f"pulumi-{pulumi_version}"
-
-    system = platform.system().lower()
-    arch = platform.machine().lower()
 
     if arch in ["amd64", "x86_64"]:
         arch = "x64"
@@ -73,16 +75,16 @@ def ensure_pulumi() -> None:
 
     logger.info(f"Downloading {pulumi_file}...")
 
-    with tempfile.NamedTemporaryFile() as tf:
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            for chunk in r.iter_content(chunk_size=8192):
-                tf.write(chunk)
+    fd, archive_file = tempfile.mkstemp()
+    try:
+        with os.fdopen(fd, "wb") as tf:
+            with requests.get(url, stream=True) as r:
+                r.raise_for_status()
+                for chunk in r.iter_content(chunk_size=8192):
+                    tf.write(chunk)
 
-        tf.flush()
-        os.fsync(tf.fileno())
-
-        archive_file = tf.name
+            tf.flush()
+            os.fsync(tf.fileno())
 
         archive_file_sha256 = calculate_sha256(archive_file)
 
@@ -102,6 +104,8 @@ def ensure_pulumi() -> None:
         else:
             with tarfile.open(archive_file, "r:gz") as tar:
                 tar.extractall(bin_dir)
+    finally:
+        os.remove(archive_file)
 
     pulumi_path = bin_dir / "pulumi"
     change_permissions_recursive(pulumi_path, 0o755)
@@ -117,4 +121,4 @@ def ensure_pulumi() -> None:
 
     logger.info("Pulumi installed successfully.")
 
-    os.environ["PATH"] = f"{pulumi_path}:{current_path}"
+    os.environ["PATH"] = f"{pulumi_path}{env_separator}{current_path}"

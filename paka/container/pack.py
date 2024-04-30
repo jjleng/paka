@@ -59,16 +59,16 @@ def ensure_pack() -> str:
 
     logger.info(f"Downloading {pack_file}...")
 
-    with tempfile.NamedTemporaryFile() as tf:
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            for chunk in r.iter_content(chunk_size=8192):
-                tf.write(chunk)
+    fd, archive_file = tempfile.mkstemp()
+    try:
+        with os.fdopen(fd, "wb") as tf:
+            with requests.get(url, stream=True) as r:
+                r.raise_for_status()
+                for chunk in r.iter_content(chunk_size=8192):
+                    tf.write(chunk)
 
-        tf.flush()
-        os.fsync(tf.fileno())
-
-        archive_file = tf.name
+            tf.flush()
+            os.fsync(tf.fileno())
 
         archive_file_sha256 = calculate_sha256(archive_file)
 
@@ -92,13 +92,16 @@ def ensure_pack() -> str:
         else:
             with tarfile.open(archive_file, "r:gz") as tar:
                 tar.extractall(bin_dir)
-        pack_path = bin_dir / "pack"
+    finally:
+        os.remove(archive_file)
 
-        if system == "windows":
-            pack_path = pack_path.with_suffix(".exe")
+    pack_path = bin_dir / "pack"
 
-        pack_path.chmod(0o755)
-        pack_path.rename(new_pack_path)
+    if system == "windows":
+        pack_path = pack_path.with_suffix(".exe")
+
+    pack_path.chmod(0o755)
+    pack_path.rename(new_pack_path)
 
     logger.info("Pack installed successfully.")
 

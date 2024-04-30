@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from functools import cached_property
 from typing import Any
 
 from pulumi import automation as auto
@@ -45,7 +46,7 @@ class ClusterManager(ABC):
             program=program,
         )
 
-    @property
+    @cached_property
     def _stack(self) -> auto.Stack:
         ensure_pulumi()
 
