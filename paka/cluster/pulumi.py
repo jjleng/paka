@@ -8,6 +8,7 @@ from pathlib import Path
 
 import requests
 
+from paka.cluster.kubectl import ensure_kubectl
 from paka.logger import logger
 from paka.utils import calculate_sha256, get_project_data_dir
 
@@ -25,6 +26,8 @@ def change_permissions_recursive(path: Path, mode: int) -> None:
 
 
 def ensure_pulumi() -> None:
+    # Plulumi kubernetes provider requires kubectl to be installed
+    ensure_kubectl()
     paka_home = Path(get_project_data_dir())
 
     bin_dir = paka_home / "bin"

@@ -12,21 +12,13 @@ from typing import Any, Callable, Generator, Optional, Union
 import requests
 from kubernetes import config
 
+from paka.cluster.kubectl import KUBECTL_VERSION, ensure_kubectl_by_path
 from paka.k8s.utils import setup_port_forward
 from paka.utils import get_gh_release_latest_version
-
-
-def get_latest_kubectl_version() -> str:
-    url = "https://cdn.dl.k8s.io/release/stable.txt"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.text
-
 
 KIND_VERSION = os.environ.get(
     "KIND_VERSION", get_gh_release_latest_version("kubernetes-sigs/kind")
 )
-KUBECTL_VERSION = os.environ.get("KUBECTL_VERSION", get_latest_kubectl_version())
 
 
 class KindCluster:
@@ -61,11 +53,11 @@ class KindCluster:
 
         if self.system == "windows":
             self.kubectl_path = kubectl_path or (
-                self.path / f"kubectl-{KUBECTL_VERSION}.exe"
+                self.path / f"kubectl-{KUBECTL_VERSION}" / "kubectl.exe"
             )
         else:
             self.kubectl_path = kubectl_path or (
-                self.path / f"kubectl-{KUBECTL_VERSION}"
+                self.path / f"kubectl-{KUBECTL_VERSION}" / "kubectl"
             )
 
     def ensure_kind(self) -> None:
@@ -85,27 +77,8 @@ class KindCluster:
             tmp_file.rename(self.kind_path)
 
     def ensure_kubectl(self) -> None:
-        if not self.kubectl_path.exists():
-            if self.system == "windows":
-                url = os.getenv(
-                    "KUBECTL_DOWNLOAD_URL",
-                    f"https://dl.k8s.io/release/{KUBECTL_VERSION}/bin/{self.system}/{self.arch}/kubectl.exe",
-                )
-            else:
-                url = os.getenv(
-                    "KUBECTL_DOWNLOAD_URL",
-                    f"https://dl.k8s.io/release/{KUBECTL_VERSION}/bin/{self.system}/{self.arch}/kubectl",
-                )
-            logging.info(f"Downloading {url}..")
-            tmp_file = self.kubectl_path.with_suffix(".tmp")
-            with requests.get(url, stream=True) as r:
-                r.raise_for_status()
-                with tmp_file.open("wb") as fd:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            fd.write(chunk)
-            tmp_file.chmod(0o755)
-            tmp_file.rename(self.kubectl_path)
+        print(self.kubectl_path)
+        ensure_kubectl_by_path(self.kubectl_path)
 
     def create(self, config_file: Optional[Union[str, Path]] = None) -> None:
         """Create the kind cluster if it does not exist (otherwise re-use)."""
