@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
+import platform
 import re
 import subprocess
 from typing import Any, Optional
@@ -69,7 +70,9 @@ def build(
                     bp_node_version = match.group(1)
 
     try:
-        subprocess.run(["cd", source_dir], check=True)
+        if not os.path.exists(source_dir):
+            logger.error(f"Source directory {source_dir} does not exist.")
+            raise typer.Exit(1)
 
         builder = os.environ.get(BP_BUILDER_ENV_VAR, "paketobuildpacks/builder:base")
 
@@ -85,7 +88,7 @@ def build(
         elif bp_node_version:
             pack_command.extend(["--env", f"BP_NODE_VERSION={bp_node_version}"])
 
-        subprocess.run(pack_command, check=True)
+        subprocess.run(pack_command, cwd=source_dir, check=True)
         logger.info(f"Successfully built {image_name}")
 
         return push_to_ecr(
@@ -240,8 +243,19 @@ def init_pulumi() -> None:
 
     pulumi_root = get_pulumi_root()
     os.makedirs(pulumi_root, exist_ok=True)
-    os.environ["PULUMI_BACKEND_URL"] = os.environ.get(
-        "PULUMI_BACKEND_URL", f"file://{pulumi_root}"
+    os.environ["PULUMI_DEBUG_COMMANDS"] = os.environ.get(
+        "PULUMI_DEBUG_COMMANDS", "false"
     )
-    os.environ["PULUMI_DEBUG"] = os.environ.get("PULUMI_DEBUG", "false")
     os.environ["PULUMI_HOME"] = os.environ.get("PULUMI_HOME", pulumi_root)
+
+    system = platform.system().lower()
+    if system == "windows":
+        _, pulumi_root = os.path.splitdrive(pulumi_root)
+        pulumi_url = f"file:///{pulumi_root}"
+    else:
+        pulumi_url = f"file://{pulumi_root}"
+
+    os.environ["PULUMI_BACKEND_URL"] = os.environ.get(
+        "PULUMI_BACKEND_URL",
+        pulumi_url,
+    )
