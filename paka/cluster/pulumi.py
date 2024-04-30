@@ -36,13 +36,11 @@ def ensure_pulumi() -> None:
     system = platform.system().lower()
     arch = platform.machine().lower()
 
-    env_separator = ";" if system == "windows" else ":"
-
     current_path = os.environ.get("PATH", "")
 
     pulumi_files = list(bin_dir.glob("pulumi-*"))
     if pulumi_files:
-        os.environ["PATH"] = f"{pulumi_files[0]}{env_separator}{current_path}"
+        os.environ["PATH"] = f"{pulumi_files[0]}{os.pathsep}{current_path}"
         return
 
     pulumi_version = PULUMI_VERSION
@@ -124,4 +122,4 @@ def ensure_pulumi() -> None:
 
     logger.info("Pulumi installed successfully.")
 
-    os.environ["PATH"] = f"{pulumi_path}{env_separator}{current_path}"
+    os.environ["PATH"] = f"{pulumi_path}{os.pathsep}{current_path}"
