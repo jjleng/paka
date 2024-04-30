@@ -10,6 +10,7 @@ import requests
 from paka.logger import logger
 from paka.utils import (
     calculate_sha256,
+    download_url,
     get_gh_release_latest_version,
     get_project_data_dir,
 )
@@ -59,17 +60,7 @@ def ensure_pack() -> str:
 
     logger.info(f"Downloading {pack_file}...")
 
-    fd, archive_file = tempfile.mkstemp()
-    try:
-        with os.fdopen(fd, "wb") as tf:
-            with requests.get(url, stream=True) as r:
-                r.raise_for_status()
-                for chunk in r.iter_content(chunk_size=8192):
-                    tf.write(chunk)
-
-            tf.flush()
-            os.fsync(tf.fileno())
-
+    with download_url(url) as archive_file:
         archive_file_sha256 = calculate_sha256(archive_file)
 
         # Now, fetch the sha256 file and compare the hash
@@ -92,8 +83,6 @@ def ensure_pack() -> str:
         else:
             with tarfile.open(archive_file, "r:gz") as tar:
                 tar.extractall(bin_dir)
-    finally:
-        os.remove(archive_file)
 
     pack_path = bin_dir / "pack"
 
