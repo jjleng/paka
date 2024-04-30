@@ -7,7 +7,7 @@ from pathlib import Path
 import requests
 
 from paka.logger import logger
-from paka.utils import get_project_data_dir
+from paka.utils import download_url, get_project_data_dir
 
 KUBECTL_VERSION_URL = "https://cdn.dl.k8s.io/release/stable.txt"
 CHUNK_SIZE = 8192
@@ -62,24 +62,11 @@ def ensure_kubectl_by_path(install_path: Path) -> None:
             url += ".exe"
         logger.info(f"Downloading {url}..")
 
-        fd, tmp_file = tempfile.mkstemp()
-        try:
-            with os.fdopen(fd, "wb") as tf:
-                with requests.get(url, stream=True) as r:
-                    r.raise_for_status()
-                    for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
-                        tf.write(chunk)
-
-                tf.flush()
-                os.fsync(tf.fileno())
-
+        with download_url(url) as tmp_file:
             tmp_file_p = Path(tmp_file)
             tmp_file_p.chmod(0o755)
             parent_dir.mkdir(parents=True, exist_ok=True)
             shutil.copy2(tmp_file_p, install_path)
-
-        finally:
-            os.remove(tmp_file)
 
 
 def ensure_kubectl() -> None:

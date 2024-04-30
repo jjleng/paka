@@ -10,7 +10,7 @@ import requests
 
 from paka.cluster.kubectl import ensure_kubectl
 from paka.logger import logger
-from paka.utils import calculate_sha256, get_project_data_dir
+from paka.utils import calculate_sha256, download_url, get_project_data_dir
 
 # Pin the Pulumi version to avoid breaking changes
 PULUMI_VERSION = "v3.114.0"
@@ -76,17 +76,7 @@ def ensure_pulumi() -> None:
 
     logger.info(f"Downloading {pulumi_file}...")
 
-    fd, archive_file = tempfile.mkstemp()
-    try:
-        with os.fdopen(fd, "wb") as tf:
-            with requests.get(url, stream=True) as r:
-                r.raise_for_status()
-                for chunk in r.iter_content(chunk_size=8192):
-                    tf.write(chunk)
-
-            tf.flush()
-            os.fsync(tf.fileno())
-
+    with download_url(url) as archive_file:
         archive_file_sha256 = calculate_sha256(archive_file)
 
         if pulumi_file not in file_sha256_dict:
@@ -105,8 +95,6 @@ def ensure_pulumi() -> None:
         else:
             with tarfile.open(archive_file, "r:gz") as tar:
                 tar.extractall(bin_dir)
-    finally:
-        os.remove(archive_file)
 
     pulumi_path = bin_dir / "pulumi"
     change_permissions_recursive(pulumi_path, 0o755)

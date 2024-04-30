@@ -6,10 +6,12 @@ import os
 import random
 import re
 import string
+import tempfile
+from contextlib import contextmanager
 from functools import lru_cache
 from io import StringIO
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Generator, Optional
 
 import requests
 from ruamel.yaml import YAML
@@ -359,3 +361,30 @@ def get_gh_release_latest_version(repo: str) -> str:
     response.raise_for_status()
     data = response.json()
     return data["tag_name"]
+
+
+@contextmanager
+def download_url(url: str) -> Generator[str, None, None]:
+    """
+    Download a file from a URL and return the path to the downloaded file.
+
+    Args:
+        url (str): The URL of the file to be downloaded.
+
+    Returns:
+        str: The path to the downloaded file.
+    """
+    fd, tmp_file = tempfile.mkstemp()
+    try:
+        with os.fdopen(fd, "wb") as tf:
+            with requests.get(url, stream=True) as r:
+                r.raise_for_status()
+                for chunk in r.iter_content(chunk_size=8192):
+                    tf.write(chunk)
+
+            tf.flush()
+            os.fsync(tf.fileno())
+
+        yield tmp_file
+    finally:
+        os.remove(tmp_file)
