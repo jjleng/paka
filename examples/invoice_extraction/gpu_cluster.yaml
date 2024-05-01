@@ -24,8 +24,8 @@ aws:
       resourceRequest:
         cpu: 3600m
         memory: 14Gi
-      awsGpu: # This would enable inference on CUDA devices
-        diskSize: 40
+      gpu: # This would enable inference on CUDA devices
+        enabled: true
       autoScaleTriggers:
         - type: prometheus
           metadata:

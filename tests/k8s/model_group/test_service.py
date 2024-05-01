@@ -1,9 +1,9 @@
 from kubernetes.client import V1Pod
 
 from paka.config import (
-    AwsGpuNode,
-    CloudConfig,
-    CloudModelGroup,
+    AwsConfig,
+    AwsGpuNodeConfig,
+    AwsModelGroup,
     ClusterConfig,
     Config,
     ResourceRequest,
@@ -14,13 +14,13 @@ from paka.k8s.model_group.service import create_pod
 
 
 def test_create_pod() -> None:
-    model_group = CloudModelGroup(
+    model_group = AwsModelGroup(
         nodeType="c7a.xlarge",
         minInstances=1,
         maxInstances=1,
         name="llama2-7b",
         resourceRequest=ResourceRequest(cpu="100m", memory="256Mi", gpu=2),
-        awsGpu=AwsGpuNode(diskSize=100),
+        gpu=AwsGpuNodeConfig(diskSize=100, enabled=True),
         runtime=Runtime(
             image="johndoe/llama.cpp:server",
             command=["/server", "--model", f"{MODEL_MOUNT_PATH}/model.ggml"],
@@ -29,7 +29,7 @@ def test_create_pod() -> None:
 
     config = Config(
         version="1.0",
-        aws=CloudConfig(
+        aws=AwsConfig(
             cluster=ClusterConfig(
                 name="test_cluster",
                 region="us-west-2",

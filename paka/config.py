@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from ruamel.yaml import YAML
 
 from paka.utils import to_yaml
 
 CONFIG_MAJOR_VERSION = 1
+
+
+class PakaBaseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 def validate_size(v: str, error_message: str = "Invalid size format") -> str:
@@ -30,7 +34,7 @@ def validate_size(v: str, error_message: str = "Invalid size format") -> str:
     return v
 
 
-class ResourceRequest(BaseModel):
+class ResourceRequest(PakaBaseModel):
     """
     Represents the resource request for a container.
     """
@@ -92,17 +96,20 @@ class ResourceRequest(BaseModel):
         return v
 
 
-class AwsGpuNode(BaseModel):
+class AwsGpuNodeConfig(PakaBaseModel):
     """
     Represents a configuration for an AWS GPU node.
     """
 
-    diskSize: int = Field(
-        ..., description="The size of the disk for the GPU node in GB."
+    enabled: bool = Field(False, description="Whether the GPU node is enabled.")
+
+    # At least 40 GB is required for the disk size
+    diskSize: Optional[int] = Field(
+        40, description="The size of the disk for the GPU node in GB."
     )
 
 
-class GcpGpuNode(BaseModel):
+class GcpGpuNodeConfig(PakaBaseModel):
     """
     Represents a Google Cloud Platform GPU node.
     """
@@ -120,7 +127,7 @@ class GcpGpuNode(BaseModel):
     )
 
 
-class CloudNode(BaseModel):
+class CloudNode(PakaBaseModel):
     """
     Represents a node in the cloud cluster.
     """
@@ -129,23 +136,21 @@ class CloudNode(BaseModel):
     diskSize: int = Field(
         20, description="The size of the disk attached to the node in GB."
     )
-    awsGpu: Optional[AwsGpuNode] = Field(
+
+
+class AwsNode(CloudNode):
+    """
+    Represents an AWS cloud node configuration.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    gpu: Optional[AwsGpuNodeConfig] = Field(
         None, description="The AWS GPU node configuration, if applicable."
     )
-    gcpGpu: Optional[GcpGpuNode] = Field(
-        None, description="The GCP GPU node configuration, if applicable."
-    )
-
-    @model_validator(mode="before")
-    def validate_gpu(
-        cls, values: Dict[str, Union[AwsGpuNode, GcpGpuNode]]
-    ) -> Dict[str, Union[AwsGpuNode, GcpGpuNode]]:
-        if values.get("awsGpu") and values.get("gcpGpu"):
-            raise ValueError("At most one of awsGpu or gcpGpu can exist")
-        return values
 
 
-class Runtime(BaseModel):
+class Runtime(PakaBaseModel):
     """
     Represents a runtime for a model.
     """
@@ -156,7 +161,7 @@ class Runtime(BaseModel):
     )
 
 
-class Model(BaseModel):
+class Model(PakaBaseModel):
     """
     Represents a model.
     """
@@ -172,7 +177,7 @@ class Model(BaseModel):
     )
 
 
-class ModelGroup(BaseModel):
+class ModelGroup(PakaBaseModel):
     """
     Represents a group of VMs that serve the inference for a specific type of model.
     """
@@ -221,7 +226,7 @@ class ModelGroup(BaseModel):
         return v
 
 
-class Trigger(BaseModel):
+class Trigger(PakaBaseModel):
     """
     Represents a trigger.
     """
@@ -272,7 +277,11 @@ class CloudModelGroup(ModelGroup, CloudNode):
     )
 
 
-class ClusterConfig(BaseModel):
+class AwsModelGroup(CloudModelGroup, AwsNode):
+    pass
+
+
+class ClusterConfig(PakaBaseModel):
     """
     Represents the configuration for a cluster.
     """
@@ -343,7 +352,7 @@ class CloudVectorStore(CloudNode):
         return v
 
 
-class Job(BaseModel):
+class Job(PakaBaseModel):
     """
     Represents a job cluster configuration.
     """
@@ -370,7 +379,7 @@ class Job(BaseModel):
         return validate_size(v, "Invalid storage size format")
 
 
-class Prometheus(BaseModel):
+class Prometheus(PakaBaseModel):
     """
     Represents a Prometheus configuration.
     """
@@ -425,7 +434,7 @@ class Prometheus(BaseModel):
         return validate_size(v, "Invalid storage size format")
 
 
-class Tracing(BaseModel):
+class Tracing(PakaBaseModel):
     """
     Represents the configuration for tracing.
     """
@@ -440,7 +449,10 @@ class Tracing(BaseModel):
     )
 
 
-class CloudConfig(BaseModel):
+T_CloudModelGroup = TypeVar("T_CloudModelGroup", bound=CloudModelGroup)
+
+
+class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup]):
     """
     Represents the configuration for the cloud environment.
     """
@@ -448,7 +460,7 @@ class CloudConfig(BaseModel):
     cluster: ClusterConfig = Field(
         ..., description="The configuration for the Kubernetes cluster."
     )
-    modelGroups: Optional[List[CloudModelGroup]] = Field(
+    modelGroups: Optional[List[T_CloudModelGroup]] = Field(
         None,
         description="The list of model groups to be deployed in the cloud. Default is None. If None, no model groups are deployed.",
     )
@@ -480,13 +492,20 @@ class CloudConfig(BaseModel):
         return v
 
 
-class Config(BaseModel):
+class AwsConfig(CloudConfig):
+    modelGroups: Optional[List[AwsModelGroup]] = Field(
+        None,
+        description="The list of model groups to be deployed in the cloud. Default is None. If None, no model groups are deployed.",
+    )
+
+
+class Config(PakaBaseModel):
     """
     Configuration class for managing cloud cluster settings.
     """
 
     version: str = Field(..., description="The version of the configuration.")
-    aws: Optional[CloudConfig] = Field(None, description="The AWS cloud configuration.")
+    aws: Optional[AwsConfig] = Field(None, description="The AWS cloud configuration.")
 
     @model_validator(mode="before")
     def check_one_field(cls, values: Dict[str, Any]) -> Dict[str, Any]:

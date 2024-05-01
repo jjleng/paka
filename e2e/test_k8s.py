@@ -93,6 +93,7 @@ def retry_on_exceptions(
 
 def get_config() -> Tuple[Config, CloudConfig]:
     cluster_config = """
+version: "1.0"
 aws:
   cluster:
     name: test_cluster
@@ -105,6 +106,9 @@ aws:
       minInstances: 1
       maxInstances: 1
       name: gte-base
+      resourceRequest:
+        cpu: 1000m
+        memory: 1Gi
       runtime:
         image: 'ghcr.io/ggerganov/llama.cpp:server'
       model:
@@ -112,7 +116,7 @@ aws:
         files:
           - 'gte-base.q4_0.gguf'
         useModelStore: false
-        """
+"""
 
     config = parse_yaml(cluster_config)
     assert isinstance(config, Config)
