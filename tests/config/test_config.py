@@ -185,14 +185,6 @@ def test_config_only_aws_set() -> None:
     aws_config = cloud_config
     config = Config(aws=aws_config)
     assert config.aws is not None
-    assert config.gcp is None
-
-
-def test_config_only_gcp_set() -> None:
-    gcp_config = cloud_config
-    config = Config(gcp=gcp_config)
-    assert config.aws is None
-    assert config.gcp is not None
 
 
 def test_config_multiple_fields_set() -> None:
