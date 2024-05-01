@@ -235,9 +235,8 @@ class CloudModelGroup(ModelGroup, CloudNode):
     Represents a group of cloud models.
     """
 
-    # TODO: make required for HPA to work
-    resourceRequest: Optional[ResourceRequest] = Field(
-        None,
+    resourceRequest: ResourceRequest = Field(
+        ...,
         description="The resource request for the model group, specifying the amount of CPU and memory to request.",
     )
 
@@ -488,21 +487,20 @@ class Config(BaseModel):
     aws: Optional[CloudConfig] = Field(None, description="The AWS cloud configuration.")
 
     @model_validator(mode="before")
-    def check_one_field(cls, values: Dict[str, CloudConfig]) -> Dict[str, CloudConfig]:
+    def check_one_field(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validates that exactly one cloud configuration is provided.
 
         Args:
-            values (Dict[str, CloudConfig]): Dictionary of field values, where keys are the cloud providers (aws, gcp) and values are the corresponding cloud configurations.
+            values (Dict[str, Any]): Dictionary of field values for the Config class.
 
         Returns:
-            Dict[str, CloudConfig]: The input values if validation is successful.
+            Dict[str, Any]: The input values if validation is successful.
 
         Raises:
             ValueError: If more or less than one cloud configuration is provided.
         """
-        non_none_fields = sum(value is not None for value in values.values())
-        if non_none_fields != 1:
+        if "aws" not in values:
             raise ValueError("Exactly one cloud configuration must be provided")
 
         return values
