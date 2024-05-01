@@ -23,10 +23,10 @@ docker info
 cd examples/invoice_extraction
 
 # Provision the cluster and update ~/.kube/config
-paka cluster up -f cluster.yaml -u
+paka cluster up -f cluster.yaml
 
 # Provision a cluster with Nvidia GPUs
-paka cluster up -f gpu_cluster.yaml -u
+paka cluster up -f gpu_cluster.yaml
 ```
 
 4. **Deploy the App:**
