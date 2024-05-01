@@ -9,8 +9,8 @@ To run the example, first install the necessary dependencies:
 ```bash
 pip install paka
 
-# Ensure your AWS credentials are correctly configured. Execute the command below and verify that the keys `aws_access_key_id` and `aws_secret_access_key` are present.
-cat ~/.aws/credentials
+# Install AWS CLI and ensure your AWS credentials are correctly configured.
+aws configure
 ```
 
 ### Make sure docker daemon is running
