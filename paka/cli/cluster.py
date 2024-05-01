@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import List
 
 import click
@@ -9,6 +11,7 @@ from paka.cli.utils import load_cluster_manager
 from paka.k8s.utils import remove_crd_finalizers
 from paka.k8s.utils import update_kubeconfig as merge_update_kubeconfig
 from paka.logger import logger
+from paka.utils import get_project_data_dir
 
 cluster_app = typer.Typer()
 
@@ -128,3 +131,45 @@ def refresh(
     """
     cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.refresh()
+
+
+@cluster_app.command()
+def list() -> None:
+    """
+    List all the clusters that being managed. Current cluster is marked with a "*".
+    """
+    current_cluster_path = Path(get_project_data_dir()) / "current_cluster"
+    current_cluster = (
+        os.readlink(current_cluster_path) if current_cluster_path.is_symlink() else None
+    )
+
+    found = False
+    for cluster in (Path(get_project_data_dir()) / "clusters").iterdir():
+        if cluster.is_dir():
+            prefix = (
+                "*"
+                if current_cluster
+                and cluster.resolve() == Path(current_cluster).resolve()
+                else " "
+            )
+            logger.info(f"{prefix} {cluster.name}")
+            found = True
+
+    if not found:
+        logger.info("No clusters found.")
+
+
+@cluster_app.command()
+def current() -> None:
+    """
+    Get the name of the current cluster.
+    """
+    current_cluster_path = Path(get_project_data_dir()) / "current_cluster"
+    current_cluster = (
+        os.readlink(current_cluster_path) if current_cluster_path.is_symlink() else None
+    )
+
+    if current_cluster:
+        logger.info(Path(current_cluster).name)
+    else:
+        logger.info("No current cluster found.")
