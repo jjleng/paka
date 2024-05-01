@@ -8,6 +8,8 @@ from ruamel.yaml import YAML
 
 from paka.utils import to_yaml
 
+CONFIG_MAJOR_VERSION = 1
+
 
 def validate_size(v: str, error_message: str = "Invalid size format") -> str:
     """
@@ -483,7 +485,7 @@ class Config(BaseModel):
     Configuration class for managing cloud cluster settings.
     """
 
-    # version: int = Field(..., description="The version of the configuration.")
+    version: str = Field(..., description="The version of the configuration.")
     aws: Optional[CloudConfig] = Field(None, description="The AWS cloud configuration.")
 
     @model_validator(mode="before")
@@ -504,6 +506,12 @@ class Config(BaseModel):
             raise ValueError("Exactly one cloud configuration must be provided")
 
         return values
+
+    @field_validator("version", mode="before")
+    def validate_version(cls, v: str) -> str:
+        if not re.match(r"^\d+\.\d+$", v):
+            raise ValueError('version must be in the format "x.x"')
+        return v
 
 
 def generate_yaml(config: Config) -> str:
@@ -531,11 +539,24 @@ def parse_yaml(yaml_str: str) -> Config:
     """
     yaml = YAML()
     data = yaml.load(yaml_str)
-    # Migrate data if it's an old version
-    # version = data.get("version", 1)  # Default to version 1 if no version is specified
-    # if version < 2:
-    #     data = migrate_v1_to_v2(data)
-    # if version > cls.version:
-    #         raise ValueError(f"Unsupported config version: {version}. Please update your tool.")
+    version = data.get("version", None)
+    if version is None:
+        raise ValueError("Invalid configuration: The 'version' field is missing.")
+
+    if not re.match(r"^\d+\.\d+$", version):
+        raise ValueError('version must be in the format "x.x"')
+
+    # Make sure the major version matches
+    major_version = int(version.split(".")[0])
+
+    if major_version < CONFIG_MAJOR_VERSION:
+        raise ValueError(
+            f"Invalid configuration: This tool supports versions starting from {CONFIG_MAJOR_VERSION}.0."
+            " Please use an older version of the tool if you need to work with a previous configuration version."
+        )
+    elif major_version > CONFIG_MAJOR_VERSION:
+        raise ValueError(
+            f"Invalid configuration: Your current tool is too old. Please upgrade your tool to handle this configuration."
+        )
 
     return Config(**data)

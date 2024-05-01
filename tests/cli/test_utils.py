@@ -92,6 +92,7 @@ def test_init_pulumi() -> None:
 def test_load_cluster_manager() -> None:
     cluster_config = "/path/to/cluster.yaml"
     config_data = {
+        "version": "1.0",
         "aws": {
             "cluster": {
                 "name": "test-cluster",
@@ -102,9 +103,10 @@ def test_load_cluster_manager() -> None:
                 "maxNodes": 4,
                 "logRetentionDays": 7,
             }
-        }
+        },
     }
     m = mock_open(read_data="""
+        version: "1.0"
         aws:
           cluster:
             name: test-cluster

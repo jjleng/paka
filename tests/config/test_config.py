@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from paka.config import (
+    CONFIG_MAJOR_VERSION,
     CloudConfig,
     CloudModelGroup,
     CloudVectorStore,
@@ -188,17 +189,17 @@ def test_cloud_config() -> None:
 
 def test_config_only_aws_set() -> None:
     aws_config = cloud_config
-    config = Config(aws=aws_config)
+    config = Config(version="1.0", aws=aws_config)
     assert config.aws is not None
 
 
 def test_config_no_fields_set() -> None:
     with pytest.raises(ValueError):
-        Config()
+        Config(version="1.0")
 
 
 def test_generate_yaml() -> None:
-    config = Config(aws=cloud_config)
+    config = Config(version="1.0", aws=cloud_config)
     yaml_str = generate_yaml(config)
     assert isinstance(yaml_str, str)
     assert "aws" in yaml_str
@@ -206,6 +207,7 @@ def test_generate_yaml() -> None:
 
 def test_parse_yaml() -> None:
     yaml_str = """
+    version: "1.0"
     aws:
         cluster:
             name: test_cluster
@@ -253,6 +255,7 @@ def test_parse_yaml() -> None:
     assert config.aws.vectorStore.replicas == 2
 
     yaml_str = """
+    version: "1.0"
     aws:
         cluster:
             name: test_cluster
@@ -284,13 +287,39 @@ def test_parse_yaml() -> None:
 
 
 def test_round_trip() -> None:
-    original_config = Config(aws=cloud_config)
+    original_config = Config(version="1.0", aws=cloud_config)
     yaml_str = generate_yaml(original_config)
     parsed_config = parse_yaml(yaml_str)
     assert original_config == parsed_config
 
 
 def test_aws_yaml(snapshot: Any) -> None:
-    original_config = Config(aws=cloud_config)
+    original_config = Config(version="1.0", aws=cloud_config)
     yaml_str = generate_yaml(original_config)
     snapshot.assert_match(yaml_str, "aws_yaml.txt")
+
+
+def test_config_version_validation() -> None:
+    with pytest.raises(ValueError, match='version must be in the format "x.x"'):
+        Config(version="1", aws={})
+
+
+def test_parse_yaml_version_validation() -> None:
+    with pytest.raises(
+        ValueError, match="Invalid configuration: The 'version' field is missing."
+    ):
+        parse_yaml("aws: {}")
+
+    with pytest.raises(ValueError, match='version must be in the format "x.x"'):
+        parse_yaml("version: '1'\naws: {}")
+
+    with pytest.raises(
+        ValueError,
+        match=f"Invalid configuration: This tool supports versions starting from {CONFIG_MAJOR_VERSION}.0.",
+    ):
+        parse_yaml(f"""version: '{CONFIG_MAJOR_VERSION - 1}.0'\naws: {{}}""")
+
+    with pytest.raises(
+        ValueError, match="Invalid configuration: Your current tool is too old."
+    ):
+        parse_yaml(f"""version: '{CONFIG_MAJOR_VERSION + 1}.0'\naws: {{}}""")
