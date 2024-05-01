@@ -19,6 +19,7 @@ def model_group() -> CloudModelGroup:
             image="johndoe/llama.cpp:server",
             command=["/server", "--model", f"{MODEL_MOUNT_PATH}/model.gguf"],
         ),
+        resourceRequest={"cpu": "1000", "memory": "1Gi"},
     )
 
 

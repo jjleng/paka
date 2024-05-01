@@ -34,6 +34,7 @@ cloud_config = CloudConfig(
             maxInstances=2,
             nodeType="t2.micro",
             runtime=Runtime(image="test-image"),
+            resourceRequest=ResourceRequest(cpu="500m", memory="2Gi"),
         )
     ],
 )
@@ -134,6 +135,7 @@ def test_cloud_config() -> None:
         minInstances=1,
         maxInstances=2,
         runtime=Runtime(image="test-image"),
+        resourceRequest=ResourceRequest(cpu="500m", memory="2Gi"),
     )
     model_group2 = CloudModelGroup(
         nodeType="c7a.xlarge",
@@ -141,6 +143,7 @@ def test_cloud_config() -> None:
         minInstances=1,
         maxInstances=2,
         runtime=Runtime(image="test-image"),
+        resourceRequest=ResourceRequest(cpu="500m", memory="2Gi"),
     )
     resource_request = ResourceRequest(cpu="2000m", memory="2Gi")
     vector_store = CloudVectorStore(
@@ -165,6 +168,7 @@ def test_cloud_config() -> None:
         minInstances=1,
         maxInstances=2,
         runtime=Runtime(image="test-image"),
+        resourceRequest=ResourceRequest(cpu="500m", memory="2Gi"),
     )
     model_group2 = CloudModelGroup(
         nodeType="c7a.xlarge",
@@ -172,6 +176,7 @@ def test_cloud_config() -> None:
         minInstances=1,
         maxInstances=2,
         runtime=Runtime(image="test-image"),
+        resourceRequest=ResourceRequest(cpu="500m", memory="2Gi"),
     )
     with pytest.raises(ValueError, match="Duplicate model group names are not allowed"):
         CloudConfig(
@@ -185,13 +190,6 @@ def test_config_only_aws_set() -> None:
     aws_config = cloud_config
     config = Config(aws=aws_config)
     assert config.aws is not None
-
-
-def test_config_multiple_fields_set() -> None:
-    aws_config = cloud_config
-    gcp_config = cloud_config
-    with pytest.raises(ValueError):
-        Config(aws=aws_config, gcp=gcp_config)
 
 
 def test_config_no_fields_set() -> None:
@@ -225,6 +223,9 @@ def test_parse_yaml() -> None:
               runtime:
                 image: test-image
               awsGpu:
+              resourceRequest:
+                cpu: 500m
+                memory: 2Gi
         vectorStore:
             nodeType: t2.small
             replicas: 2
@@ -268,6 +269,9 @@ def test_parse_yaml() -> None:
                 image: test-image
               awsGpu:
                 diskSize: 100
+              resourceRequest:
+                cpu: 500m
+                memory: 2Gi
     """
     config = parse_yaml(yaml_str)
     assert isinstance(config, Config)

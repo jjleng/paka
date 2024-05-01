@@ -15,3 +15,6 @@ aws:
       maxInstances: 2
       runtime:
         image: test-image
+      resourceRequest:
+        cpu: 500m
+        memory: 2Gi
