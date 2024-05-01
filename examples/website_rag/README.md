@@ -24,7 +24,7 @@ docker info
 cd examples/website_rag
 
 # Provision the cluster and update ~/.kube/config
-paka cluster up -f cluster.yaml -u
+paka cluster up -f cluster.yaml
 ```
 
 ### Scrape the website and create embeddings

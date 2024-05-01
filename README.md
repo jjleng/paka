@@ -76,7 +76,7 @@ aws:
 
 Provision the cluster
 ```bash
-paka cluster up -f cluster.yaml -u
+paka cluster up -f cluster.yaml
 ```
 
 ### Deploy an application

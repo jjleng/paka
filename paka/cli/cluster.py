@@ -22,13 +22,14 @@ def up(
         help="Path to the cluster config file. The cluster config file is a "
         "YAML file that contains the configuration of the cluster",
     ),
-    update_kubeconfig: bool = typer.Option(
+    no_kubeconfig: bool = typer.Option(
         False,
-        "--update-kubeconfig",
-        "-u",
-        help="Updates the default kubeconfig file (~/.kube/config) to include"
-        "the connection details of the newly created Kubernetes cluster"
-        "This allows kubectl to communicate with the new cluster.",
+        "--no-kubeconfig",
+        "-n",
+        help="By default, the connection details of the newly created Kubernetes "
+        "cluster are added to the default kubeconfig file (~/.kube/config). "
+        "This allows kubectl to communicate with the new cluster. "
+        "Use this option to prevent updating the kubeconfig file.",
     ),
 ) -> None:
     """
@@ -36,7 +37,7 @@ def up(
     """
     cluster_manager = load_cluster_manager(cluster_config)
     cluster_manager.create()
-    if update_kubeconfig:
+    if not no_kubeconfig:
         logger.info("Updating kubeconfig...")
         merge_update_kubeconfig()
         logger.info("Successfully updated kubeconfig.")
