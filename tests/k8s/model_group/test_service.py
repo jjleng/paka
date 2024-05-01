@@ -28,6 +28,7 @@ def test_create_pod() -> None:
     )
 
     config = Config(
+        version="1.0",
         aws=CloudConfig(
             cluster=ClusterConfig(
                 name="test_cluster",
@@ -37,7 +38,7 @@ def test_create_pod() -> None:
                 maxNodes=4,
             ),
             modelGroups=[model_group],
-        )
+        ),
     )
 
     pod = create_pod("test_namespace", config, model_group, 8080)
