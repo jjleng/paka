@@ -105,8 +105,8 @@ paka cluster down -f cluster.yaml
 
 ## Dependencies
 - docker daemon and CLI
-- credentials for the AWS cloud
+- AWS CLI
 ```bash
-# Ensure your AWS credentials are correctly configured. Execute the command below and verify that the keys `aws_access_key_id` and `aws_secret_access_key` are present.
-cat ~/.aws/credentials
+# Ensure your AWS credentials are correctly configured.
+aws configure
 ```
