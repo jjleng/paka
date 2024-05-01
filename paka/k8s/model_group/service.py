@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, cast
 
 from kubernetes import client
 
-from paka.config import CloudConfig, CloudModelGroup, Config
+from paka.config import CloudConfig, Config, T_CloudModelGroup
 from paka.constants import ACCESS_ALL_SA, MODEL_MOUNT_PATH
 from paka.k8s.model_group.ingress import create_model_vservice
 from paka.k8s.model_group.runtime.llama_cpp import (
@@ -20,12 +20,12 @@ from paka.utils import kubify_name, read_cluster_data
 try_load_kubeconfig()
 
 
-def get_runtime_command(model_group: CloudModelGroup, port: int) -> List[str]:
+def get_runtime_command(model_group: T_CloudModelGroup, port: int) -> List[str]:
     """
     Gets the runtime command for a machine learning model group.
 
     Args:
-        model_group (CloudModelGroup): The model group to get the runtime command for.
+        model_group (T_CloudModelGroup): The model group to get the runtime command for.
 
     Returns:
         List[str]: The runtime command.
@@ -50,7 +50,7 @@ def get_runtime_command(model_group: CloudModelGroup, port: int) -> List[str]:
     return command
 
 
-def get_health_check_paths(model_group: CloudModelGroup) -> Tuple[str, str]:
+def get_health_check_paths(model_group: T_CloudModelGroup) -> Tuple[str, str]:
     # Return a tuple for ready and live probes
     if is_llama_cpp_image(model_group.runtime.image):
         return ("/health", "/health")
@@ -58,13 +58,13 @@ def get_health_check_paths(model_group: CloudModelGroup) -> Tuple[str, str]:
     raise ValueError("Unsupported runtime image for health check paths.")
 
 
-def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Container:
+def init_aws(config: CloudConfig, model_group: T_CloudModelGroup) -> client.V1Container:
     """
     Initializes an AWS container for downloading a model from S3.
 
     Args:
         config (CloudConfig): The cloud configuration.
-        model_group (CloudModelGroup): The cloud model group.
+        model_group (T_CloudModelGroup): The cloud model group.
 
     Returns:
         client.V1Container: The initialized AWS container.
@@ -94,7 +94,7 @@ def init_aws(config: CloudConfig, model_group: CloudModelGroup) -> client.V1Cont
 def create_pod(
     namespace: str,
     config: Config,
-    model_group: CloudModelGroup,
+    model_group: T_CloudModelGroup,
     port: int,
 ) -> client.V1Pod:
     """
@@ -107,7 +107,7 @@ def create_pod(
     Args:
         namespace (str): The namespace to create the Pod in.
         config (Config): The configuration for the Pod.
-        model_group (CloudModelGroup): The model group to run in the Pod.
+        model_group (T_CloudModelGroup): The model group to run in the Pod.
         runtime_image (str): The runtime image for the container.
         port (int): The port to expose on the container.
 
@@ -171,7 +171,7 @@ def create_pod(
             },
         )
 
-    if model_group.awsGpu:
+    if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
         if "resources" not in container_args:
             container_args["resources"] = client.V1ResourceRequirements()
         if container_args["resources"].limits is None:
@@ -256,14 +256,14 @@ def create_pod(
 
 
 def create_deployment(
-    namespace: str, model_group: CloudModelGroup, pod: client.V1Pod
+    namespace: str, model_group: T_CloudModelGroup, pod: client.V1Pod
 ) -> client.V1Deployment:
     """
     Creates a Kubernetes Deployment for a machine learning model group.
 
     Args:
         namespace (str): The namespace to create the Deployment in.
-        model_group (CloudModelGroup): The model group to run in the Deployment.
+        model_group (T_CloudModelGroup): The model group to run in the Deployment.
         pod (client.V1Pod): The Pod to use as a template for the Deployment.
 
     Returns:
@@ -289,7 +289,7 @@ def create_deployment(
     )
 
 
-def create_service_monitor(namespace: str, model_group: CloudModelGroup) -> None:
+def create_service_monitor(namespace: str, model_group: T_CloudModelGroup) -> None:
     monitor = CustomResource(
         api_version="monitoring.coreos.com/v1",
         kind="ServiceMonitor",
@@ -317,14 +317,14 @@ def create_service_monitor(namespace: str, model_group: CloudModelGroup) -> None
 
 
 def create_service(
-    namespace: str, model_group: CloudModelGroup, port: int, sidecar_port: int = 15090
+    namespace: str, model_group: T_CloudModelGroup, port: int, sidecar_port: int = 15090
 ) -> client.V1Service:
     """
     Creates a Kubernetes Service for a machine learning model group.
 
     Args:
         namespace (str): The namespace to create the Service in.
-        model_group (CloudModelGroup): The model group to expose with the Service.
+        model_group (T_CloudModelGroup): The model group to expose with the Service.
         port (int): The port to expose on the Service.
         sidecar_port (int): The port on which the istio sidecar is exposing metrics.
 
@@ -390,7 +390,7 @@ def filter_services(namespace: str) -> List[client.V1Service]:
 
 
 def create_hpa(
-    namespace: str, model_group: CloudModelGroup, deployment: client.V1Deployment
+    namespace: str, model_group: T_CloudModelGroup, deployment: client.V1Deployment
 ) -> client.V2HorizontalPodAutoscaler:
     """
     Creates a Kubernetes Horizontal Pod Autoscaler (HPA) for a machine learning model group.
@@ -403,7 +403,7 @@ def create_hpa(
 
     Args:
         namespace (str): The namespace to create the HPA in.
-        model_group (CloudModelGroup): The model group to scale with the HPA.
+        model_group (T_CloudModelGroup): The model group to scale with the HPA.
         deployment (client.V1Deployment): The deployment to scale.
 
     Returns:
@@ -441,7 +441,7 @@ def create_hpa(
 
 
 def create_scaled_object(
-    namespace: str, model_group: CloudModelGroup, deployment: client.V1Deployment
+    namespace: str, model_group: T_CloudModelGroup, deployment: client.V1Deployment
 ) -> Optional[CustomResource]:
     """
     Creates a KEDA ScaledObject for a given model group.
@@ -451,7 +451,7 @@ def create_scaled_object(
 
     Args:
         namespace (str): The namespace in which to create the ScaledObject.
-        model_group (CloudModelGroup): The model group for which to create the ScaledObject.
+        model_group (T_CloudModelGroup): The model group for which to create the ScaledObject.
             This object should have `autoScaleTriggers`, `minInstances`, and `maxInstances` attributes.
         deployment (client.V1Deployment): The Kubernetes Deployment that the ScaledObject should scale.
 
@@ -492,7 +492,7 @@ def create_scaled_object(
 def create_model_group_service(
     namespace: str,
     config: Config,
-    model_group: CloudModelGroup,
+    model_group: T_CloudModelGroup,
 ) -> None:
     """
     Creates a Kubernetes service for a machine learning model group.
@@ -500,7 +500,7 @@ def create_model_group_service(
     Args:
         namespace (str): The namespace to create the service in.
         config (Config): The configuration for the service.
-        model_group (CloudModelGroup): The model group to create the service for.
+        model_group (T_CloudModelGroup): The model group to create the service for.
 
     Raises:
         ValueError: If the AWS configuration is not provided.

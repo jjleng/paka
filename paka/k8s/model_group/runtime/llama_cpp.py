@@ -122,7 +122,7 @@ def get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> List[str]:
         "--embedding",
     ]
 
-    if model_group.awsGpu:
+    if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
         # The value 999 is typically sufficient for most models, as it attempts to offload as many layers as possible to the GPU.
         # However, for particularly large models, this may result in exceeding the GPU's memory capacity and cause errors.
         # A more effective approach would be to conduct a series of experiments with varying values for --n-gpu-layers to find the optimal setting.

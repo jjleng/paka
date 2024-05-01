@@ -6,6 +6,8 @@ import pytest
 
 from paka.config import (
     CONFIG_MAJOR_VERSION,
+    AwsConfig,
+    AwsModelGroup,
     CloudConfig,
     CloudModelGroup,
     CloudVectorStore,
@@ -18,7 +20,7 @@ from paka.config import (
     parse_yaml,
 )
 
-cloud_config = CloudConfig(
+cloud_config = AwsConfig(
     cluster=ClusterConfig(
         name="test-cluster",
         region="us-east-1",
@@ -29,7 +31,7 @@ cloud_config = CloudConfig(
         namespace="default",
     ),
     modelGroups=[
-        CloudModelGroup(
+        AwsModelGroup(
             name="test-model-group",
             minInstances=1,
             maxInstances=2,
@@ -130,7 +132,7 @@ def test_cloud_config() -> None:
         logRetentionDays=14,
         namespace="default",
     )
-    model_group1 = CloudModelGroup(
+    model_group1 = AwsModelGroup(
         nodeType="c7a.xlarge",
         name="test-group1",
         minInstances=1,
@@ -138,7 +140,7 @@ def test_cloud_config() -> None:
         runtime=Runtime(image="test-image"),
         resourceRequest=ResourceRequest(cpu="500m", memory="2Gi"),
     )
-    model_group2 = CloudModelGroup(
+    model_group2 = AwsModelGroup(
         nodeType="c7a.xlarge",
         name="test-group2",
         minInstances=1,
@@ -153,7 +155,7 @@ def test_cloud_config() -> None:
         storage_size="20Gi",
         resourceRequest=resource_request,
     )
-    cloud_config = CloudConfig(
+    cloud_config = AwsConfig(
         cluster=cluster,
         modelGroups=[model_group1, model_group2],
         vectorStore=vector_store,
@@ -163,7 +165,7 @@ def test_cloud_config() -> None:
     assert cloud_config.vectorStore == vector_store
 
     # Test with duplicate model group names
-    model_group1 = CloudModelGroup(
+    model_group1 = AwsModelGroup(
         nodeType="c7a.xlarge",
         name="test-group",
         minInstances=1,
@@ -171,7 +173,7 @@ def test_cloud_config() -> None:
         runtime=Runtime(image="test-image"),
         resourceRequest=ResourceRequest(cpu="500m", memory="2Gi"),
     )
-    model_group2 = CloudModelGroup(
+    model_group2 = AwsModelGroup(
         nodeType="c7a.xlarge",
         name="test-group",
         minInstances=1,
@@ -224,7 +226,7 @@ def test_parse_yaml() -> None:
               name: llama2-7b
               runtime:
                 image: test-image
-              awsGpu:
+              gpu:
               resourceRequest:
                 cpu: 500m
                 memory: 2Gi
@@ -249,7 +251,7 @@ def test_parse_yaml() -> None:
     assert model_group.minInstances == 1
     assert model_group.maxInstances == 1
     assert model_group.name == "llama2-7b"
-    assert model_group.awsGpu is None
+    assert model_group.gpu is None
     assert config.aws.vectorStore is not None
     assert config.aws.vectorStore.nodeType == "t2.small"
     assert config.aws.vectorStore.replicas == 2
@@ -270,7 +272,7 @@ def test_parse_yaml() -> None:
               name: llama2-7b
               runtime:
                 image: test-image
-              awsGpu:
+              gpu:
                 diskSize: 100
               resourceRequest:
                 cpu: 500m
@@ -282,8 +284,8 @@ def test_parse_yaml() -> None:
     assert config.aws.modelGroups is not None
     assert len(config.aws.modelGroups) == 1
     model_group = config.aws.modelGroups[0]
-    assert model_group.awsGpu is not None
-    assert model_group.awsGpu.diskSize == 100
+    assert model_group.gpu is not None
+    assert model_group.gpu.diskSize == 100
 
 
 def test_round_trip() -> None:
