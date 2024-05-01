@@ -14,7 +14,11 @@ from ruamel.yaml import YAML
 from paka.cluster.namespace import create_namespace
 from paka.config import CloudConfig, Config, parse_yaml
 from paka.constants import ACCESS_ALL_SA
-from paka.k8s.model_group.service import create_model_group_service
+from paka.k8s.model_group.service import (
+    cleanup_staled_model_group_services,
+    create_model_group_service,
+)
+from paka.utils import kubify_name
 
 from .pytest_kind.cluster import KindCluster
 
@@ -216,11 +220,11 @@ def test_create_model_group() -> None:
 
     create_model_group_service(cloud_config.cluster.namespace, config, model_group)
 
-    v1 = client.CoreV1Api()
+    api = client.CoreV1Api()
 
     # Make sure all model group pods are running successfully
     retry_until_successful(
-        lambda: v1.list_namespaced_pod(
+        lambda: api.list_namespaced_pod(
             namespace=cloud_config.cluster.namespace,
             label_selector="app=model-group,model=gte-base",
         ),
@@ -229,3 +233,71 @@ def test_create_model_group() -> None:
         interval=5,
         error_message="Model group pod did not start within 50 seconds",
     )
+
+    # Verify that the model group resources are created
+    api = client.AppsV1Api()
+    try:
+        api.read_namespaced_deployment(
+            name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
+        )
+    except ApiException as e:
+        if e.status == 404:
+            assert False, "Failed to create model group deployment"
+        else:
+            raise
+
+    api = client.CoreV1Api()
+    try:
+        api.read_namespaced_service(
+            name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
+        )
+    except ApiException as e:
+        if e.status == 404:
+            assert False, "Failed to create model group service"
+        else:
+            raise
+
+
+@pytest.mark.order(3)
+def test_destroy_model_group() -> None:
+    (config, cloud_config) = get_config()
+    cloud_config.modelGroups = []
+
+    cleanup_staled_model_group_services(
+        cloud_config.cluster.namespace,
+        [mg.name for mg in cloud_config.modelGroups or []],
+    )
+
+    for model_group in cloud_config.modelGroups:
+        create_model_group_service(cloud_config.cluster.namespace, config, model_group)
+
+    # Verify that the model group resources are deleted
+    api = client.AppsV1Api()
+    try:
+        retry_until_successful(
+            lambda: api.read_namespaced_deployment(
+                name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
+            ),
+            lambda _: False,
+            max_retries=12,
+            interval=5,
+            error_message="Model group deployment was not deleted",
+        )
+    except ApiException as e:
+        if e.status != 404:
+            raise
+
+    api = client.CoreV1Api()
+    try:
+        retry_until_successful(
+            lambda: api.read_namespaced_service(
+                name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
+            ),
+            lambda _: False,
+            max_retries=12,
+            interval=5,
+            error_message="Model group service was not deleted",
+        )
+    except ApiException as e:
+        if e.status != 404:
+            raise

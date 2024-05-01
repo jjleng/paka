@@ -628,6 +628,7 @@ def cleanup_staled_model_group_services(
 ) -> None:
     services = filter_services(namespace)
     model_groups: List[str] = [
+        # Get the model group name from the service selector
         cast(client.V1ServiceSpec, service.spec).selector.get("model")
         for service in services
     ]

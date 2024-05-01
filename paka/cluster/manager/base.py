@@ -8,7 +8,10 @@ from pulumi import automation as auto
 
 from paka.cluster.pulumi import ensure_pulumi
 from paka.config import CloudConfig, Config
-from paka.k8s.model_group.service import create_model_group_service
+from paka.k8s.model_group.service import (
+    cleanup_staled_model_group_services,
+    create_model_group_service,
+)
 from paka.logger import logger
 from paka.utils import read_cluster_data, save_cluster_data
 
@@ -56,6 +59,9 @@ class ClusterManager(ABC):
         return self._stack_for_program(program)
 
     def create(self) -> None:
+        if self._orig_config.aws is None:
+            raise ValueError("Only AWS is supported.")
+
         if self._orig_config.aws:
             self._stack.set_config(
                 "aws:region", auto.ConfigValue(value=self.config.cluster.region)
@@ -72,6 +78,11 @@ class ClusterManager(ABC):
             return
 
         namespace = read_cluster_data(self.config.cluster.name, "namespace")
+
+        # Clean up staled model group resources before creating new ones
+        cleanup_staled_model_group_services(
+            namespace, [mg.name for mg in self._orig_config.aws.modelGroups or []]
+        )
 
         for model_group in self.config.modelGroups:
             create_model_group_service(namespace, self._orig_config, model_group)

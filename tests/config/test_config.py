@@ -9,7 +9,6 @@ from paka.config import (
     AwsConfig,
     AwsModelGroup,
     CloudConfig,
-    CloudModelGroup,
     CloudVectorStore,
     ClusterConfig,
     Config,
