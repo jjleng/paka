@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
 from typing import List
 
@@ -71,6 +72,8 @@ def down(
         "all resources and data will be permanently deleted.",
         default=False,
     ):
+        cluster_manager = load_cluster_manager(cluster_config)
+
         # Sometime finalizers might block CRD deletion, so we need to force delete those.
         # This is best effort and might not work in all cases.
         # TODO: better way to handle this
@@ -86,8 +89,28 @@ def down(
             except Exception as e:
                 pass
 
-        cluster_manager = load_cluster_manager(cluster_config)
-        cluster_manager.destroy()
+        result = cluster_manager.destroy()
+
+        success_message = "The resources in the stack have been deleted"
+        if success_message in result.stdout:
+            # Remove the symlink to the current cluster and delete the cluster directory
+            current_cluster_path = Path(get_project_data_dir()) / "current_cluster"
+
+            # If the current cluster is the one being deleted, remove the symlink
+            if current_cluster_path.is_symlink():
+                current_cluster = current_cluster_path.resolve().name
+                if current_cluster == cluster_manager.config.cluster.name:
+                    current_cluster_path.unlink()
+
+            # Remove the cluster directory
+            cluster_dir = (
+                Path(get_project_data_dir())
+                / "clusters"
+                / cluster_manager.config.cluster.name
+            )
+
+            if cluster_dir.is_dir():
+                shutil.rmtree(cluster_dir)
 
 
 @cluster_app.command()
@@ -182,8 +205,9 @@ def set_current(
     )
 ) -> None:
     clusters_dir = Path(get_project_data_dir()) / "clusters"
+
     cluster_dir = clusters_dir / cluster_name
-    current_link = clusters_dir / "current"
+    current_link = Path(get_project_data_dir()) / "current_cluster"
 
     if not cluster_dir.is_dir():
         logger.info(f"Cluster {cluster_name} does not exist.")
