@@ -87,9 +87,9 @@ class ClusterManager(ABC):
         for model_group in self.config.modelGroups:
             create_model_group_service(namespace, self._orig_config, model_group)
 
-    def destroy(self) -> None:
+    def destroy(self) -> Any:
         logger.info("Destroying resources...")
-        self._stack.destroy(on_output=logger.info)
+        return self._stack.destroy(on_output=logger.info)
 
     def refresh(self) -> None:
         logger.info("Refreshing the stack...")
