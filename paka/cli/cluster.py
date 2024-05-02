@@ -173,3 +173,29 @@ def current() -> None:
         logger.info(Path(current_cluster).name)
     else:
         logger.info("No current cluster found.")
+
+
+@cluster_app.command()
+def set_current(
+    cluster_name: str = typer.Argument(
+        ..., help="The name of the cluster to set as current."
+    )
+) -> None:
+    clusters_dir = Path(get_project_data_dir()) / "clusters"
+    cluster_dir = clusters_dir / cluster_name
+    current_link = clusters_dir / "current"
+
+    if not cluster_dir.is_dir():
+        logger.info(f"Cluster {cluster_name} does not exist.")
+        raise typer.Exit(code=1)
+
+    if cluster_dir.resolve() != current_link.resolve():
+        if current_link.is_symlink():
+            current_link.unlink()
+
+        os.symlink(cluster_dir, current_link)
+
+    merge_update_kubeconfig()
+    logger.info(
+        f"Cluster {cluster_name} has been successfully set as the current cluster."
+    )
