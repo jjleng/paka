@@ -1,19 +1,17 @@
 import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
-import pulumi_kubernetes as k8s
 import pulumi_kubernetes.helm.v3 as helm
 
 from paka.cluster.aws.utils import odic_role_for_sa
-from paka.config import CloudConfig
+from paka.cluster.context import Context
 from paka.utils import call_once
 
 
 @call_once
 def create_cluster_autoscaler(
-    config: CloudConfig,
+    ctx: Context,
     cluster: eks.Cluster,
-    k8s_provider: k8s.Provider,
 ) -> None:
     """
     Sets up the cluster autoscaler for an EKS cluster.
@@ -26,7 +24,7 @@ def create_cluster_autoscaler(
     Returns:
         None
     """
-    project = config.cluster.name
+    cluster_name = ctx.cluster_name
 
     autoscaler_policy_doc = aws.iam.get_policy_document(
         statements=[
@@ -47,18 +45,18 @@ def create_cluster_autoscaler(
     )
 
     autoscaler_policy = aws.iam.Policy(
-        f"{project}-autoscaler-policy", policy=autoscaler_policy_doc.json
+        f"{cluster_name}-autoscaler-policy", policy=autoscaler_policy_doc.json
     )
 
     # The OIDC provider is required because the cluster autoscaler runs within the Kubernetes
     # cluster and needs to interact with the AWS API to manage the Auto Scaling Groups (ASGs).
     # OIDC provides a secure mechanism for the cluster autoscaler to authenticate with the AWS API.
     autoscaler_role = odic_role_for_sa(
-        config, cluster, "autoscaler", "kube-system:cluster-autoscaler"
+        ctx, cluster, "autoscaler", "kube-system:cluster-autoscaler"
     )
 
     aws.iam.RolePolicyAttachment(
-        f"{project}-autoscaler-role-policy-attachment",
+        f"{cluster_name}-autoscaler-role-policy-attachment",
         policy_arn=autoscaler_policy.arn,
         role=autoscaler_role.name,
     )
@@ -72,7 +70,7 @@ def create_cluster_autoscaler(
             fetch_opts=helm.FetchOpts(repo="https://kubernetes.github.io/autoscaler"),
             values={
                 "autoDiscovery": {"clusterName": cluster.eks_cluster.name},
-                "awsRegion": config.cluster.region,
+                "awsRegion": ctx.region,
                 "rbac": {
                     "create": True,
                     "serviceAccount": {
@@ -87,5 +85,5 @@ def create_cluster_autoscaler(
                 "image": {"tag": "v1.28.2"},
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )

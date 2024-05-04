@@ -2,17 +2,17 @@ import pulumi
 import pulumi_kubernetes as k8s
 from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
 
+from paka.cluster.context import Context
 from paka.cluster.prometheus import create_prometheus
-from paka.config import CloudConfig
 from paka.utils import call_once
 
 
 @call_once
-def create_keda(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
+def create_keda(ctx: Context) -> None:
     """
     Installs a KEDA chart.
     """
-    prometheus = create_prometheus(config, k8s_provider)
+    prometheus = create_prometheus(ctx)
 
     # Prometheus is a dependency for KEDA to work with the Prometheus metrics.
     # However, Prometheus might not be enabled in the config. In that case,
@@ -22,7 +22,7 @@ def create_keda(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
     ns = k8s.core.v1.Namespace(
         "keda",
         metadata={"name": "keda"},
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )
     Chart(
         "keda",
@@ -34,6 +34,6 @@ def create_keda(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
             values={},
         ),
         opts=pulumi.ResourceOptions(
-            provider=k8s_provider, depends_on=[ns, *dependencies]
+            provider=ctx.k8s_provider, depends_on=[ns, *dependencies]
         ),
     )

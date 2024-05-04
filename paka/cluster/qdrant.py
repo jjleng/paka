@@ -2,25 +2,24 @@ import pulumi
 import pulumi_kubernetes as k8s
 from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
 
-from paka.config import CloudConfig
+from paka.cluster.context import Context
 from paka.utils import call_once
 
 
 @call_once
-def create_qdrant(
-    config: CloudConfig,
-    k8s_provider: k8s.Provider,
-) -> None:
+def create_qdrant(ctx: Context) -> None:
     """
     Installs the qdrant helm chart.
     """
+    config = ctx.cloud_config
+
     if not config.vectorStore:
         return
 
     ns = k8s.core.v1.Namespace(
         "qdrant",
         metadata={"name": "qdrant", "labels": {"istio-injection": "enabled"}},
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )
 
     resource_request = (
@@ -112,5 +111,5 @@ def create_qdrant(
                 **resource_request,
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[ns]),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider, depends_on=[ns]),
     )

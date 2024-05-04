@@ -11,7 +11,7 @@ import typer
 
 from paka.cluster.manager.aws import AWSClusterManager
 from paka.cluster.manager.base import ClusterManager
-from paka.config import parse_yaml
+from paka.config import CloudConfig, Config, parse_yaml
 from paka.constants import BP_BUILDER_ENV_VAR
 from paka.container.ecr import push_to_ecr
 from paka.container.pack import ensure_pack
@@ -103,6 +103,18 @@ def build(
         raise typer.Exit(1)
 
 
+def load_cluster_config(cluster_config_file: Optional[str]) -> Optional[Config]:
+    if not cluster_config_file:
+        cluster_config_file = "./cluster.yaml"
+    cluster_config_file = os.path.abspath(os.path.expanduser(cluster_config_file))
+    if not os.path.exists(cluster_config_file):
+        return None
+
+    with open(cluster_config_file, "r") as file:
+        config = parse_yaml(file.read())
+        return config
+
+
 def load_cluster_manager(cluster_config: str) -> ClusterManager:
     """
     Loads the cluster manager based on the provided cluster configuration YAML file.
@@ -123,21 +135,15 @@ def load_cluster_manager(cluster_config: str) -> ClusterManager:
         FileNotFoundError: If the cluster configuration file does not exist.
         ValueError: If the cloud provider specified in the configuration is not supported.
     """
-    if not cluster_config:
-        cluster_config = "./cluster.yaml"
+    config_data = load_cluster_config(cluster_config)
 
-    cluster_config = os.path.abspath(os.path.expanduser(cluster_config))
-
-    if not os.path.exists(cluster_config):
+    if not config_data:
         raise FileNotFoundError(f"The cluster config file does not exist")
 
-    with open(cluster_config, "r") as file:
-        config_data = parse_yaml(file.read())
-
-        if config_data.aws:
-            return AWSClusterManager(config=config_data)
-        else:
-            raise ValueError("Unsupported cloud provider")
+    if config_data.aws:
+        return AWSClusterManager(config=config_data)
+    else:
+        raise ValueError("Unsupported cloud provider")
 
 
 def validate_name(func: Any) -> Any:
@@ -259,3 +265,26 @@ def init_pulumi() -> None:
         "PULUMI_BACKEND_URL",
         pulumi_url,
     )
+
+
+def ensure_cluster_name(cluster_name: Optional[str]) -> str:
+    if cluster_name:
+        return cluster_name
+    # This will load the `./cluster.yaml` file if it exists
+    config = load_cluster_config("")
+    if not config:
+        logger.error("Please provide a cluster name.")
+        raise typer.Exit(1)
+
+    assert config.aws, "Only AWS is supported for now"
+    return config.aws.cluster.name
+
+
+def ensure_cluster_config(cluster_file: Optional[str]) -> CloudConfig:
+    config = load_cluster_config(cluster_file)
+    if not config:
+        logger.error("Cannot locate cluster configuration file.")
+        raise typer.Exit(1)
+
+    assert config.aws, "Only AWS is supported for now"
+    return config.aws

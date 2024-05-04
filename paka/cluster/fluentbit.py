@@ -1,12 +1,13 @@
 import pulumi
 import pulumi_kubernetes as k8s
 
+from paka.cluster.context import Context
 from paka.constants import ACCESS_ALL_SA
-from paka.utils import call_once, read_current_cluster_data
+from paka.utils import call_once
 
 
 @call_once
-def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None:
+def create_fluentbit(ctx: Context, fluent_bit_config: str) -> None:
     """
     Creates a fluentbit daemonset with the given configuration.
     """
@@ -22,20 +23,20 @@ def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None
         "fluent-bit-parsers",
         data={"parsers.conf": parsers_config},
         metadata={
-            "namespace": read_current_cluster_data("namespace"),
+            "namespace": ctx.namespace,
             "name": "fluent-bit-parsers",
         },
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )
 
     fluent_bit_config_map = k8s.core.v1.ConfigMap(
         "fluent-bit-config-map",
         data={"fluent-bit.conf": fluent_bit_config},
         metadata={
-            "namespace": read_current_cluster_data("namespace"),
+            "namespace": ctx.namespace,
             "name": "fluent-bit-config",
         },
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )
 
     k8s.apps.v1.DaemonSet(
@@ -108,6 +109,6 @@ def create_fluentbit(fluent_bit_config: str, k8s_provider: k8s.Provider) -> None
                 ),
             ),
         ),
-        metadata={"namespace": read_current_cluster_data("namespace")},
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        metadata={"namespace": ctx.namespace},
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )

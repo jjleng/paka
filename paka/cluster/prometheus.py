@@ -6,7 +6,7 @@ import pulumi
 import pulumi_kubernetes as k8s
 from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
 
-from paka.config import CloudConfig
+from paka.cluster.context import Context
 
 
 def memoize(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -21,19 +21,18 @@ def memoize(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @memoize
-def create_prometheus(
-    config: CloudConfig, k8s_provider: k8s.Provider
-) -> Optional[Chart]:
+def create_prometheus(ctx: Context) -> Optional[Chart]:
     """
     Installs a Prometheus chart.
     """
+    config = ctx.cloud_config
     if not config.prometheus or not config.prometheus.enabled:
         return None
 
     ns = k8s.core.v1.Namespace(
         "prometheus",
         metadata={"name": "prometheus"},
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )
 
     return Chart(
@@ -114,5 +113,5 @@ def create_prometheus(
                 },
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[ns]),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider, depends_on=[ns]),
     )

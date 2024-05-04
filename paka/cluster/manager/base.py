@@ -6,14 +6,15 @@ from typing import Any
 
 from pulumi import automation as auto
 
+from paka.cluster.context import Context
 from paka.cluster.pulumi import ensure_pulumi
 from paka.config import CloudConfig, Config
+from paka.constants import PULUMI_STACK_NAME
 from paka.k8s.model_group.service import (
     cleanup_staled_model_group_services,
     create_model_group_service,
 )
 from paka.logger import logger
-from paka.utils import read_cluster_data, save_cluster_data
 
 STACK_NAME = "default"
 
@@ -34,9 +35,8 @@ class ClusterManager(ABC):
         self._orig_config = config
         if not config.aws is None:
             self.config = config.aws
-        save_cluster_data(
-            self.config.cluster.name, "namespace", self.config.cluster.namespace
-        )
+        self.context = Context()
+        self.context.set_config(config)
 
     @abstractmethod
     def provision_k8s(self) -> None:
@@ -44,7 +44,7 @@ class ClusterManager(ABC):
 
     def _stack_for_program(self, program: auto.PulumiFn) -> auto.Stack:
         return auto.create_or_select_stack(
-            stack_name=STACK_NAME,
+            stack_name=PULUMI_STACK_NAME,
             project_name=self.config.cluster.name,
             program=program,
         )
@@ -67,17 +67,13 @@ class ClusterManager(ABC):
                 "aws:region", auto.ConfigValue(value=self.config.cluster.region)
             )
 
-        save_cluster_data(
-            self.config.cluster.name, "region", self.config.cluster.region
-        )
-
         logger.info("Creating resources...")
         self._stack.up(on_output=logger.info)
 
         if self.config.modelGroups is None:
             return
 
-        namespace = read_cluster_data(self.config.cluster.name, "namespace")
+        namespace = self.config.cluster.namespace
 
         # Clean up staled model group resources before creating new ones
         cleanup_staled_model_group_services(
@@ -85,7 +81,7 @@ class ClusterManager(ABC):
         )
 
         for model_group in self.config.modelGroups:
-            create_model_group_service(namespace, self._orig_config, model_group)
+            create_model_group_service(self.context, namespace, model_group)
 
     def destroy(self) -> Any:
         logger.info("Destroying resources...")
