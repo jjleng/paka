@@ -2,11 +2,11 @@ import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
 
-from paka.config import CloudConfig
+from paka.cluster.context import Context
 
 
 def odic_role_for_sa(
-    config: CloudConfig,
+    ctx: Context,
     cluster: eks.Cluster,
     role_name: str,
     ns_service_account: str,
@@ -23,8 +23,6 @@ def odic_role_for_sa(
     Returns:
         aws.iam.Role: The IAM role for the service account.
     """
-    project = config.cluster.name
-
     oidc_url = cluster.core.oidc_provider.url
     oidc_arn = cluster.core.oidc_provider.arn
 
@@ -53,7 +51,7 @@ def odic_role_for_sa(
     )
 
     role = aws.iam.Role(
-        f"{project}-{role_name}-role",
+        f"{ctx.cluster_name}-{role_name}-role",
         assume_role_policy=assume_role_policy,
     )
 

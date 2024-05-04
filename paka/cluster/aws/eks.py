@@ -13,6 +13,7 @@ from paka.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from paka.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from paka.cluster.aws.elb import update_elb_idle_timeout
 from paka.cluster.aws.service_account import create_service_accounts
+from paka.cluster.context import Context
 from paka.cluster.keda import create_keda
 from paka.cluster.knative import create_knative_and_istio
 from paka.cluster.namespace import create_namespace
@@ -21,7 +22,6 @@ from paka.cluster.prometheus import create_prometheus
 from paka.cluster.qdrant import create_qdrant
 from paka.cluster.redis import create_redis
 from paka.cluster.zipkin import create_zipkin
-from paka.config import CloudConfig
 from paka.utils import kubify_name, save_kubeconfig
 
 
@@ -48,7 +48,7 @@ def _ignore_tags_transformation(
 
 
 def create_node_group_for_model_group(
-    config: CloudConfig,
+    ctx: Context,
     cluster: eks.Cluster,
     vpc: awsx.ec2.Vpc,
     worker_role: aws.iam.Role,
@@ -70,16 +70,16 @@ def create_node_group_for_model_group(
     Returns:
         None
     """
-    if config.modelGroups is None:
+    if ctx.cloud_config.modelGroups is None:
         return
 
-    project = config.cluster.name
+    cluster_name = ctx.cluster_name
 
-    for model_group in config.modelGroups:
+    for model_group in ctx.cloud_config.modelGroups:
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
-            f"{project}-{kubify_name(model_group.name)}-group",
-            node_group_name=f"{project}-{kubify_name(model_group.name)}-group",
+            f"{cluster_name}-{kubify_name(model_group.name)}-group",
+            node_group_name=f"{cluster_name}-{kubify_name(model_group.name)}-group",
             cluster=cluster,
             instance_types=[model_group.nodeType],
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(
@@ -113,7 +113,7 @@ def create_node_group_for_model_group(
 
 
 def create_node_group_for_qdrant(
-    config: CloudConfig,
+    ctx: Context,
     cluster: eks.Cluster,
     vpc: awsx.ec2.Vpc,
     worker_role: aws.iam.Role,
@@ -141,17 +141,17 @@ def create_node_group_for_qdrant(
     Returns:
         None
     """
-    if config.vectorStore is None:
+    if ctx.cloud_config.vectorStore is None:
         return
 
-    project = config.cluster.name
+    cluster_name = ctx.cluster_name
 
-    vectorStore = config.vectorStore
+    vectorStore = ctx.cloud_config.vectorStore
 
     # Create a managed node group for our cluster
     eks.ManagedNodeGroup(
-        f"{project}-qdrant-group",
-        node_group_name=f"{project}-qdrant-group",
+        f"{cluster_name}-qdrant-group",
+        node_group_name=f"{cluster_name}-qdrant-group",
         cluster=cluster,
         instance_types=[vectorStore.nodeType],
         # Scaling down to 0 is not supported
@@ -172,7 +172,7 @@ def create_node_group_for_qdrant(
     )
 
 
-def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
+def create_k8s_cluster(ctx: Context) -> eks.Cluster:
     """
     Provisions an AWS EKS cluster with the necessary resources.
 
@@ -186,13 +186,10 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     Second, we install a Horizontal Pod Autoscaler to scale out or in the pods based on the CPU and memory usage of
     the pods. Once the pods are scaled, the Cluster Autoscaler will scale the nodes based on the number of pending pods.
 
-    Args:
-        config (CloudConfig): The cluster config provided by user.
-
     Returns:
-        None
+        eks.Cluster
     """
-    project = config.cluster.name
+    cluster_name = ctx.cluster_name
 
     managed_policy_arns = [
         "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
@@ -215,14 +212,14 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     ).json
 
     worker_role = aws.iam.Role(
-        f"{project}-eks-worker-role",
+        f"{cluster_name}-eks-worker-role",
         assume_role_policy=assume_role_policy,
         managed_policy_arns=managed_policy_arns,
     )
 
     # Create a VPC for our cluster
     vpc = awsx.ec2.Vpc(
-        f"{project}-vpc",
+        f"{cluster_name}-vpc",
         subnet_strategy=awsx.ec2.SubnetAllocationStrategy.AUTO,
         # AWS needs these tags for creating load balancers
         # See https://repost.aws/knowledge-center/eks-vpc-subnet-discovery
@@ -240,7 +237,7 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
     )
 
     cluster = eks.Cluster(
-        project,
+        cluster_name,
         vpc_id=vpc.vpc_id,
         public_subnet_ids=vpc.public_subnet_ids,
         private_subnet_ids=vpc.private_subnet_ids,
@@ -253,30 +250,31 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
 
     # Create a managed node group for our cluster
     eks.ManagedNodeGroup(
-        f"{project}-default-group",
-        node_group_name=f"{project}-default-group",
+        f"{cluster_name}-default-group",
+        node_group_name=f"{cluster_name}-default-group",
         cluster=cluster,
-        instance_types=[config.cluster.nodeType],
+        instance_types=[ctx.cloud_config.cluster.nodeType],
         scaling_config=aws.eks.NodeGroupScalingConfigArgs(
-            desired_size=config.cluster.minNodes,
-            min_size=config.cluster.minNodes,
-            max_size=config.cluster.maxNodes,
+            desired_size=ctx.cloud_config.cluster.minNodes,
+            min_size=ctx.cloud_config.cluster.minNodes,
+            max_size=ctx.cloud_config.cluster.maxNodes,
         ),
-        labels={"size": config.cluster.nodeType, "group": "default"},
+        labels={"size": ctx.cloud_config.cluster.nodeType, "group": "default"},
         node_role_arn=worker_role.arn,
         subnet_ids=vpc.private_subnet_ids,
     )
 
     # Create a managed node group for each model group
-    create_node_group_for_model_group(config, cluster, vpc, worker_role)
+    create_node_group_for_model_group(ctx, cluster, vpc, worker_role)
 
     # Create a managed node group for Qdrant
-    create_node_group_for_qdrant(config, cluster, vpc, worker_role)
+    create_node_group_for_qdrant(ctx, cluster, vpc, worker_role)
 
     def create_eks_resources(kubeconfig_json: str) -> None:
         k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)
+        ctx.set_k8s_provider(k8s_provider)
 
-        save_kubeconfig(config.cluster.name, kubeconfig_json)
+        save_kubeconfig(ctx.cluster_name, kubeconfig_json)
 
         # Deploy the metrics server. This is required for the Horizontal Pod Autoscaler to work.
         # HPA requires metrics to be available in order to scale the pods.
@@ -288,23 +286,22 @@ def create_k8s_cluster(config: CloudConfig) -> eks.Cluster:
 
         # Deploy the cluster autoscaler through Helm
         create_cluster_autoscaler(
-            config,
+            ctx,
             cluster,
-            k8s_provider,
         )
 
-        create_ebs_csi_driver(config, cluster, k8s_provider)
-        create_namespace(k8s_provider, kubeconfig_json)
+        create_ebs_csi_driver(ctx, cluster)
+        create_namespace(ctx, kubeconfig_json)
         # TODO: Decouple knative and istio
-        create_knative_and_istio(config, k8s_provider)
-        create_redis(config, k8s_provider)
-        create_keda(config, k8s_provider)
-        create_qdrant(config, k8s_provider)
+        create_knative_and_istio(ctx)
+        create_redis(ctx)
+        create_keda(ctx)
+        create_qdrant(ctx)
 
-        create_service_accounts(config, cluster, k8s_provider)
-        enable_cloudwatch(config, k8s_provider)
-        create_prometheus(config, k8s_provider)
-        create_zipkin(config, k8s_provider)
+        create_service_accounts(ctx, cluster)
+        enable_cloudwatch(ctx)
+        create_prometheus(ctx)
+        create_zipkin(ctx)
         # Install the NVIDIA device plugin for GPU support
         # Even if the cluster doesn't have GPUs, this won't cause any issues
         install_nvidia_device_plugin(k8s_provider)

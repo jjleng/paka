@@ -1,10 +1,12 @@
 import pulumi
 import pulumi_kubernetes as k8s
 
+from paka.cluster.context import Context
+from paka.utils import call_once
 
-def install_nvidia_device_plugin(
-    k8s_provider: k8s.Provider, version: str = "v0.15.0-rc.2"
-) -> None:
+
+@call_once
+def install_nvidia_device_plugin(ctx: Context, version: str = "v0.15.0-rc.2") -> None:
     """
     Installs the NVIDIA device plugin for GPU support in the cluster.
 
@@ -83,5 +85,5 @@ def install_nvidia_device_plugin(
                 ),
             ),
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )

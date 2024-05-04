@@ -1,19 +1,16 @@
 import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
-import pulumi_kubernetes as k8s
 from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
 
 from paka.cluster.aws.utils import odic_role_for_sa
-from paka.config import CloudConfig
+from paka.cluster.context import Context
 from paka.utils import call_once
 
 
 @call_once
-def create_ebs_csi_driver(
-    config: CloudConfig, cluster: eks.Cluster, k8s_provider: k8s.Provider
-) -> None:
-    project = config.cluster.name
+def create_ebs_csi_driver(ctx: Context, cluster: eks.Cluster) -> None:
+    cluster_name = ctx.cluster_name
 
     csi_driver_policy_doc = aws.iam.get_policy_document(
         statements=[
@@ -40,15 +37,15 @@ def create_ebs_csi_driver(
     )
 
     csi_driver_policy = aws.iam.Policy(
-        f"{project}-csi-driver-policy", policy=csi_driver_policy_doc.json
+        f"{cluster_name}-csi-driver-policy", policy=csi_driver_policy_doc.json
     )
 
     csi_driver_role = odic_role_for_sa(
-        config, cluster, "csi-driver", "kube-system:ebs-csi-controller-sa"
+        ctx, cluster, "csi-driver", "kube-system:ebs-csi-controller-sa"
     )
 
     aws.iam.RolePolicyAttachment(
-        f"{project}-csi-driver-role-policy-attachment",
+        f"{cluster_name}-csi-driver-role-policy-attachment",
         policy_arn=csi_driver_policy.arn,
         role=csi_driver_role.name,
     )
@@ -75,5 +72,5 @@ def create_ebs_csi_driver(
                 }
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )

@@ -12,3 +12,6 @@ BP_BUILDER_ENV_VAR = "BP_BUILDER"
 
 # The path where the model files are mounted in the container
 MODEL_MOUNT_PATH = "/data"
+
+# Pulumi stack name
+PULUMI_STACK_NAME = "default"

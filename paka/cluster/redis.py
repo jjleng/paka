@@ -3,22 +3,24 @@ import pulumi_kubernetes as k8s
 from pulumi_kubernetes.apiextensions import CustomResource
 from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
 
-from paka.config import CloudConfig
-from paka.utils import call_once, read_current_cluster_data
+from paka.cluster.context import Context
+from paka.utils import call_once
 
 
 @call_once
-def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
+def create_redis(ctx: Context) -> None:
     """
     Installs redis with a helm chart.
     """
+    config = ctx.cloud_config
+
     if not config.job or not config.job.enabled:
         return
 
     ns = k8s.core.v1.Namespace(
         "redis",
         metadata={"name": "redis"},
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )
 
     chart = Chart(
@@ -26,7 +28,7 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
         ChartOpts(
             chart="redis",
             version="18.6.1",
-            namespace=read_current_cluster_data("namespace"),
+            namespace=ctx.namespace,
             fetch_opts=FetchOpts(repo="https://charts.bitnami.com/bitnami"),
             values={
                 "architecture": "standalone",
@@ -39,7 +41,7 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
                 "metrics": {"enabled": True},  # For enabling metrics
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider, depends_on=[ns]),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider, depends_on=[ns]),
     )
 
     if not config.prometheus or not config.prometheus.enabled:
@@ -72,7 +74,7 @@ def create_redis(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
             ],
         },
         opts=pulumi.ResourceOptions(
-            provider=k8s_provider,
+            provider=ctx.k8s_provider,
             depends_on=[chart],
         ),
     )

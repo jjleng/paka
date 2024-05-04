@@ -4,16 +4,15 @@ import pulumi_eks as eks
 import pulumi_kubernetes as k8s
 
 from paka.cluster.aws.utils import odic_role_for_sa
-from paka.config import CloudConfig
+from paka.cluster.context import Context
 from paka.constants import ACCESS_ALL_SA
-from paka.utils import call_once, read_cluster_data, read_current_cluster_data
+from paka.utils import call_once
 
 
 @call_once
 def create_service_accounts(
-    config: CloudConfig,
+    ctx: Context,
     cluster: eks.Cluster,
-    k8s_provider: k8s.Provider,
 ) -> None:
     """
     Creates service accounts with necessary IAM roles and policies.
@@ -33,11 +32,11 @@ def create_service_accounts(
     Returns:
         None
     """
-    project = config.cluster.name
-    bucket = read_cluster_data(project, "bucket")
+    cluster_name = ctx.cluster_name
+    bucket = ctx.bucket
 
     s3_policy = aws.iam.Policy(
-        f"{project}-s3-access-policy",
+        f"{cluster_name}-s3-access-policy",
         policy=aws.iam.get_policy_document(
             statements=[
                 aws.iam.GetPolicyDocumentStatementArgs(
@@ -53,7 +52,7 @@ def create_service_accounts(
     )
 
     ecr_policy = aws.iam.Policy(
-        f"{project}-ecr-access-policy",
+        f"{cluster_name}-ecr-access-policy",
         policy=aws.iam.get_policy_document(
             statements=[
                 aws.iam.GetPolicyDocumentStatementArgs(
@@ -89,38 +88,38 @@ def create_service_accounts(
         ).json,
     )
 
-    ns = read_current_cluster_data("namespace")
+    namespace = ctx.namespace
     sa_role = odic_role_for_sa(
-        config,
+        ctx,
         cluster,
         "sa",
-        f"{ns}:{ACCESS_ALL_SA}",
+        f"{namespace}:{ACCESS_ALL_SA}",
     )
 
     aws.iam.RolePolicyAttachment(
-        f"{project}-sa-s3-role-policy-attachment",
+        f"{cluster_name}-sa-s3-role-policy-attachment",
         role=sa_role.name,
         policy_arn=s3_policy.arn,
     )
 
     aws.iam.RolePolicyAttachment(
-        f"{project}-sa-ecr-role-policy-attachment",
+        f"{cluster_name}-sa-ecr-role-policy-attachment",
         role=sa_role.name,
         policy_arn=ecr_policy.arn,
     )
 
     aws.iam.RolePolicyAttachment(
-        f"{project}-sa-cloudwatch-role-policy-attachment",
+        f"{cluster_name}-sa-cloudwatch-role-policy-attachment",
         role=sa_role.name,
         policy_arn=cloudwatch_policy.arn,
     )
 
     k8s.core.v1.ServiceAccount(
-        f"{project}-service-account",
+        f"{cluster_name}-service-account",
         metadata={
-            "namespace": read_current_cluster_data("namespace"),
+            "namespace": ctx.namespace,
             "name": ACCESS_ALL_SA,
             "annotations": {"eks.amazonaws.com/role-arn": sa_role.arn},
         },
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )

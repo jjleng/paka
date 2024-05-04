@@ -1,16 +1,17 @@
 import pulumi
-import pulumi_kubernetes as k8s
 from pulumi_kubernetes.helm.v3 import Chart, ChartOpts, FetchOpts
 
-from paka.config import CloudConfig
+from paka.cluster.context import Context
 from paka.utils import call_once
 
 
 @call_once
-def create_zipkin(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
+def create_zipkin(ctx: Context) -> None:
     """
     Installs zipkin with a helm chart.
     """
+
+    config = ctx.cloud_config
 
     if not config.tracing or not config.tracing.enabled:
         return
@@ -31,5 +32,5 @@ def create_zipkin(config: CloudConfig, k8s_provider: k8s.Provider) -> None:
                 **(config.tracing.zipkinHelmSettings or {}),
             },
         ),
-        opts=pulumi.ResourceOptions(provider=k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
     )

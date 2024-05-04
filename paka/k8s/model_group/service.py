@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple, cast
 
 from kubernetes import client
 
+from paka.cluster.context import Context
 from paka.config import CloudConfig, Config, T_CloudModelGroup
 from paka.constants import ACCESS_ALL_SA, MODEL_MOUNT_PATH
 from paka.k8s.model_group.ingress import create_model_vservice
@@ -92,8 +93,8 @@ def init_aws(config: CloudConfig, model_group: T_CloudModelGroup) -> client.V1Co
 
 
 def create_pod(
+    ctx: Context,
     namespace: str,
-    config: Config,
     model_group: T_CloudModelGroup,
     port: int,
 ) -> client.V1Pod:
@@ -117,9 +118,6 @@ def create_pod(
     Returns:
         client.V1Pod: The created Pod.
     """
-    if config.aws is None:
-        raise ValueError("Only AWS is supported at this time")
-
     ready_probe_path, live_probe_path = get_health_check_paths(model_group)
 
     container_args = {
@@ -201,7 +199,7 @@ def create_pod(
             ],
             # Download models from s3 only when s3 is used as a model store
             init_containers=(
-                [init_aws(config.aws, model_group)]
+                [init_aws(ctx.cloud_config, model_group)]
                 if model_group.model and model_group.model.useModelStore
                 else []
             ),
@@ -490,8 +488,8 @@ def create_scaled_object(
 
 
 def create_model_group_service(
+    ctx: Context,
     namespace: str,
-    config: Config,
     model_group: T_CloudModelGroup,
 ) -> None:
     """
@@ -508,9 +506,7 @@ def create_model_group_service(
     Returns:
         None
     """
-    if config.aws is None:
-        raise ValueError("Only AWS is supported at this time")
-
+    config = ctx.cloud_config
     # Download the model to S3 first
     if model_group.model and model_group.model.useModelStore:
         if model_group.model.hfRepoId:
@@ -532,8 +528,8 @@ def create_model_group_service(
     port = 8000
 
     pod = create_pod(
+        ctx,
         namespace,
-        config,
         model_group,
         port,
     )
@@ -544,7 +540,7 @@ def create_model_group_service(
     svc = create_service(namespace, model_group, port)
     apply_resource(svc)
 
-    if config.aws.prometheus and config.aws.prometheus.enabled:
+    if config.prometheus and config.prometheus.enabled:
         create_service_monitor(namespace, model_group)
 
     scaled_object = create_scaled_object(namespace, model_group, deployment)
