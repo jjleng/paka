@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import Set
+import os
+from typing import Optional, Set
 
 import boto3
 import typer
 from kubernetes import client
 from tabulate import tabulate
 
+from paka.cli.utils import ensure_cluster_name, get_cluster_namespace, read_pulumi_stack
 from paka.k8s.model_group.service import MODEL_PATH_PREFIX, filter_services
 from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
-from paka.utils import read_current_cluster_data
 
 try_load_kubeconfig()
 
@@ -18,11 +19,20 @@ model_group_app = typer.Typer()
 
 
 @model_group_app.command()
-def list_downloaded_models() -> None:
+def list_downloaded_models(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
+) -> None:
     """
     List all models that have been downloaded to the object store.
     """
-    bucket = read_current_cluster_data("bucket")
+    cluster_name = ensure_cluster_name(cluster_name)
+    bucket = read_pulumi_stack(cluster_name, "bucket")
+
     s3 = boto3.client("s3")
     response = s3.list_objects_v2(Bucket=bucket, Prefix=MODEL_PATH_PREFIX)
     if "Contents" in response:
@@ -42,11 +52,18 @@ def list_downloaded_models() -> None:
 
 
 @model_group_app.command()
-def list() -> None:
+def list(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
+) -> None:
     """
     List all model groups.
     """
-    services = filter_services(read_current_cluster_data("namespace"))
+    services = filter_services(get_cluster_namespace(cluster_name))
     model_groups = [service.spec.selector.get("model") for service in services]
 
     v1 = client.CoreV1Api()

@@ -8,15 +8,17 @@ import re
 import string
 import tempfile
 from contextlib import contextmanager
+from enum import Enum
 from functools import lru_cache
 from io import StringIO
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Optional
 
+import boto3
 import requests
 from ruamel.yaml import YAML
 
-from paka.constants import HOME_ENV_VAR, PROJECT_NAME
+from paka.constants import HOME_ENV_VAR, PROJECT_NAME, PULUMI_STACK_NAME
 
 
 def camel_to_kebab(name: str) -> str:
@@ -388,3 +390,86 @@ def download_url(url: str) -> Generator[str, None, None]:
         yield tmp_file
     finally:
         os.remove(tmp_file)
+
+
+class PulumiStackKey(Enum):
+    NAMESPACE = "namespace"
+    REGION = "region"
+    PROVIDER = "provider"
+    REGISTRY = "registry"
+    BUCKET = "bucket"
+
+
+def read_pulumi_stack(cluster_name: str, key: str) -> Any:
+    try:
+        k = PulumiStackKey[key.upper()]
+    except KeyError:
+        raise ValueError(
+            f"Invalid key: {key}. Expected one of: {list(PulumiStackKey.__members__.values())}"
+        )
+    stack_json = _load_pulumi_stack(cluster_name)
+
+    return _read_pulumi_stack_by_key(stack_json, k)
+
+
+@lru_cache(maxsize=100)
+def _load_pulumi_stack(cluster_name: str) -> dict:
+    pulumi_backend_url = os.environ.get("PULUMI_BACKEND_URL", "")
+
+    if not pulumi_backend_url:
+        raise Exception("Pulumi backend URL is not set")
+
+    if pulumi_backend_url.startswith("file://"):
+        pulumi_root = Path(get_pulumi_root())  # Windows support?
+        pulumi_stack_file = (
+            pulumi_root
+            / ".pulumi"
+            / "stacks"
+            / cluster_name
+            / f"{PULUMI_STACK_NAME}.json"
+        )
+        stack_json = json.loads(pulumi_stack_file.read_text())
+    elif pulumi_backend_url.startswith("s3://"):
+        s3 = boto3.client("s3")
+        response = s3.get_object(
+            Bucket=pulumi_backend_url[5:],
+            Key=f".pulumi/stacks/{cluster_name}/{PULUMI_STACK_NAME}.json",
+        )
+        stack_json = json.loads(response["Body"].read().decode("utf-8"))
+    else:
+        raise Exception("Unsupported Pulumi backend URL")
+
+    return stack_json
+
+
+def _read_pulumi_stack_by_key(stack_json: dict, k: PulumiStackKey) -> Any:
+    resources = stack_json["checkpoint"]["latest"]["resources"]
+
+    # For now, we assume that the cloud is AWS
+    if k == PulumiStackKey.PROVIDER:
+        for resource in resources:
+            if resource["type"] == "pulumi:providers:aws":
+                return "aws"
+    elif k == PulumiStackKey.REGION:
+        for resource in resources:
+            if resource["type"] == "pulumi:providers:aws":
+                return resource["outputs"]["region"]
+    elif k == PulumiStackKey.REGISTRY:
+        for resource in resources:
+            # Since we creating only one ECR repository, there is no need to use the resource urn
+            if resource["type"] == "aws:ecr/repository:Repository":
+                return resource["outputs"]["repositoryUrl"]
+    elif k == PulumiStackKey.BUCKET:
+        for resource in resources:
+            # Since we creating only one S3 bucket, there is no need to use the resource urn
+            if resource["type"] == "aws:s3/bucket:Bucket":
+                return resource["outputs"]["bucket"]
+    elif k == PulumiStackKey.NAMESPACE:
+        for resource in resources:
+            # Since we creating only one namespace, there is no need to use the resource urn
+            if resource["type"] == "kubernetes:core/v1:Namespace":
+                return resource["outputs"]["metadata"]["name"]
+        # If no namespace is found, return the default namespace
+        return "default"
+
+    raise Exception(f"Unsupported PulumiStackKey: {k}")
