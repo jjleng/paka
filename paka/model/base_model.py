@@ -15,6 +15,7 @@ class BaseMLModel(ABC):
     def __init__(
         self,
         name: str,
+        model_store: ModelStore,
         quantization: Optional[str],
         prompt_template_name: Optional[str],
         prompt_template_str: Optional[str],
@@ -29,16 +30,8 @@ class BaseMLModel(ABC):
             prompt_template_str=prompt_template_str,
         )
 
-        self.model_store = self.get_model_store()
+        self.model_store = model_store
         self.concurrency = concurrency
-
-    @staticmethod
-    def get_model_store(*args: Any, **kwargs: Any) -> ModelStore:
-        provider = read_current_cluster_data("provider")
-        if provider != "aws":
-            raise ValueError("Only AWS is supported.")
-
-        return S3ModelStore(*args, **kwargs)
 
     def save_manifest_yml(self, manifest: Optional[ModelManifest] = None) -> None:
         if manifest is None:
@@ -53,7 +46,7 @@ class BaseMLModel(ABC):
                 prompt_template_str=self.settings.prompt_template_str,
             )
 
-        model_store = self.get_model_store(with_progress_bar=False)
+        model_store = self.model_store
 
         manifest_yml = to_yaml(manifest.model_dump(exclude_none=True))
 

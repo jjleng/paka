@@ -78,12 +78,13 @@ class S3ModelStore(ModelStore):
 
     def __init__(
         self,
+        s3_bucket: str,
         s3_chunk_size: int = 8 * 1024 * 1024,
         s3_max_concurrency: int = 20,
         with_progress_bar: bool = True,
     ) -> None:
         # s3 bucket
-        self.s3_bucket = read_current_cluster_data("bucket")
+        self.s3_bucket = s3_bucket
         self.s3_chunk_size = s3_chunk_size
         self.s3_max_concurrency = s3_max_concurrency
         self.s3 = boto3.client("s3", config=Config(signature_version="s3v4"))

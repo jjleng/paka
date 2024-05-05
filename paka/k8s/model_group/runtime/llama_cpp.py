@@ -7,6 +7,8 @@ from typing import List, Optional
 from huggingface_hub import HfFileSystem
 from huggingface_hub.utils import validate_repo_id
 
+from paka.cluster.context import Context
+from paka.cluster.utils import get_model_store
 from paka.config import CloudModelGroup
 from paka.constants import MODEL_MOUNT_PATH
 from paka.model.base_model import BaseMLModel
@@ -18,10 +20,11 @@ def is_llama_cpp_image(image: str) -> bool:
 
 
 def get_model_file_from_model_store(
+    ctx: Context,
     model_group: CloudModelGroup,
 ) -> Optional[str]:
     if model_group.model and model_group.model.useModelStore:
-        store = BaseMLModel.get_model_store(with_progress_bar=False)
+        store = get_model_store(ctx, with_progress_bar=False)
         # Find the file that ends with .gguf or .ggml
         model_files = [
             file
@@ -50,7 +53,9 @@ def get_model_file_from_model_store(
     return None
 
 
-def get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> List[str]:
+def get_runtime_command_llama_cpp(
+    ctx: Context, model_group: CloudModelGroup
+) -> List[str]:
     runtime = model_group.runtime
     if runtime.command:
         command_str = " ".join(runtime.command) if runtime.command else ""
@@ -65,7 +70,7 @@ def get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> List[str]:
         ):
             return runtime.command
 
-    model_file = get_model_file_from_model_store(model_group)
+    model_file = get_model_file_from_model_store(ctx, model_group)
 
     def attach_model_to_command(command: List[str]) -> List[str]:
         if model_file:

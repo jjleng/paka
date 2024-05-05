@@ -9,6 +9,7 @@ from huggingface_hub.utils import validate_repo_id
 
 from paka.logger import logger
 from paka.model.base_model import BaseMLModel
+from paka.model.store import ModelStore
 
 
 class HuggingFaceModel(BaseMLModel):
@@ -17,12 +18,14 @@ class HuggingFaceModel(BaseMLModel):
         name: str,
         repo_id: str,
         files: List[str],
+        model_store: ModelStore,
         quantization: Optional[str] = None,
         prompt_template_name: Optional[str] = None,
         prompt_template_str: Optional[str] = None,
     ) -> None:
         super().__init__(
             name=name,
+            model_store=model_store,
             quantization=quantization,
             prompt_template_name=prompt_template_name,
             prompt_template_str=prompt_template_str,

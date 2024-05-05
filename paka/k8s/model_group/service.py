@@ -5,7 +5,8 @@ from typing import List, Optional, Tuple, cast
 from kubernetes import client
 
 from paka.cluster.context import Context
-from paka.config import CloudConfig, Config, T_CloudModelGroup
+from paka.cluster.utils import get_model_store
+from paka.config import T_CloudModelGroup
 from paka.constants import ACCESS_ALL_SA, MODEL_MOUNT_PATH
 from paka.k8s.model_group.ingress import create_model_vservice
 from paka.k8s.model_group.runtime.llama_cpp import (
@@ -16,12 +17,14 @@ from paka.k8s.utils import CustomResource, apply_resource, try_load_kubeconfig
 from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
 from paka.model.store import MODEL_PATH_PREFIX
-from paka.utils import kubify_name, read_cluster_data
+from paka.utils import kubify_name
 
 try_load_kubeconfig()
 
 
-def get_runtime_command(model_group: T_CloudModelGroup, port: int) -> List[str]:
+def get_runtime_command(
+    ctx: Context, model_group: T_CloudModelGroup, port: int
+) -> List[str]:
     """
     Gets the runtime command for a machine learning model group.
 
@@ -38,7 +41,7 @@ def get_runtime_command(model_group: T_CloudModelGroup, port: int) -> List[str]:
 
     # If user did not provide a command, we need to provide a default command with heuristics.
     if is_llama_cpp_image(runtime.image):
-        command = get_runtime_command_llama_cpp(model_group)
+        command = get_runtime_command_llama_cpp(ctx, model_group)
 
         # Add or replace the port in the command
         for i in range(len(command)):
@@ -59,7 +62,7 @@ def get_health_check_paths(model_group: T_CloudModelGroup) -> Tuple[str, str]:
     raise ValueError("Unsupported runtime image for health check paths.")
 
 
-def init_aws(config: CloudConfig, model_group: T_CloudModelGroup) -> client.V1Container:
+def init_aws(ctx: Context, model_group: T_CloudModelGroup) -> client.V1Container:
     """
     Initializes an AWS container for downloading a model from S3.
 
@@ -70,7 +73,7 @@ def init_aws(config: CloudConfig, model_group: T_CloudModelGroup) -> client.V1Co
     Returns:
         client.V1Container: The initialized AWS container.
     """
-    bucket = read_cluster_data(config.cluster.name, "bucket")
+    bucket = ctx.bucket
 
     return client.V1Container(
         name="init-s3-model-download",
@@ -123,7 +126,7 @@ def create_pod(
     container_args = {
         "name": f"{kubify_name(model_group.name)}",
         "image": model_group.runtime.image,
-        "command": get_runtime_command(model_group, port),
+        "command": get_runtime_command(ctx, model_group, port),
         "volume_mounts": [
             client.V1VolumeMount(
                 name="model-data",
@@ -199,7 +202,7 @@ def create_pod(
             ],
             # Download models from s3 only when s3 is used as a model store
             init_containers=(
-                [init_aws(ctx.cloud_config, model_group)]
+                [init_aws(ctx, model_group)]
                 if model_group.model and model_group.model.useModelStore
                 else []
             ),
@@ -514,6 +517,7 @@ def create_model_group_service(
                 name=model_group.name,
                 repo_id=model_group.model.hfRepoId,
                 files=model_group.model.files,
+                model_store=get_model_store(ctx),
             )
             # If the model is not already in the model store, save it
             # That means users cannot update the model in the model store
