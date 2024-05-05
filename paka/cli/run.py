@@ -1,3 +1,4 @@
+import os
 import shlex
 from typing import Optional
 
@@ -54,7 +55,7 @@ def one_off_script(
     in a container with the specified Docker image. If a source directory is provided, a new
     Docker image is built using the source code from that directory.
     """
-    resolved_image = resolve_image(image, source_dir)
+    resolved_image = resolve_image(cluster_name, image, source_dir)
 
     # Generate a job name which is the hash of the command
     job_name = f"run-{kubify_name(random_str(10))}"

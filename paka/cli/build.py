@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+import os
+from typing import Optional
+
 import typer
 
-from paka.cli.utils import build as build_image
+from paka.cli.utils import build_and_push
 
 build_app = typer.Typer()
 
@@ -10,6 +15,12 @@ def build(
     source_dir: str = typer.Argument(
         ...,
         help="Source directory of the application.",
+    ),
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
     ),
     image_name: str = typer.Option(
         "",
@@ -28,4 +39,4 @@ def build(
     A Dockerfile is NOT required. The image will be built using Cloud Native Buildpacks.
     In cluster build is not supported yet. User machine must have Docker installed.
     """
-    build_image(source_dir, image_name)
+    build_and_push(cluster_name, source_dir, image_name)

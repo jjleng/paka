@@ -16,10 +16,11 @@ from paka.constants import BP_BUILDER_ENV_VAR
 from paka.container.ecr import push_to_ecr
 from paka.container.pack import ensure_pack
 from paka.logger import logger
-from paka.utils import get_pulumi_root, read_current_cluster_data, read_pulumi_stack
+from paka.utils import get_pulumi_root, read_pulumi_stack
 
 
-def build(
+def build_and_push(
+    cluster_name: Optional[str],
     source_dir: str,
     image_name: str,
 ) -> str:
@@ -30,6 +31,7 @@ def build(
     in the specified directory. The resulting image is then pushed to the Amazon Elastic Container Registry (ECR).
 
     Args:
+        cluster_name (str): The name of the cluster to build the image for.
         source_dir (str): The directory containing the source code of the application.
         image_name (str): The name of the Docker image to build. If not provided, the name of the source directory is used.
 
@@ -91,10 +93,12 @@ def build(
         subprocess.run(pack_command, cwd=source_dir, check=True)
         logger.info(f"Successfully built {image_name}")
 
+        cluster_name = ensure_cluster_name(cluster_name)
+
         return push_to_ecr(
             image_name,
-            read_current_cluster_data("registry"),
-            read_current_cluster_data("region"),
+            read_pulumi_stack(cluster_name, "registry"),
+            read_pulumi_stack(cluster_name, "region"),
             image_name,
         )
 
@@ -181,7 +185,9 @@ def validate_name(func: Any) -> Any:
     return wrapper
 
 
-def resolve_image(image: Optional[str], source_dir: Optional[str]) -> str:
+def resolve_image(
+    cluster_name: Optional[str], image: Optional[str], source_dir: Optional[str]
+) -> str:
     """
     Determines the Docker image to be utilized by either using the provided image
     directly or by building an image from the specified source directory.
@@ -216,15 +222,16 @@ def resolve_image(image: Optional[str], source_dir: Optional[str]) -> str:
     if not image and source_dir:
         source_dir = os.path.abspath(os.path.expanduser(source_dir))
         result_image = os.path.basename(source_dir)
-        result_image = build(source_dir, result_image)
+        result_image = build_and_push(cluster_name, source_dir, result_image)
     elif image:
         result_image = image
 
     # If a fully qualified image name is provided, use it directly. This gives users
     # the flexibility to use images from other registries. Otherwise, the image is assumed
     # to be located in the default registry and will be retrieved from there.
+    cluster_name = ensure_cluster_name(cluster_name)
     if ":" not in result_image:
-        registry_uri = read_current_cluster_data("registry")
+        registry_uri = read_pulumi_stack(cluster_name, "registry")
         result_image = f"{registry_uri}:{result_image}"
 
     return result_image
