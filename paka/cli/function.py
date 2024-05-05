@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Literal, Optional
 
 import click
@@ -112,7 +113,7 @@ def deploy(
     Returns:
         None
     """
-    resolved_image = resolve_image(image, source_dir)
+    resolved_image = resolve_image(cluster_name, image, source_dir)
 
     logger.info(f"Deploying {name}...")
 

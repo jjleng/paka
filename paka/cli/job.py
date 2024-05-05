@@ -96,7 +96,7 @@ def deploy(
 
     If both an image and a source directory are provided, the Docker image is used and the source directory is ignored.
     """
-    resolved_image = resolve_image(image, source_dir)
+    resolved_image = resolve_image(cluster_name, image, source_dir)
 
     if image:
         job_name = image
