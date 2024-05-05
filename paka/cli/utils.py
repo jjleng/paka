@@ -16,7 +16,7 @@ from paka.constants import BP_BUILDER_ENV_VAR
 from paka.container.ecr import push_to_ecr
 from paka.container.pack import ensure_pack
 from paka.logger import logger
-from paka.utils import get_pulumi_root, read_current_cluster_data
+from paka.utils import get_pulumi_root, read_current_cluster_data, read_pulumi_stack
 
 
 def build(
@@ -288,3 +288,9 @@ def ensure_cluster_config(cluster_file: Optional[str]) -> CloudConfig:
 
     assert config.aws, "Only AWS is supported for now"
     return config.aws
+
+
+def get_cluster_namespace(cluster_name: Optional[str]) -> str:
+    cluster_name = ensure_cluster_name(cluster_name)
+    namespace = read_pulumi_stack(cluster_name, "namespace")
+    return namespace

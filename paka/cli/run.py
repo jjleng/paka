@@ -4,10 +4,10 @@ from typing import Optional
 import typer
 from kubernetes import client
 
-from paka.cli.utils import resolve_image
+from paka.cli.utils import get_cluster_namespace, resolve_image
 from paka.k8s.utils import tail_logs, try_load_kubeconfig
 from paka.logger import logger
-from paka.utils import kubify_name, random_str, read_current_cluster_data
+from paka.utils import kubify_name, random_str
 
 CLEANUP_TIMEOUT = 600  # 10 minutes
 
@@ -23,6 +23,12 @@ def one_off_script(
         "--entrypoint",
         help="The entrypoint of the application. This refers to the command "
         "defined in the Procfile that will be executed.",
+    ),
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
     ),
     source_dir: Optional[str] = typer.Option(
         None,
@@ -76,7 +82,7 @@ def one_off_script(
         ),
     )
 
-    namespace = read_current_cluster_data("namespace")
+    namespace = get_cluster_namespace(cluster_name)
 
     logger.info(f"Submitting the task...")
     batch_api = client.BatchV1Api()

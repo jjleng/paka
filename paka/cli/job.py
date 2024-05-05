@@ -7,11 +7,11 @@ import click
 import typer
 from kubernetes import client
 
-from paka.cli.utils import resolve_image
+from paka.cli.utils import get_cluster_namespace, resolve_image
 from paka.k8s.job.worker import create_workers, delete_workers
 from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
-from paka.utils import kubify_name, read_current_cluster_data
+from paka.utils import kubify_name
 
 try_load_kubeconfig()
 
@@ -28,6 +28,12 @@ def prefixed_job_name(job_name: str) -> str:
 
 @job_app.command()
 def deploy(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
     name: str = typer.Option(
         "",
         "--name",
@@ -98,7 +104,7 @@ def deploy(
         job_name = os.path.basename(source_dir)
 
     create_workers(
-        namespace=read_current_cluster_data("namespace"),
+        namespace=get_cluster_namespace(cluster_name),
         job_name=kubify_name(prefixed_job_name(name or job_name)),
         image=resolved_image,
         entrypoint=entrypoint,
@@ -113,6 +119,12 @@ def delete(
     name: str = typer.Argument(
         ...,
         help="The name of the job to delete.",
+    ),
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
     ),
     wait_existing_tasks: bool = typer.Option(
         True,
@@ -145,7 +157,7 @@ def delete(
     ):
         logger.info(f"Deleting job {name}")
         delete_workers(
-            read_current_cluster_data("namespace"),
+            get_cluster_namespace(cluster_name),
             prefixed_job_name(name),
             wait_existing_tasks,
         )
@@ -153,7 +165,14 @@ def delete(
 
 
 @job_app.command()
-def list() -> None:
+def list(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
+) -> None:
     """
     Lists all jobs.
     """
@@ -163,7 +182,7 @@ def list() -> None:
 
     # List the deployments in the specified namespace that match the field selector
     deployments = api_instance.list_namespaced_deployment(
-        namespace=read_current_cluster_data("namespace"), label_selector=label_selector
+        namespace=get_cluster_namespace(cluster_name), label_selector=label_selector
     )
 
     for deployment in deployments.items:

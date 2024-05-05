@@ -7,7 +7,7 @@ import typer
 from kubernetes.dynamic.exceptions import NotFoundError
 from tabulate import tabulate
 
-from paka.cli.utils import resolve_image
+from paka.cli.utils import get_cluster_namespace, resolve_image
 from paka.k8s.function.service import (
     create_knative_service,
     delete_knative_service,
@@ -15,7 +15,7 @@ from paka.k8s.function.service import (
 )
 from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
-from paka.utils import kubify_name, read_current_cluster_data
+from paka.utils import kubify_name
 
 try_load_kubeconfig()
 
@@ -24,6 +24,12 @@ function_app = typer.Typer()
 
 @function_app.command()
 def deploy(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
     name: str = typer.Option(
         ...,
         "--name",
@@ -112,7 +118,7 @@ def deploy(
 
     create_knative_service(
         service_name=kubify_name(name),
-        namespace=read_current_cluster_data("namespace"),
+        namespace=get_cluster_namespace(cluster_name),
         image=resolved_image,
         entrypoint=entrypoint,
         min_instances=min_instances,
@@ -125,14 +131,21 @@ def deploy(
 
 
 @function_app.command()
-def list() -> None:
+def list(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
+) -> None:
     """
     List all deployed functions.
 
     Returns:
         None
     """
-    services = list_knative_services(read_current_cluster_data("namespace"))
+    services = list_knative_services(get_cluster_namespace(cluster_name))
 
     if not services.items:
         logger.info("No functions found.")
@@ -167,6 +180,12 @@ def list() -> None:
 @function_app.command()
 def delete(
     name: str,
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
     yes: bool = typer.Option(
         False,
         "--yes",
@@ -192,7 +211,7 @@ def delete(
         logger.info(f"Deleting function {name}")
         try:
             delete_knative_service(
-                kubify_name(name), read_current_cluster_data("namespace")
+                kubify_name(name), get_cluster_namespace(cluster_name)
             )
             logger.info(f"Successfully deleted function {name}")
         except NotFoundError:
