@@ -151,27 +151,6 @@ def read_yaml_file(path: str) -> Dict[str, Any]:
     return data or {}
 
 
-def set_current_cluster(cluster_name: str) -> None:
-    """
-    Sets the specified cluster as the current cluster.
-
-    This function creates a symbolic link that points to the data directory of the specified cluster.
-    The symbolic link is created in the project data directory and is named "current_cluster".
-    If a symbolic link with this name already exists, it is removed before the new link is created.
-
-    Args:
-        cluster_name (str): The name of the cluster to be set as the current cluster.
-    """
-    target = get_cluster_data_dir(cluster_name)
-
-    link = os.path.join(get_project_data_dir(), "current_cluster")
-
-    if os.path.islink(link):
-        os.unlink(link)
-
-    os.symlink(target, link)
-
-
 def get_cluster_data_dir(cluster_name: str) -> str:
     """
     Get the cluster data directory.
@@ -222,93 +201,6 @@ def save_kubeconfig(cluster_name: str, kubeconfig_json: Optional[str]) -> None:
 
     with open(kubeconfig_file_path, "w") as f:
         f.write(to_yaml(kubeconfig_data))
-
-    set_current_cluster(cluster_name)
-
-
-def save_cluster_data(cluster_name: str, k: str, v: Any) -> None:
-    """
-    Save or update the cluster data in a YAML file named 'cluster.yaml'.
-
-    This function takes a key-value pair of cluster data and upserts it into the 'cluster.yaml' file.
-    If the key already exists in the file, its value is updated. If the key does not exist, it is added to the file.
-    The 'cluster.yaml' file is stored in the directory specified by the cluster name.
-
-    Args:
-        name (str): The name of the cluster. This is used to determine the directory where the 'cluster.yaml' file is located.
-        k (str): The key of the cluster data.
-        v (Any): The value of the cluster data.
-
-    Returns:
-        None
-    """
-
-    cluster_file_path = os.path.join(get_cluster_data_dir(cluster_name), "cluster.yaml")
-    os.makedirs(os.path.dirname(cluster_file_path), exist_ok=True)
-
-    data = read_yaml_file(cluster_file_path)
-    data[k] = v
-
-    yaml = YAML()
-    with open(cluster_file_path, "w") as file:
-        yaml.dump(data, file)
-
-
-@lru_cache(maxsize=100)
-def read_cluster_data_by_path(path: str, k: str) -> Any:
-    """
-    Reads cluster data from a YAML file at a given path.
-
-    This function opens a YAML file at the specified path, reads its contents into a Python dictionary,
-    and returns the value associated with the provided key. If the key does not exist in the dictionary,
-    it returns None.
-
-    Args:
-        path (str): The path to the YAML file.
-        k (str): The key of the data to be retrieved.
-
-    Returns:
-        Any: The value associated with the key in the YAML file, or None if the key does not exist.
-    """
-    data = read_yaml_file(path)
-    return data.get(k)
-
-
-def read_cluster_data(cluster_name: str, k: str) -> Any:
-    """
-    Read specific data associated with a cluster.
-
-    This function retrieves the value associated with a given key from the cluster data.
-    The cluster data is stored in a YAML file named 'cluster.yaml' in the directory specified by the cluster name.
-
-    Args:
-        cluster_name (str): The name of the cluster. This is used to determine the directory where the 'cluster.yaml' file is located.
-        k (str): The key of the data to be retrieved from the cluster data.
-
-    Returns:
-        Any: The value associated with the key in the cluster data, or None if the key does not exist.
-    """
-    cluster_file_path = os.path.join(get_cluster_data_dir(cluster_name), "cluster.yaml")
-    return read_cluster_data_by_path(cluster_file_path, k)
-
-
-def read_current_cluster_data(k: str) -> Any:
-    """
-    Read specific data associated with the current cluster.
-
-    This function retrieves the value associated with a given key from the current cluster's data.
-    The cluster data is stored in a YAML file named 'cluster.yaml' in the 'current_cluster' directory within the project data directory.
-
-    Args:
-        k (str): The key of the data to be retrieved from the cluster data.
-
-    Returns:
-        Any: The value associated with the key in the cluster data, or None if the key does not exist.
-    """
-    cluster_file_path = os.path.join(
-        get_project_data_dir(), "current_cluster", "cluster.yaml"
-    )
-    return read_cluster_data_by_path(cluster_file_path, k)
 
 
 def random_str(length: int = 5) -> str:

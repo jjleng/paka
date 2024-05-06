@@ -2,7 +2,6 @@ import os
 import platform
 import shutil
 import tarfile
-import tempfile
 import zipfile
 from pathlib import Path
 

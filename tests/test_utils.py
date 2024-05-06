@@ -10,7 +10,6 @@ from paka.utils import (
     get_cluster_data_dir,
     get_project_data_dir,
     kubify_name,
-    save_cluster_data,
     save_kubeconfig,
     to_yaml,
 )
@@ -74,24 +73,6 @@ def test_save_kubeconfig() -> None:
     m.assert_called_once_with(f, "w")
     handle = m()
     handle.write.assert_called_once()
-
-
-def test_save_cluster_data() -> None:
-    m = mock_open()
-    # Mock the built-in open function and YAML's dump method
-    with patch("builtins.open", m), patch("ruamel.yaml.YAML.dump") as mock_dump:
-        cluster_name = "test"
-        k = "key"
-        v = "value"
-
-        save_cluster_data(cluster_name, k, v)
-
-    f = os.path.join(get_cluster_data_dir(cluster_name), "cluster.yaml")
-
-    m.assert_called_with(f, "w")
-
-    handle = m()
-    mock_dump.assert_called_once_with({k: v}, handle)
 
 
 def test_get_project_data_dir() -> None:

@@ -16,7 +16,6 @@ from typing_extensions import TypeAlias
 
 from paka.logger import logger
 from paka.model.progress_bar import NullProgressBar, ProgressBar
-from paka.utils import read_current_cluster_data
 
 MODEL_PATH_PREFIX = "models"
 
