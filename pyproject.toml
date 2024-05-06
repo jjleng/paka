@@ -43,6 +43,7 @@ huggingface-hub = "^0.22.2"
 tqdm = "^4.66.2"
 typing-extensions = "^4.11.0"
 fasteners = "^0.19"
+tenacity = "^8.2.3"
 
 [tool.poetry.group.dev.dependencies]
 codespell = "^2.2.6"

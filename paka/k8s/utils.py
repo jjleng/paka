@@ -14,10 +14,11 @@ from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import portforward
 from ruamel.yaml import YAML
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 from typing_extensions import TypeAlias
 
 from paka.logger import logger
-from paka.utils import get_project_data_dir, read_yaml_file
+from paka.utils import read_yaml_file
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -604,7 +605,20 @@ def tail_logs(namespace: str, pod_name: str, container_name: str) -> None:
         logger.info(event)
 
 
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_fixed(1),
+    retry=retry_if_exception_type(ApiException),
+)
 def remove_crd_finalizers(name: str) -> None:
-    api = client.ApiextensionsV1Api()
-    body = [{"op": "remove", "path": "/metadata/finalizers"}]
-    api.patch_custom_resource_definition(name, body)
+    try:
+        api = client.ApiextensionsV1Api()
+        crd = api.read_custom_resource_definition(name)
+        if crd.metadata.finalizers:
+            body = [{"op": "remove", "path": "/metadata/finalizers"}]
+            api.patch_custom_resource_definition(name, body)
+    except ApiException as e:
+        if e.status == 404:
+            pass
+        else:
+            raise

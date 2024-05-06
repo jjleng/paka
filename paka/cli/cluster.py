@@ -6,7 +6,7 @@ from typing import List
 import click
 import typer
 
-from paka.cli.utils import load_cluster_manager
+from paka.cli.utils import load_cluster_manager, load_kubeconfig
 from paka.k8s.utils import remove_crd_finalizers, update_kubeconfig
 from paka.logger import logger
 
@@ -78,6 +78,8 @@ def down(
             "routes.serving.knative.dev",
             "ingresses.networking.internal.knative.dev",
         ]
+
+        load_kubeconfig(cluster_manager.cloud_config.cluster.name)
 
         for crd in crds:
             try:
