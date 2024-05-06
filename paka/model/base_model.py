@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from paka.logger import logger
 from paka.model.manifest import ModelFile, ModelManifest
 from paka.model.settings import ModelSettings
-from paka.model.store import ModelStore, S3ModelStore, StreamLike
-from paka.utils import read_current_cluster_data, to_yaml
+from paka.model.store import ModelStore, StreamLike
+from paka.utils import to_yaml
 
 
 class BaseMLModel(ABC):
