@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import json
 from typing import List
 
 import click
 import typer
 
 from paka.cli.utils import load_cluster_manager
-from paka.k8s.utils import remove_crd_finalizers
-from paka.k8s.utils import update_kubeconfig as merge_update_kubeconfig
+from paka.k8s.utils import remove_crd_finalizers, update_kubeconfig
 from paka.logger import logger
 
 cluster_app = typer.Typer()
@@ -39,7 +39,7 @@ def up(
     cluster_manager.create()
     if not no_kubeconfig:
         logger.info("Updating kubeconfig...")
-        merge_update_kubeconfig()
+        update_kubeconfig(json.loads(cluster_manager.ctx.kubeconfig))
         logger.info("Successfully updated kubeconfig.")
 
 
