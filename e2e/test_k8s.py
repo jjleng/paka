@@ -11,6 +11,7 @@ from kubernetes import client
 from kubernetes.client.exceptions import ApiException
 from ruamel.yaml import YAML
 
+from paka.cluster.context import Context
 from paka.cluster.namespace import create_namespace
 from paka.config import CloudConfig, Config, parse_yaml
 from paka.constants import ACCESS_ALL_SA
@@ -205,7 +206,13 @@ def test_setup_cluster(kind_cluster: KindCluster) -> None:
     with open(kubeconfig_path, "r") as f:
         kubeconfig_json = yaml.load(f)
 
-    create_namespace(k8s_provider, json.dumps(kubeconfig_json))
+    (config, _) = get_config()
+
+    ctx = Context()
+    ctx.set_k8s_provider(k8s_provider)
+    ctx.set_config(config)
+
+    create_namespace(ctx, json.dumps(kubeconfig_json))
 
     create_knative(kind_cluster)
 
@@ -218,7 +225,10 @@ def test_create_model_group() -> None:
     assert cloud_config.modelGroups is not None
     model_group = cloud_config.modelGroups[0]
 
-    create_model_group_service(cloud_config.cluster.namespace, config, model_group)
+    ctx = Context()
+    ctx.set_config(config)
+
+    create_model_group_service(ctx, ctx.namespace, model_group)
 
     api = client.CoreV1Api()
 
@@ -263,13 +273,16 @@ def test_destroy_model_group() -> None:
     (config, cloud_config) = get_config()
     cloud_config.modelGroups = []
 
+    ctx = Context()
+    ctx.set_config(config)
+
     cleanup_staled_model_group_services(
         cloud_config.cluster.namespace,
         [mg.name for mg in cloud_config.modelGroups or []],
     )
 
     for model_group in cloud_config.modelGroups:
-        create_model_group_service(cloud_config.cluster.namespace, config, model_group)
+        create_model_group_service(ctx, ctx.namespace, model_group)
 
     # Verify that the model group resources are deleted
     api = client.AppsV1Api()

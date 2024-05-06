@@ -19,34 +19,37 @@ def test_resolve_image() -> None:
     with patch("os.path.abspath") as mock_abspath, patch(
         "os.path.expanduser"
     ) as mock_expanduser, patch("os.path.basename") as mock_basename, patch.object(
-        paka.cli.utils, "build"
-    ) as mock_build, patch.object(
-        paka.cli.utils, "read_current_cluster_data"
-    ) as mock_read_current_cluster_data:
+        paka.cli.utils, "build_and_push"
+    ) as mock_build_and_push, patch.object(
+        paka.cli.utils, "read_pulumi_stack"
+    ) as mock_read_pulumi_stack, patch.object(
+        paka.cli.utils, "ensure_cluster_name"
+    ) as mock_ensure_cluster_name:
         mock_abspath.return_value = "/absolute/path/to/source_dir"
         mock_expanduser.return_value = "/path/to/source_dir"
         mock_basename.return_value = "source_dir"
-        mock_build.return_value = "source_dir-abc"
-        mock_read_current_cluster_data.return_value = "registry_uri"
+        mock_build_and_push.return_value = "source_dir-abc"
+        mock_read_pulumi_stack.return_value = "registry_uri"
+        mock_ensure_cluster_name.return_value = "cluster_name"
 
-        result = resolve_image(None, "source_dir")
+        result = resolve_image("cluster_name", None, "source_dir")
         assert result == "registry_uri:source_dir-abc"
 
         # Test case when image is provided and source_dir is None
-        result = resolve_image("image", None)
+        result = resolve_image("cluster_name", "image", None)
         assert result == "registry_uri:image"
 
         # Test case when a fully qualified image is provided
-        result = resolve_image("fully/qualified/image:tag", None)
+        result = resolve_image("cluster_name", "fully/qualified/image:tag", None)
         assert result == "fully/qualified/image:tag"
 
         # Test case when neither image nor source_dir is provided
         with pytest.raises(click.exceptions.Exit):
-            resolve_image(None, None)
+            resolve_image("cluster_name", None, None)
 
         # Test case when both image and source_dir are provided
         with pytest.raises(click.exceptions.Exit):
-            resolve_image("image", "source_dir")
+            resolve_image("cluster_name", "image", "source_dir")
 
 
 def test_validate_name() -> None:
