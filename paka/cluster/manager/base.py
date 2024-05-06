@@ -35,8 +35,8 @@ class ClusterManager(ABC):
         self.config = config
         if not config.aws is None:
             self.cloud_config = config.aws
-        self.context = Context()
-        self.context.set_config(config)
+        self.ctx = Context()
+        self.ctx.set_config(config)
 
     @abstractmethod
     def provision_k8s(self) -> None:
@@ -81,7 +81,7 @@ class ClusterManager(ABC):
         )
 
         for model_group in self.cloud_config.modelGroups:
-            create_model_group_service(self.context, namespace, model_group)
+            create_model_group_service(self.ctx, namespace, model_group)
 
     def destroy(self) -> Any:
         logger.info("Destroying resources...")

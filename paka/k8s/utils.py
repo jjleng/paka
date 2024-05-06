@@ -562,16 +562,12 @@ class KubeconfigMerger:
                 self.config[key] = new_config[key]
 
 
-def update_kubeconfig() -> None:
+def update_kubeconfig(kubeconfig: Dict[str, Any]) -> None:
     system_kubeconfig_path = os.path.expanduser("~/.kube/config")
     current_config = read_yaml_file(system_kubeconfig_path)
     merger = KubeconfigMerger(current_config)
 
-    cluster_kubeconfig_path = os.path.join(
-        get_project_data_dir(), "current_cluster", "kubeconfig.yaml"
-    )
-    new_config = read_yaml_file(cluster_kubeconfig_path)
-    merger.merge(new_config)
+    merger.merge(kubeconfig)
 
     # Convert OrderedDict to dict and sort keys
     sorted_config = {k: merger.config[k] for k in sorted(merger.config)}

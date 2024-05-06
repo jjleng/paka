@@ -18,6 +18,6 @@ class AWSClusterManager(ClusterManager):
         super().__init__(config)
 
     def provision_k8s(self) -> None:
-        create_object_store(self.context)
-        create_container_registry(self.context)
-        create_k8s_cluster(self.context)
+        create_object_store(self.ctx)
+        create_container_registry(self.ctx)
+        create_k8s_cluster(self.ctx)
