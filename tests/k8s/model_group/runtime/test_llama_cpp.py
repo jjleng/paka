@@ -2,7 +2,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import paka.cluster
+import paka.cluster.utils
 import paka.k8s.model_group.runtime.llama_cpp
+from paka.cluster.context import Context
 from paka.config import CloudModelGroup, Model, Runtime
 from paka.constants import MODEL_MOUNT_PATH
 from paka.k8s.model_group.runtime.llama_cpp import get_runtime_command_llama_cpp
@@ -26,7 +29,7 @@ def model_group() -> CloudModelGroup:
 def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
     mock_store = MagicMock()
     with patch.object(
-        paka.k8s.model_group.runtime.llama_cpp.BaseMLModel,
+        paka.k8s.model_group.runtime.llama_cpp,
         "get_model_store",
         return_value=mock_store,
     ) as mock_get_model_store, patch.object(
@@ -37,7 +40,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         return_value=True,
     ) as mock_validate_repo_id:
         # Test case: runtime command is already provided
-        assert get_runtime_command_llama_cpp(model_group) == [
+        assert get_runtime_command_llama_cpp(Context(), model_group) == [
             "/server",
             "--model",
             f"{MODEL_MOUNT_PATH}/model.gguf",
@@ -48,7 +51,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         model_group.model = Model(useModelStore=True)
         # Mock os.listdir to return a specific list of files
         mock_store.glob.return_value = ["model.gguf"]
-        command = get_runtime_command_llama_cpp(model_group)
+        command = get_runtime_command_llama_cpp(Context(), model_group)
         assert "--model" in command, "Expected '--model' to be in command list"
         model_index = command.index("--model")
         assert (
@@ -63,7 +66,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         mock_store.glob.return_value = []
         # Mock HfFileSystem.glob to return a specific list of files
         mock_hf_fs.return_value.glob.return_value = ["repoId/model.gguf"]
-        command = get_runtime_command_llama_cpp(model_group)
+        command = get_runtime_command_llama_cpp(Context(), model_group)
         assert "--hf-repo" in command, "Expected '--hf-repo' to be in command list"
         repo_index = command.index("--hf-repo")
         assert (
@@ -92,7 +95,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         with pytest.raises(
             ValueError, match="No model file found in HuggingFace repo."
         ):
-            get_runtime_command_llama_cpp(model_group)
+            get_runtime_command_llama_cpp(Context(), model_group)
 
         # Test case: Multiple model files found in the model store
         model_group.model = Model(useModelStore=True)
@@ -102,7 +105,7 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
             ValueError,
             match=f"Multiple model files found in {model_group.name}/ directory.",
         ):
-            get_runtime_command_llama_cpp(model_group)
+            get_runtime_command_llama_cpp(Context(), model_group)
 
         # Test case: No model file found in the model store
         model_group.model = Model(useModelStore=True)
@@ -110,4 +113,4 @@ def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
         mock_store.glob.return_value = []
         mock_hf_fs.return_value.glob.return_value = []
         with pytest.raises(ValueError, match="Did not find a model to load."):
-            get_runtime_command_llama_cpp(model_group)
+            get_runtime_command_llama_cpp(Context(), model_group)

@@ -14,8 +14,7 @@ def test_s3_model_store_save() -> None:
     conn = boto3.resource("s3", region_name="us-east-1")
     conn.create_bucket(Bucket="mybucket")
 
-    store = S3ModelStore()
-    store.s3_bucket = "mybucket"
+    store = S3ModelStore("mybucket")
 
     store.save("test.txt", b"Test data")
 
@@ -28,8 +27,7 @@ def test_save_stream() -> None:
     conn = boto3.resource("s3", region_name="us-east-1")
     conn.create_bucket(Bucket="mybucket")
 
-    store = S3ModelStore()
-    store.s3_bucket = "mybucket"
+    store = S3ModelStore("mybucket")
 
     data = b"Test data"
     sha256_hash = hashlib.sha256(data).hexdigest()
@@ -64,8 +62,7 @@ def test_file_exists() -> None:
     conn = boto3.resource("s3", region_name="us-east-1")
     conn.create_bucket(Bucket="mybucket")
 
-    store = S3ModelStore()
-    store.s3_bucket = "mybucket"
+    store = S3ModelStore("mybucket")
 
     assert not store.file_exists("test.txt")
 

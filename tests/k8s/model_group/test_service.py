@@ -1,5 +1,6 @@
 from kubernetes.client import V1Pod
 
+from paka.cluster.context import Context
 from paka.config import (
     AwsConfig,
     AwsGpuNodeConfig,
@@ -41,7 +42,10 @@ def test_create_pod() -> None:
         ),
     )
 
-    pod = create_pod("test_namespace", config, model_group, 8080)
+    ctx = Context()
+    ctx.set_config(config)
+
+    pod = create_pod(ctx, "test_namespace", model_group, 8080)
 
     assert isinstance(pod, V1Pod)
 
