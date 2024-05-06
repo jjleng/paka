@@ -8,12 +8,14 @@ import typer
 from kubernetes import client
 from tabulate import tabulate
 
-from paka.cli.utils import ensure_cluster_name, get_cluster_namespace, read_pulumi_stack
+from paka.cli.utils import (
+    ensure_cluster_name,
+    get_cluster_namespace,
+    load_kubeconfig,
+    read_pulumi_stack,
+)
 from paka.k8s.model_group.service import MODEL_PATH_PREFIX, filter_services
-from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
-
-try_load_kubeconfig()
 
 model_group_app = typer.Typer()
 
@@ -30,6 +32,7 @@ def list_downloaded_models(
     """
     List all models that have been downloaded to the object store.
     """
+    load_kubeconfig(cluster_name)
     cluster_name = ensure_cluster_name(cluster_name)
     bucket = read_pulumi_stack(cluster_name, "bucket")
 
@@ -63,6 +66,7 @@ def list(
     """
     List all model groups.
     """
+    load_kubeconfig(cluster_name)
     services = filter_services(get_cluster_namespace(cluster_name))
     model_groups = [service.spec.selector.get("model") for service in services]
 

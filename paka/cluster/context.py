@@ -15,6 +15,8 @@ class Context:
     _bucket: Optional[str]
     # Materialized container registry url
     _registry: Optional[str]
+    # The kubeconfig str
+    _kubeconfig: Optional[str]
 
     def __init__(self) -> None:
         # Ugly, ideally, we can create these locks dynamically in __getattr__.
@@ -25,6 +27,7 @@ class Context:
         self._config_lock = fasteners.ReaderWriterLock()
         self._bucket_lock = fasteners.ReaderWriterLock()
         self._registry_lock = fasteners.ReaderWriterLock()
+        self._kubeconfig_lock = fasteners.ReaderWriterLock()
 
     @fasteners.write_locked(lock="_k8s_provider_lock")
     def set_k8s_provider(self, k8s_provider: k8s.Provider) -> None:
@@ -97,3 +100,12 @@ class Context:
     @fasteners.read_locked(lock="_registry_lock")
     def registry(self) -> Optional[str]:
         return self._registry
+
+    @fasteners.write_locked(lock="_kubeconfig_lock")
+    def set_kubeconfig(self, kubeconfig: str) -> None:
+        self._kubeconfig = kubeconfig
+
+    @property
+    @fasteners.read_locked(lock="_kubeconfig_lock")
+    def kubeconfig(self) -> Optional[str]:
+        return self._kubeconfig

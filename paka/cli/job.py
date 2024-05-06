@@ -7,13 +7,10 @@ import click
 import typer
 from kubernetes import client
 
-from paka.cli.utils import get_cluster_namespace, resolve_image
+from paka.cli.utils import get_cluster_namespace, load_kubeconfig, resolve_image
 from paka.k8s.job.worker import create_workers, delete_workers
-from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
 from paka.utils import kubify_name
-
-try_load_kubeconfig()
 
 job_app = typer.Typer()
 
@@ -96,6 +93,7 @@ def deploy(
 
     If both an image and a source directory are provided, the Docker image is used and the source directory is ignored.
     """
+    load_kubeconfig(cluster_name)
     resolved_image = resolve_image(cluster_name, image, source_dir)
 
     if image:
@@ -155,6 +153,7 @@ def delete(
     if yes or click.confirm(
         f"Are you sure you want to delete the job {name}?", default=False
     ):
+        load_kubeconfig(cluster_name)
         logger.info(f"Deleting job {name}")
         delete_workers(
             get_cluster_namespace(cluster_name),
@@ -176,6 +175,7 @@ def list(
     """
     Lists all jobs.
     """
+    load_kubeconfig(cluster_name)
     api_instance = client.AppsV1Api()
 
     label_selector = "role=worker"

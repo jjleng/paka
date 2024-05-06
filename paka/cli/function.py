@@ -8,17 +8,14 @@ import typer
 from kubernetes.dynamic.exceptions import NotFoundError
 from tabulate import tabulate
 
-from paka.cli.utils import get_cluster_namespace, resolve_image
+from paka.cli.utils import get_cluster_namespace, load_kubeconfig, resolve_image
 from paka.k8s.function.service import (
     create_knative_service,
     delete_knative_service,
     list_knative_services,
 )
-from paka.k8s.utils import try_load_kubeconfig
 from paka.logger import logger
 from paka.utils import kubify_name
-
-try_load_kubeconfig()
 
 function_app = typer.Typer()
 
@@ -113,6 +110,7 @@ def deploy(
     Returns:
         None
     """
+    load_kubeconfig(cluster_name)
     resolved_image = resolve_image(cluster_name, image, source_dir)
 
     logger.info(f"Deploying {name}...")
@@ -146,6 +144,7 @@ def list(
     Returns:
         None
     """
+    load_kubeconfig(cluster_name)
     services = list_knative_services(get_cluster_namespace(cluster_name))
 
     if not services.items:
@@ -209,6 +208,7 @@ def delete(
     if yes or click.confirm(
         f"Are you sure you want to delete the function {name}?", default=False
     ):
+        load_kubeconfig(cluster_name)
         logger.info(f"Deleting function {name}")
         try:
             delete_knative_service(

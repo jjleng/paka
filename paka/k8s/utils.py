@@ -10,7 +10,7 @@ import time
 from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple
 
-from kubernetes import client, config, watch
+from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import portforward
 from ruamel.yaml import YAML
@@ -514,16 +514,6 @@ def setup_port_forward(
     return str(local_port), stop_forward
 
 
-def try_load_kubeconfig() -> bool:
-    try:
-        # read kube config from the file specified by env var KUBECONFIG or the default location ~/.kube/config
-        config.load_kube_config()
-        return True
-    except Exception as e:
-        logger.debug(f"Error loading kubeconfig: {e}")
-        return False
-
-
 class KubeconfigMerger:
     def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
         self.config = config or {}
@@ -622,7 +612,3 @@ def remove_crd_finalizers(name: str) -> None:
     api = client.ApiextensionsV1Api()
     body = [{"op": "remove", "path": "/metadata/finalizers"}]
     api.patch_custom_resource_definition(name, body)
-
-
-# Load the kubeconfig when this module is imported
-try_load_kubeconfig()

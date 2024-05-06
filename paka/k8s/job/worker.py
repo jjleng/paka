@@ -5,10 +5,8 @@ from kubernetes import client
 
 from paka.constants import ACCESS_ALL_SA
 from paka.k8s.job.autoscaler import create_autoscaler, delete_autoscaler
-from paka.k8s.utils import apply_resource, create_namespace, try_load_kubeconfig
+from paka.k8s.utils import apply_resource, create_namespace
 from paka.logger import logger
-
-try_load_kubeconfig()
 
 
 def wait_for_pods_to_drain(namespace: str, deployment_name: str) -> None:

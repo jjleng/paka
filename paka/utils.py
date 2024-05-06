@@ -290,6 +290,7 @@ class PulumiStackKey(Enum):
     PROVIDER = "provider"
     REGISTRY = "registry"
     BUCKET = "bucket"
+    KUBECONFIG = "kubeconfig"
 
 
 def read_pulumi_stack(cluster_name: str, key: str) -> Any:
@@ -363,5 +364,10 @@ def _read_pulumi_stack_by_key(stack_json: dict, k: PulumiStackKey) -> Any:
                 return resource["outputs"]["metadata"]["name"]
         # If no namespace is found, return the default namespace
         return "default"
+    elif k == PulumiStackKey.KUBECONFIG:
+        for resource in resources:
+            # Since we creating only one secret, there is no need to use the resource urn
+            if resource["type"] == "eks:index:Cluster":
+                return resource["outputs"]["core"]["kubeconfig"]
 
     raise Exception(f"Unsupported PulumiStackKey: {k}")

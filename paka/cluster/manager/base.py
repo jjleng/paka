@@ -28,13 +28,13 @@ class ClusterManager(ABC):
     Subclasses must implement the abstract methods defined in this class.
     """
 
-    _orig_config: Config
-    config: CloudConfig
+    config: Config
+    cloud_config: CloudConfig
 
     def __init__(self, config: Config) -> None:
-        self._orig_config = config
+        self.config = config
         if not config.aws is None:
-            self.config = config.aws
+            self.cloud_config = config.aws
         self.context = Context()
         self.context.set_config(config)
 
@@ -45,7 +45,7 @@ class ClusterManager(ABC):
     def _stack_for_program(self, program: auto.PulumiFn) -> auto.Stack:
         return auto.create_or_select_stack(
             stack_name=PULUMI_STACK_NAME,
-            project_name=self.config.cluster.name,
+            project_name=self.cloud_config.cluster.name,
             program=program,
         )
 
@@ -59,28 +59,28 @@ class ClusterManager(ABC):
         return self._stack_for_program(program)
 
     def create(self) -> None:
-        if self._orig_config.aws is None:
+        if self.config.aws is None:
             raise ValueError("Only AWS is supported.")
 
-        if self._orig_config.aws:
+        if self.config.aws:
             self._stack.set_config(
-                "aws:region", auto.ConfigValue(value=self.config.cluster.region)
+                "aws:region", auto.ConfigValue(value=self.cloud_config.cluster.region)
             )
 
         logger.info("Creating resources...")
         self._stack.up(on_output=logger.info)
 
-        if self.config.modelGroups is None:
+        if self.cloud_config.modelGroups is None:
             return
 
-        namespace = self.config.cluster.namespace
+        namespace = self.cloud_config.cluster.namespace
 
         # Clean up staled model group resources before creating new ones
         cleanup_staled_model_group_services(
-            namespace, [mg.name for mg in self._orig_config.aws.modelGroups or []]
+            namespace, [mg.name for mg in self.config.aws.modelGroups or []]
         )
 
-        for model_group in self.config.modelGroups:
+        for model_group in self.cloud_config.modelGroups:
             create_model_group_service(self.context, namespace, model_group)
 
     def destroy(self) -> Any:
