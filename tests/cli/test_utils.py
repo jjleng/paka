@@ -133,4 +133,4 @@ def test_load_cluster_manager() -> None:
         result = load_cluster_manager(cluster_config)
 
     assert isinstance(result, AWSClusterManager)
-    assert result.config.model_dump(exclude_none=True) == config_data["aws"]
+    assert result.cloud_config.model_dump(exclude_none=True) == config_data["aws"]

@@ -220,13 +220,19 @@ def test_setup_cluster(kind_cluster: KindCluster) -> None:
 
 
 @pytest.mark.order(2)
-def test_create_model_group() -> None:
+def test_create_model_group(kind_cluster: KindCluster) -> None:
+    kubeconfig_path = str(kind_cluster.kubeconfig_path)
+    yaml = YAML(typ="safe")
+    with open(kubeconfig_path, "r") as f:
+        kubeconfig_json = yaml.load(f)
+
     (config, cloud_config) = get_config()
     assert cloud_config.modelGroups is not None
     model_group = cloud_config.modelGroups[0]
 
     ctx = Context()
     ctx.set_config(config)
+    ctx.set_kubeconfig(json.dumps(kubeconfig_json))
 
     create_model_group_service(ctx, ctx.namespace, model_group)
 

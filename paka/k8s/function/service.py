@@ -7,10 +7,6 @@ from kubernetes import client
 from kubernetes.dynamic import DynamicClient
 from kubernetes.dynamic.exceptions import NotFoundError
 
-from paka.k8s.utils import try_load_kubeconfig
-
-try_load_kubeconfig()
-
 
 def enable_scale_to_zero(namespace: str = "knative-serving") -> None:
     """

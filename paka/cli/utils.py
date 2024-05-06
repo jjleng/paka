@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import json
 import os
 import platform
 import re
@@ -8,6 +9,7 @@ import subprocess
 from typing import Any, Optional
 
 import typer
+from kubernetes import config as k8s_config
 
 from paka.cluster.manager.aws import AWSClusterManager
 from paka.cluster.manager.base import ClusterManager
@@ -301,3 +303,9 @@ def get_cluster_namespace(cluster_name: Optional[str]) -> str:
     cluster_name = ensure_cluster_name(cluster_name)
     namespace = read_pulumi_stack(cluster_name, "namespace")
     return namespace
+
+
+def load_kubeconfig(cluster_name: Optional[str]) -> None:
+    cluster_name = ensure_cluster_name(cluster_name)
+    kubeconfig = read_pulumi_stack(cluster_name, "kubeconfig")
+    k8s_config.load_kube_config_from_dict(kubeconfig)

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from typing import List, Optional, Tuple, cast
 
 from kubernetes import client
+from kubernetes import config as k8s_config
 
 from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
@@ -13,13 +15,11 @@ from paka.k8s.model_group.runtime.llama_cpp import (
     get_runtime_command_llama_cpp,
     is_llama_cpp_image,
 )
-from paka.k8s.utils import CustomResource, apply_resource, try_load_kubeconfig
+from paka.k8s.utils import CustomResource, apply_resource
 from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
 from paka.model.store import MODEL_PATH_PREFIX
 from paka.utils import kubify_name
-
-try_load_kubeconfig()
 
 
 def get_runtime_command(
@@ -509,6 +509,8 @@ def create_model_group_service(
     Returns:
         None
     """
+    k8s_config.load_kube_config_from_dict(json.loads(ctx.kubeconfig))
+
     config = ctx.cloud_config
     # Download the model to S3 first
     if model_group.model and model_group.model.useModelStore:

@@ -5,16 +5,14 @@ from typing import Optional
 import typer
 from kubernetes import client
 
-from paka.cli.utils import get_cluster_namespace, resolve_image
-from paka.k8s.utils import tail_logs, try_load_kubeconfig
+from paka.cli.utils import get_cluster_namespace, load_kubeconfig, resolve_image
+from paka.k8s.utils import tail_logs
 from paka.logger import logger
 from paka.utils import kubify_name, random_str
 
 CLEANUP_TIMEOUT = 600  # 10 minutes
 
 run_app = typer.Typer()
-
-try_load_kubeconfig()
 
 
 @run_app.callback(invoke_without_command=True)
@@ -55,6 +53,7 @@ def one_off_script(
     in a container with the specified Docker image. If a source directory is provided, a new
     Docker image is built using the source code from that directory.
     """
+    load_kubeconfig(cluster_name)
     resolved_image = resolve_image(cluster_name, image, source_dir)
 
     # Generate a job name which is the hash of the command
