@@ -11,7 +11,6 @@ from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
 from paka.config import CloudModelGroup
 from paka.constants import MODEL_MOUNT_PATH
-from paka.model.base_model import BaseMLModel
 
 
 # Heuristic to determine if the image is a llama.cpp image
@@ -125,6 +124,7 @@ def get_runtime_command_llama_cpp(
         "--n-predict",  # Maximum number of tokens to predict.
         "-1",
         "--embedding",
+        "--flash-attn",  # Enable flash attention
     ]
 
     if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
