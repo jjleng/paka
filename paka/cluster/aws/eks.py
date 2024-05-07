@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional, cast
 
 import pulumi
 import pulumi_aws as aws
@@ -22,6 +22,7 @@ from paka.cluster.prometheus import create_prometheus
 from paka.cluster.qdrant import create_qdrant
 from paka.cluster.redis import create_redis
 from paka.cluster.zipkin import create_zipkin
+from paka.config import AwsModelGroup
 from paka.utils import kubify_name
 
 
@@ -75,7 +76,9 @@ def create_node_group_for_model_group(
 
     cluster_name = ctx.cluster_name
 
-    for model_group in ctx.cloud_config.modelGroups:
+    model_groups = cast(List[AwsModelGroup], ctx.cloud_config.modelGroups)
+
+    for model_group in model_groups:
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
             f"{cluster_name}-{kubify_name(model_group.name)}-group",
@@ -103,10 +106,14 @@ def create_node_group_for_model_group(
                 ),
             ],
             # Supported AMI types https://docs.aws.amazon.com/eks/latest/APIReference/API_Nodegroup.html#AmazonEKS-Type-Nodegroup-amiType
-            ami_type=("AL2_x86_64_GPU" if model_group.awsGpu else None),
+            ami_type=(
+                "AL2_x86_64_GPU"
+                if model_group.gpu and model_group.gpu.enabled
+                else None
+            ),
             disk_size=(
-                model_group.awsGpu.diskSize
-                if model_group.awsGpu
+                model_group.gpu.diskSize
+                if model_group.gpu and model_group.gpu.enabled
                 else model_group.diskSize
             ),
         )
@@ -305,7 +312,7 @@ def create_k8s_cluster(ctx: Context) -> eks.Cluster:
         create_zipkin(ctx)
         # Install the NVIDIA device plugin for GPU support
         # Even if the cluster doesn't have GPUs, this won't cause any issues
-        install_nvidia_device_plugin(k8s_provider)
+        install_nvidia_device_plugin(ctx)
 
         # TODO: Set timeout to be the one used by knative
         update_elb_idle_timeout(kubeconfig_json, 300)

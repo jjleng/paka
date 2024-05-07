@@ -9,16 +9,18 @@ import string
 import tempfile
 from contextlib import contextmanager
 from enum import Enum
-from functools import lru_cache
+from functools import lru_cache, wraps
 from io import StringIO
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional
+from typing import Any, Callable, Dict, Generator, Optional, TypeVar, cast
 
 import boto3
 import requests
 from ruamel.yaml import YAML
 
 from paka.constants import HOME_ENV_VAR, PROJECT_NAME, PULUMI_STACK_NAME
+
+T = TypeVar("T", bound=Callable[..., Any])
 
 
 def camel_to_kebab(name: str) -> str:
@@ -97,19 +99,20 @@ def get_project_data_dir() -> str:
     )
 
 
-def call_once(func: Callable) -> Callable:
+def call_once(func: T) -> T:
     """
     Decorator to ensure a function is only executed once.
     """
     has_been_called = False
 
+    @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         nonlocal has_been_called
         if not has_been_called:
             has_been_called = True
             return func(*args, **kwargs)
 
-    return wrapper
+    return cast(T, wrapper)
 
 
 def to_yaml(obj: Dict[str, Any]) -> str:
@@ -359,8 +362,9 @@ def _read_pulumi_stack_by_key(stack_json: dict, k: PulumiStackKey) -> Any:
                 return resource["outputs"]["bucket"]
     elif k == PulumiStackKey.NAMESPACE:
         for resource in resources:
-            # Since we creating only one namespace, there is no need to use the resource urn
-            if resource["type"] == "kubernetes:core/v1:Namespace":
+            if resource["type"] == "kubernetes:core/v1:Namespace" and resource[
+                "urn"
+            ].endswith("app-ns"):
                 return resource["outputs"]["metadata"]["name"]
         # If no namespace is found, return the default namespace
         return "default"
