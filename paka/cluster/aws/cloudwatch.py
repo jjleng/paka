@@ -33,4 +33,4 @@ def enable_cloudwatch(ctx: Context) -> None:
     log_stream_prefix  eks/
     region             {ctx.cloud_config.cluster.region}
 """
-    create_fluentbit(fluent_bit_config, ctx.k8s_provider)
+    create_fluentbit(ctx, fluent_bit_config)

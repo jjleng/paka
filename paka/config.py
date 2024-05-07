@@ -492,7 +492,7 @@ class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup]):
         return v
 
 
-class AwsConfig(CloudConfig):
+class AwsConfig(CloudConfig[AwsModelGroup]):
     modelGroups: Optional[List[AwsModelGroup]] = Field(
         None,
         description="The list of model groups to be deployed in the cloud. Default is None. If None, no model groups are deployed.",
