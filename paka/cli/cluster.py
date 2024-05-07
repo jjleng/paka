@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 from typing import List
 
 import click
@@ -73,21 +75,32 @@ def down(
         # Sometime finalizers might block CRD deletion, so we need to force delete those.
         # This is best effort and might not work in all cases.
         # TODO: better way to handle this
-        crds = [
-            "scaledobjects.keda.sh",
-            "routes.serving.knative.dev",
-            "ingresses.networking.internal.knative.dev",
-        ]
+        # https://github.com/kubernetes/kubernetes/issues/60538
+        stop_event = threading.Event()
 
-        load_kubeconfig(cluster_manager.cloud_config.cluster.name)
+        def remove_finalizers_forever() -> None:
+            crds = [
+                "scaledobjects.keda.sh",
+                "routes.serving.knative.dev",
+                "ingresses.networking.internal.knative.dev",
+            ]
 
-        for crd in crds:
-            try:
-                remove_crd_finalizers(crd)
-            except Exception as e:
-                pass
+            load_kubeconfig(cluster_manager.cloud_config.cluster.name)
+
+            while not stop_event.is_set():
+                for crd in crds:
+                    try:
+                        remove_crd_finalizers(crd)
+                    except Exception as e:
+                        pass
+                time.sleep(1)  # Wait for a second before the next iteration
+
+        thread = threading.Thread(target=remove_finalizers_forever)
+        thread.start()
 
         cluster_manager.destroy()
+        stop_event.set()
+        thread.join()
 
 
 @cluster_app.command()
