@@ -15,6 +15,7 @@ from paka.k8s.model_group.runtime.llama_cpp import (
     get_runtime_command_llama_cpp,
     is_llama_cpp_image,
 )
+from paka.k8s.model_group.runtime.vllm import get_runtime_command_vllm, is_vllm_image
 from paka.k8s.utils import CustomResource, apply_resource
 from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
@@ -42,14 +43,16 @@ def get_runtime_command(
     # If user did not provide a command, we need to provide a default command with heuristics.
     if is_llama_cpp_image(runtime.image):
         command = get_runtime_command_llama_cpp(ctx, model_group)
+    elif is_vllm_image(runtime.image):
+        command = get_runtime_command_vllm(ctx, model_group)
 
-        # Add or replace the port in the command
-        for i in range(len(command)):
-            if command[i] == "--port":
-                command[i + 1] = str(port)
-                break
-        else:
-            command.extend(["--port", str(port)])
+    # Add or replace the port in the command
+    for i in range(len(command)):
+        if command[i] == "--port":
+            command[i + 1] = str(port)
+            break
+    else:
+        command.extend(["--port", str(port)])
 
     return command
 
@@ -57,6 +60,8 @@ def get_runtime_command(
 def get_health_check_paths(model_group: T_CloudModelGroup) -> Tuple[str, str]:
     # Return a tuple for ready and live probes
     if is_llama_cpp_image(model_group.runtime.image):
+        return ("/health", "/health")
+    elif is_vllm_image(model_group.runtime.image):
         return ("/health", "/health")
 
     raise ValueError("Unsupported runtime image for health check paths.")
