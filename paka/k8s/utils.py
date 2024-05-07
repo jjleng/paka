@@ -606,7 +606,7 @@ def tail_logs(namespace: str, pod_name: str, container_name: str) -> None:
 
 
 @retry(
-    stop=stop_after_attempt(5),
+    stop=stop_after_attempt(1),
     wait=wait_fixed(1),
     retry=retry_if_exception_type(ApiException),
 )
