@@ -319,6 +319,18 @@ def create_service_monitor(namespace: str, model_group: T_CloudModelGroup) -> No
             ],
         },
     )
+
+    # Both llama-cpp and vllm servers expose metrics on /metrics
+    if is_llama_cpp_image(model_group.runtime.image) or is_vllm_image(
+        model_group.runtime.image
+    ):
+        monitor.spec["endpoints"].append(
+            {
+                "port": "http",
+                "path": "/metrics",
+                "interval": "15s",
+            }
+        )
     apply_resource(monitor)
 
 
