@@ -79,28 +79,33 @@ def down(
         stop_event = threading.Event()
 
         def remove_finalizers_forever() -> None:
-            crds = [
-                "scaledobjects.keda.sh",
-                "routes.serving.knative.dev",
-                "ingresses.networking.internal.knative.dev",
-            ]
+            try:
+                crds = [
+                    "scaledobjects.keda.sh",
+                    "routes.serving.knative.dev",
+                    "ingresses.networking.internal.knative.dev",
+                ]
 
-            load_kubeconfig(cluster_manager.cloud_config.cluster.name)
+                load_kubeconfig(cluster_manager.cloud_config.cluster.name)
 
-            while not stop_event.is_set():
-                for crd in crds:
-                    try:
-                        remove_crd_finalizers(crd)
-                    except Exception as e:
-                        pass
-                time.sleep(1)  # Wait for a second before the next iteration
+                while not stop_event.is_set():
+                    for crd in crds:
+                        try:
+                            remove_crd_finalizers(crd)
+                        except Exception as e:
+                            pass
+                    time.sleep(1)  # Wait for a second before the next iteration
+            except:
+                pass
 
         thread = threading.Thread(target=remove_finalizers_forever)
         thread.start()
 
-        cluster_manager.destroy()
-        stop_event.set()
-        thread.join()
+        try:
+            cluster_manager.destroy()
+        finally:
+            stop_event.set()
+            thread.join()
 
 
 @cluster_app.command()
