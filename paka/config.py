@@ -8,7 +8,7 @@ from ruamel.yaml import YAML
 
 from paka.utils import to_yaml
 
-CONFIG_MAJOR_VERSION = 1
+CONFIG_VERSION = "1.0"
 
 
 class PakaBaseModel(BaseModel):
@@ -566,16 +566,22 @@ def parse_yaml(yaml_str: str) -> Config:
         raise ValueError('version must be in the format "x.x"')
 
     # Make sure the major version matches
-    major_version = int(version.split(".")[0])
+    major_version, minor_version = map(int, version.split("."))
+    tool_major_version, tool_minor_version = map(int, CONFIG_VERSION.split("."))
 
-    if major_version < CONFIG_MAJOR_VERSION:
+    if major_version < tool_major_version:
         raise ValueError(
-            f"Invalid configuration: This tool supports versions starting from {CONFIG_MAJOR_VERSION}.0."
+            f"Invalid configuration: This tool supports versions starting from {tool_major_version}.0."
             " Please use an older version of the tool if you need to work with a previous configuration version."
         )
-    elif major_version > CONFIG_MAJOR_VERSION:
+    elif major_version > tool_major_version:
         raise ValueError(
             f"Invalid configuration: Your current tool is too old. Please upgrade your tool to handle this configuration."
+        )
+    elif minor_version > tool_minor_version:  # No forward compatibility
+        raise ValueError(
+            f"Invalid configuration: This tool supports versions up to {tool_major_version}.{tool_minor_version}."
+            " Please upgrade your tool to handle this configuration."
         )
 
     return Config(**data)

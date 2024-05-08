@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from paka.config import (
-    CONFIG_MAJOR_VERSION,
+    CONFIG_VERSION,
     AwsConfig,
     AwsModelGroup,
     CloudConfig,
@@ -306,6 +306,7 @@ def test_config_version_validation() -> None:
 
 
 def test_parse_yaml_version_validation() -> None:
+    major_version, minor_version = map(int, CONFIG_VERSION.split("."))
     with pytest.raises(
         ValueError, match="Invalid configuration: The 'version' field is missing."
     ):
@@ -316,11 +317,17 @@ def test_parse_yaml_version_validation() -> None:
 
     with pytest.raises(
         ValueError,
-        match=f"Invalid configuration: This tool supports versions starting from {CONFIG_MAJOR_VERSION}.0.",
+        match=f"Invalid configuration: This tool supports versions starting from {major_version}.0.",
     ):
-        parse_yaml(f"""version: '{CONFIG_MAJOR_VERSION - 1}.0'\naws: {{}}""")
+        parse_yaml(f"""version: '{major_version - 1}.0'\naws: {{}}""")
 
     with pytest.raises(
         ValueError, match="Invalid configuration: Your current tool is too old."
     ):
-        parse_yaml(f"""version: '{CONFIG_MAJOR_VERSION + 1}.0'\naws: {{}}""")
+        parse_yaml(f"""version: '{major_version + 1}.0'\naws: {{}}""")
+
+    with pytest.raises(
+        ValueError,
+        match=f"Invalid configuration: This tool supports versions up to {major_version}.{minor_version}.",
+    ):
+        parse_yaml(f"""version: '{major_version}.{minor_version + 1}'\naws: {{}}""")
