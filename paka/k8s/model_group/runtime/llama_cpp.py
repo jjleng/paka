@@ -125,6 +125,7 @@ def get_runtime_command_llama_cpp(
         "-1",
         "--embedding",
         "--flash-attn",  # Enable flash attention
+        "--metrics",  # Enable metrics
     ]
 
     if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
