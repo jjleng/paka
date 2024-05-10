@@ -11,8 +11,10 @@ from __future__ import annotations
 import json
 
 from kubernetes import client
+from kubernetes import config as k8s_config
 
 from paka.cluster.context import Context
+from paka.cluster.utils import get_model_store
 from paka.config import T_CloudModelGroup
 from paka.k8s.model_group.ingress import create_model_vservice
 from paka.k8s.model_group.service import (
@@ -51,31 +53,29 @@ def ensure_priority_class(name: str, priority: int) -> None:
             raise e
 
 
-def ensure_priority_expander(ctx: Context) -> None:
-    # Create a priority expander to ensure that the cluster autoscaler provisions spot instances first.
-
-    config_map = client.V1ConfigMap(
-        kind="ConfigMap",
-        metadata=client.V1ObjectMeta(
-            name="cluster-autoscaler-priority-expander", namespace="kube-system"
-        ),
-        data={
-            "priorities": """
-            10:
-            - .*Spot.*
-            1:
-            - .*OnDemand.*
-            """
-        },
-    )
-
-    apply_resource(config_map)
-
-
 def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
     """
     Ensure that the PodDisruptionBudget exists for the model group.
     """
+    pdb = client.V1PodDisruptionBudget(
+        api_version="policy/v1beta1",
+        kind="PodDisruptionBudget",
+        metadata=client.V1ObjectMeta(
+            name=f"{kubify_name(model_group.name)}",
+            namespace=namespace,
+        ),
+        spec=client.V1PodDisruptionBudgetSpec(
+            # Will slow down the speed of scaling down pods. But spot instances are usually terminated with 2 minutes.
+            max_unavailable="30%",
+            selector=client.V1LabelSelector(
+                match_labels={
+                    "app": "model-group",
+                    "model": model_group.name,
+                }
+            ),
+        ),
+    )
+
     policy_v1 = client.PolicyV1Api()
 
     assert pdb.metadata and pdb.metadata.name and pdb.metadata.namespace
@@ -94,24 +94,6 @@ def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
             )
         else:
             raise
-        api_version="policy/v1beta1",
-        kind="PodDisruptionBudget",
-        metadata=client.V1ObjectMeta(
-            name=f"{kubify_name(model_group.name)}",
-            namespace=namespace,
-        ),
-        spec=client.V1PodDisruptionBudgetSpec(
-            min_available=model_group.minInstances,
-            selector=client.V1LabelSelector(
-                match_labels={
-                    "app": "model-group",
-                    "model": model_group.name,
-                }
-            ),
-        ),
-    )
-
-    apply_resource(pdb)  # TODO: fix
 
 
 def create_fail_safe_deployment(

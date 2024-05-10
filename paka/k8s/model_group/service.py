@@ -463,7 +463,11 @@ def create_hpa(
 
 
 def create_scaled_object(
-    namespace: str, model_group: T_CloudModelGroup, deployment: client.V1Deployment
+    namespace: str,
+    model_group: T_CloudModelGroup,
+    deployment: client.V1Deployment,
+    min_replicas: int,
+    max_replicas: int,
 ) -> Optional[CustomResource]:
     """
     Creates a KEDA ScaledObject for a given model group.
@@ -497,8 +501,8 @@ def create_scaled_object(
                 "kind": "Deployment",
                 "name": deployment.metadata.name,
             },
-            "minReplicaCount": model_group.minInstances,
-            "maxReplicaCount": model_group.maxInstances,
+            "minReplicaCount": min_replicas,
+            "maxReplicaCount": max_replicas,
             "pollingInterval": 15,
             "triggers": list(
                 map(
@@ -572,7 +576,13 @@ def create_model_group_service(
     if config.prometheus and config.prometheus.enabled:
         create_service_monitor(namespace, model_group)
 
-    scaled_object = create_scaled_object(namespace, model_group, deployment)
+    scaled_object = create_scaled_object(
+        namespace,
+        model_group,
+        deployment,
+        model_group.minInstances,
+        model_group.maxInstances,
+    )
     if scaled_object:
         apply_resource(scaled_object)
 
