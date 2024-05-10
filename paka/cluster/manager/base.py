@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import Any
@@ -13,6 +14,9 @@ from paka.constants import PULUMI_STACK_NAME
 from paka.k8s.model_group.service import (
     cleanup_staled_model_group_services,
     create_model_group_service,
+)
+from paka.k8s.model_group.service_v1 import (
+    create_model_group_service as create_model_group_service_v1,
 )
 from paka.logger import logger
 
@@ -81,7 +85,10 @@ class ClusterManager(ABC):
         )
 
         for model_group in self.cloud_config.modelGroups:
-            create_model_group_service(self.ctx, namespace, model_group)
+            if os.environ.get("ENABLE_SPOT_INSTANCES", "0") != "1":
+                create_model_group_service(self.ctx, namespace, model_group)
+            else:
+                create_model_group_service_v1(self.ctx, namespace, model_group)
 
     def destroy(self) -> Any:
         logger.info("Destroying resources...")
