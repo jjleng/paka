@@ -68,11 +68,16 @@ def list(
     """
     load_kubeconfig(cluster_name)
     services = filter_services(get_cluster_namespace(cluster_name))
-    model_groups = [service.spec.selector.get("model") for service in services]
+    model_groups = [
+        service.spec.selector.get("model", "")
+        for service in services
+        if service.spec and service.spec.selector and "model" in service.spec.selector
+    ]
 
     v1 = client.CoreV1Api()
     cfg = v1.read_namespaced_config_map("config-domain", "knative-serving")
-    filtered_keys = [key for key in cfg.data.keys() if key.endswith("sslip.io")]
+    cfg_data = cfg.data or {}
+    filtered_keys = [key for key in cfg_data if key.endswith("sslip.io")]
     if not filtered_keys:
         if not model_groups:
             logger.info("No model groups found.")

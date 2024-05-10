@@ -9,25 +9,21 @@ c) Once the spot instance pool has capacity, the on-demand pods (except the fail
 from __future__ import annotations
 
 import json
-from typing import List, Optional, Tuple, cast
 
 from kubernetes import client
-from kubernetes import config as k8s_config
 
 from paka.cluster.context import Context
-from paka.cluster.utils import get_model_store
 from paka.config import T_CloudModelGroup
-from paka.constants import ACCESS_ALL_SA, MODEL_MOUNT_PATH
 from paka.k8s.model_group.ingress import create_model_vservice
-from paka.k8s.model_group.runtime.llama_cpp import (
-    get_runtime_command_llama_cpp,
-    is_llama_cpp_image,
+from paka.k8s.model_group.service import (
+    create_pod,
+    create_scaled_object,
+    create_service,
+    create_service_monitor,
 )
-from paka.k8s.model_group.runtime.vllm import get_runtime_command_vllm, is_vllm_image
-from paka.k8s.utils import CustomResource, apply_resource
+from paka.k8s.utils import apply_resource
 from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
-from paka.model.store import MODEL_PATH_PREFIX
 from paka.utils import kubify_name
 
 
@@ -73,9 +69,6 @@ def ensure_priority_expander(ctx: Context) -> None:
         },
     )
 
-    assert config_map.kind
-    assert config_map.metadata
-
     apply_resource(config_map)
 
 
@@ -83,14 +76,31 @@ def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
     """
     Ensure that the PodDisruptionBudget exists for the model group.
     """
-    pdb = client.V1beta1PodDisruptionBudget(
+    policy_v1 = client.PolicyV1Api()
+
+    assert pdb.metadata and pdb.metadata.name and pdb.metadata.namespace
+
+    try:
+        policy_v1.read_namespaced_pod_disruption_budget(
+            name=pdb.metadata.name, namespace=pdb.metadata.namespace
+        )
+        policy_v1.replace_namespaced_pod_disruption_budget(
+            name=pdb.metadata.name, namespace=pdb.metadata.namespace, body=pdb
+        )
+    except client.ApiException as e:
+        if e.status == 404:
+            policy_v1.create_namespaced_pod_disruption_budget(
+                namespace=pdb.metadata.namespace, body=pdb
+            )
+        else:
+            raise
         api_version="policy/v1beta1",
         kind="PodDisruptionBudget",
         metadata=client.V1ObjectMeta(
-            name=f"{kubify_name(model_group.name)}-pdb",
+            name=f"{kubify_name(model_group.name)}",
             namespace=namespace,
         ),
-        spec=client.V1beta1PodDisruptionBudgetSpec(
+        spec=client.V1PodDisruptionBudgetSpec(
             min_available=model_group.minInstances,
             selector=client.V1LabelSelector(
                 match_labels={
@@ -101,7 +111,7 @@ def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
         ),
     )
 
-    apply_resource(pdb)
+    apply_resource(pdb)  # TODO: fix
 
 
 def create_fail_safe_deployment(
@@ -130,7 +140,8 @@ def create_fail_safe_deployment(
     )
 
     # We would also like to ensure that the pod is scheduled on a node with a higher priority.
-    # This would reduce the chances of the pod being preempted by pod scaler.
+    # This would reduce the chances of the pod being preempted by keda or HPA.
+    # CA will also try to fullfil the pods with higher priority first.
     priority_class = "fail-safe"
     ensure_priority_class(priority_class, 100000)
     pod.spec.priority_class_name = priority_class

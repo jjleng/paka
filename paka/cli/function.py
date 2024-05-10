@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 import click
 import typer
-from kubernetes.dynamic.exceptions import NotFoundError
+from kubernetes.dynamic.exceptions import NotFoundError  # type: ignore
 from tabulate import tabulate
 
 from paka.cli.utils import get_cluster_namespace, load_kubeconfig, resolve_image
