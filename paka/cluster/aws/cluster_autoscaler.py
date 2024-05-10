@@ -2,10 +2,27 @@ import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
 import pulumi_kubernetes.helm.v3 as helm
+from pulumi_kubernetes.core.v1 import ConfigMap
 
 from paka.cluster.aws.utils import odic_role_for_sa
 from paka.cluster.context import Context
-from paka.utils import call_once
+from paka.utils import call_once, to_yaml
+
+
+def create_priority_expander(ctx: Context) -> ConfigMap:
+    # Create a priority expander to ensure that the cluster autoscaler provisions spot instances first.
+    priority_data = {"10": [".*Spot.*"], "1": [".*OnDemand.*"]}
+    return ConfigMap(
+        "cluster-autoscaler-priority-expander",
+        metadata={
+            "name": "cluster-autoscaler-priority-expander",
+            "namespace": "kube-system",
+        },
+        data={
+            "priorities": to_yaml(priority_data),
+        },
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
+    )
 
 
 @call_once
@@ -61,6 +78,8 @@ def create_cluster_autoscaler(
         role=autoscaler_role.name,
     )
 
+    expander = create_priority_expander(ctx)
+
     helm.Chart(
         "cluster-autoscaler",
         helm.ChartOpts(
@@ -88,5 +107,5 @@ def create_cluster_autoscaler(
                 },
             },
         ),
-        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),
+        opts=pulumi.ResourceOptions(provider=ctx.k8s_provider, depends_on=[expander]),
     )
