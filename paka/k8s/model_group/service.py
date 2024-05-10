@@ -105,7 +105,7 @@ def create_pod(
     namespace: str,
     model_group: T_CloudModelGroup,
     port: int,
-) -> client.V1Pod:
+) -> client.V1PodTemplateSpec:
     """
     Creates a Kubernetes Pod for a machine learning model group.
 
@@ -180,15 +180,17 @@ def create_pod(
     if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
         if "resources" not in container_args:
             container_args["resources"] = client.V1ResourceRequirements()
-        if container_args["resources"].limits is None:
-            container_args["resources"].limits = {}
+
+        resources = cast(client.V1ResourceRequirements, container_args["resources"])
+        if resources.limits is None:
+            resources.limits = {}
         gpu_count = 1
         if model_group.resourceRequest and model_group.resourceRequest.gpu:
             gpu_count = model_group.resourceRequest.gpu
         # Ah, we only support nvidia GPUs for now
-        container_args["resources"].limits["nvidia.com/gpu"] = gpu_count
+        resources.limits["nvidia.com/gpu"] = str(gpu_count)
 
-    return client.V1Pod(
+    return client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}",
             namespace=namespace,
@@ -211,7 +213,7 @@ def create_pod(
                 if model_group.model and model_group.model.useModelStore
                 else []
             ),
-            containers=[client.V1Container(**container_args)],
+            containers=[client.V1Container(**container_args)],  # type: ignore
             tolerations=[
                 client.V1Toleration(
                     key="app",
@@ -262,7 +264,7 @@ def create_pod(
 
 
 def create_deployment(
-    namespace: str, model_group: T_CloudModelGroup, pod: client.V1Pod
+    namespace: str, model_group: T_CloudModelGroup, pod: client.V1PodTemplateSpec
 ) -> client.V1Deployment:
     """
     Creates a Kubernetes Deployment for a machine learning model group.
@@ -399,7 +401,8 @@ def filter_services(namespace: str) -> List[client.V1Service]:
     filtered_services = [
         service
         for service in services.items
-        if service.spec.selector
+        if service.spec
+        and service.spec.selector
         and service.spec.selector.get("app") == "model-group"
         and service.spec.selector.get("model")
     ]
@@ -427,6 +430,7 @@ def create_hpa(
     Returns:
         client.V2HorizontalPodAutoscaler: The created HPA.
     """
+    assert deployment.metadata and deployment.metadata.name
     return client.V2HorizontalPodAutoscaler(
         api_version="autoscaling/v2",
         kind="HorizontalPodAutoscaler",
@@ -478,6 +482,8 @@ def create_scaled_object(
     """
     if not model_group.autoScaleTriggers:
         return None
+
+    assert deployment.metadata and deployment.metadata.name
 
     return CustomResource(
         api_version="keda.sh/v1alpha1",
@@ -589,10 +595,10 @@ def cleanup_model_group_service_by_name(
         None
     """
 
-    api_client = client.AppsV1Api()
+    apps_v1_api = client.AppsV1Api()
 
     # Delete the deployment
-    api_client.delete_namespaced_deployment(
+    apps_v1_api.delete_namespaced_deployment(
         name=kubify_name(model_group_name),
         namespace=namespace,
         body=client.V1DeleteOptions(
@@ -601,10 +607,10 @@ def cleanup_model_group_service_by_name(
     )
 
     # Delete the service
-    api_client = client.CoreV1Api()
+    core_v1_api = client.CoreV1Api()
 
     # Delete the service
-    api_client.delete_namespaced_service(
+    core_v1_api.delete_namespaced_service(
         name=kubify_name(model_group_name),
         namespace=namespace,
         body=client.V1DeleteOptions(
@@ -612,12 +618,12 @@ def cleanup_model_group_service_by_name(
         ),
     )
 
-    api_client = client.CustomObjectsApi()
+    custom_objects_api = client.CustomObjectsApi()
 
     # Best effort deletion
     try:
         # Delete the service monitor
-        api_client.delete_namespaced_custom_object(
+        custom_objects_api.delete_namespaced_custom_object(
             group="monitoring.coreos.com",
             version="v1",
             namespace=namespace,
@@ -630,7 +636,7 @@ def cleanup_model_group_service_by_name(
 
     # Delete the scaled object
     try:
-        api_client.delete_namespaced_custom_object(
+        custom_objects_api.delete_namespaced_custom_object(
             group="keda.sh",
             version="v1alpha1",
             namespace=namespace,
@@ -646,10 +652,11 @@ def cleanup_staled_model_group_services(
     namespace: str, source_of_truth_model_groups: List[str]
 ) -> None:
     services = filter_services(namespace)
-    model_groups: List[str] = [
+    model_groups = [
         # Get the model group name from the service selector
-        cast(client.V1ServiceSpec, service.spec).selector.get("model")
+        service.spec.selector.get("model", "")
         for service in services
+        if service.spec and service.spec.selector
     ]
 
     source_of_truth_model_groups_set = set(source_of_truth_model_groups)

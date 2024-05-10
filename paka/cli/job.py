@@ -186,7 +186,8 @@ def list(
     )
 
     for deployment in deployments.items:
-        logger.info(deployment.metadata.name)
+        if deployment.metadata and deployment.metadata.name:
+            logger.info(deployment.metadata.name)
 
     if not deployments.items:
         logger.info("No jobs found.")

@@ -40,10 +40,17 @@ def get_elb_name(kubeconfig_json: str) -> Optional[str]:
     services = v1.list_service_for_all_namespaces(watch=False)
 
     for service in services.items:
-        if service.spec.type == "LoadBalancer":
+        if service.spec and service.spec.type == "LoadBalancer":
             # The name of the ELB is the first part of the hostname of the load balancer
-            elb_hostname = service.status.load_balancer.ingress[0].hostname
-            elb_name = elb_hostname.split("-")[0]
-            return elb_name
+            if (
+                service.status
+                and service.status.load_balancer
+                and service.status.load_balancer.ingress
+            ):
+                elb_hostname = service.status.load_balancer.ingress[0].hostname
+                if not elb_hostname:
+                    continue
+                elb_name = elb_hostname.split("-")[0]
+                return elb_name
 
     return None

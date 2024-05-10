@@ -10,7 +10,8 @@ import time
 from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple
 
-from kubernetes import client, watch
+from kubernetes import watch  # type: ignore
+from kubernetes import client
 from kubernetes.client.exceptions import ApiException
 from kubernetes.stream import portforward
 from ruamel.yaml import YAML
@@ -41,10 +42,13 @@ KubernetesResourceKind: TypeAlias = Literal[
 
 
 class CustomResource:
+    metadata: Optional[client.V1ObjectMeta]
+    kind: Optional[str]
+
     def __init__(
         self,
         api_version: str,
-        kind: KubernetesResourceKind,
+        kind: str,
         plural: str,
         spec: Dict[str, Any],
         metadata: client.V1ObjectMeta,
@@ -63,6 +67,7 @@ class CustomResource:
 
 
 def create_namespaced_custom_object(namespace: str, resource: CustomResource) -> Any:
+    assert resource.metadata
     body = {
         "apiVersion": resource.api_version,
         "kind": resource.kind,
@@ -104,6 +109,7 @@ def read_namespaced_custom_object(
 def replace_namespaced_custom_object(
     name: str, namespace: str, resource: CustomResource
 ) -> Any:
+    assert resource.metadata
     res = read_namespaced_custom_object(name, namespace, resource)
     body = {
         "apiVersion": resource.api_version,
@@ -152,8 +158,8 @@ def list_namespaced_custom_object(namespace: str, resource: CustomResource) -> A
 
 
 class KubernetesResource(Protocol):
-    metadata: client.V1ObjectMeta
-    kind: KubernetesResourceKind
+    metadata: Optional[client.V1ObjectMeta]
+    kind: Optional[str]
 
 
 def apply_resource(
@@ -173,26 +179,30 @@ def apply_resource(
         ApiException: If an error occurs while creating or updating the resource.
     """
     # Determine the resource kind and prepare the appropriate API client
+    assert resource.metadata and resource.kind
+
     kind = resource.kind
     namespace = resource.metadata.namespace
     if not namespace:
         raise ValueError("Namespace is required")
 
     if kind == "Deployment":
-        api = client.AppsV1Api()
-        create_method = api.create_namespaced_deployment
-        replace_method = api.replace_namespaced_deployment
-        read_method = api.read_namespaced_deployment
+        apps_v1_api = client.AppsV1Api()
+        create_method: Callable[..., Any] = apps_v1_api.create_namespaced_deployment
+        replace_method: Callable[..., Any] = apps_v1_api.replace_namespaced_deployment
+        read_method: Callable[..., Any] = apps_v1_api.read_namespaced_deployment
     elif kind == "Service":
-        api = client.CoreV1Api()
-        create_method = api.create_namespaced_service
-        replace_method = api.replace_namespaced_service
-        read_method = api.read_namespaced_service
+        core_v1_api = client.CoreV1Api()
+        create_method = core_v1_api.create_namespaced_service
+        replace_method = core_v1_api.replace_namespaced_service
+        read_method = core_v1_api.read_namespaced_service
     elif kind == "HorizontalPodAutoscaler":
-        api = client.AutoscalingV2Api()
-        create_method = api.create_namespaced_horizontal_pod_autoscaler
-        replace_method = api.replace_namespaced_horizontal_pod_autoscaler
-        read_method = api.read_namespaced_horizontal_pod_autoscaler
+        auto_scaling_v2_api = client.AutoscalingV2Api()
+        create_method = auto_scaling_v2_api.create_namespaced_horizontal_pod_autoscaler
+        replace_method = (
+            auto_scaling_v2_api.replace_namespaced_horizontal_pod_autoscaler
+        )
+        read_method = auto_scaling_v2_api.read_namespaced_horizontal_pod_autoscaler
     elif kind in [
         "ScaledObject",
         "TriggerAuthentication",
@@ -207,30 +217,30 @@ def apply_resource(
         replace_method = replace_namespaced_custom_object
         read_method = partial(read_namespaced_custom_object, resource=resource)
     elif kind == "ServiceAccount":
-        api = client.CoreV1Api()
-        create_method = api.create_namespaced_service_account
-        replace_method = api.patch_namespaced_service_account
-        read_method = api.read_namespaced_service_account
+        core_v1_api = client.CoreV1Api()
+        create_method = core_v1_api.create_namespaced_service_account
+        replace_method = core_v1_api.patch_namespaced_service_account
+        read_method = core_v1_api.read_namespaced_service_account
     elif kind == "Secret":
-        api = client.CoreV1Api()
-        create_method = api.create_namespaced_secret
-        replace_method = api.patch_namespaced_secret
-        read_method = api.read_namespaced_secret
+        core_v1_api = client.CoreV1Api()
+        create_method = core_v1_api.create_namespaced_secret
+        replace_method = core_v1_api.patch_namespaced_secret
+        read_method = core_v1_api.read_namespaced_secret
     elif kind == "RoleBinding":
-        api = client.RbacAuthorizationV1Api()
-        create_method = api.create_namespaced_role_binding
-        replace_method = api.patch_namespaced_role_binding
-        read_method = api.read_namespaced_role_binding
+        rbac_authorization_v1_api = client.RbacAuthorizationV1Api()
+        create_method = rbac_authorization_v1_api.create_namespaced_role_binding
+        replace_method = rbac_authorization_v1_api.patch_namespaced_role_binding
+        read_method = rbac_authorization_v1_api.read_namespaced_role_binding
     elif kind == "Role":
-        api = client.RbacAuthorizationV1Api()
-        create_method = api.create_namespaced_role
-        replace_method = api.patch_namespaced_role
-        read_method = api.read_namespaced_role
+        rbac_authorization_v1_api = client.RbacAuthorizationV1Api()
+        create_method = rbac_authorization_v1_api.create_namespaced_role
+        replace_method = rbac_authorization_v1_api.patch_namespaced_role
+        read_method = rbac_authorization_v1_api.read_namespaced_role
     elif kind == "ConfigMap":
-        api = client.CoreV1Api()
-        create_method = api.create_namespaced_config_map
-        replace_method = api.patch_namespaced_config_map
-        read_method = api.read_namespaced_config_map
+        core_v1_api = client.CoreV1Api()
+        create_method = core_v1_api.create_namespaced_config_map
+        replace_method = core_v1_api.patch_namespaced_config_map
+        read_method = core_v1_api.read_namespaced_config_map
     else:
         raise ValueError(f"Unsupported kind: {kind}")
 
@@ -291,7 +301,7 @@ def create_role_binding(
         kind="RoleBinding",
         metadata=client.V1ObjectMeta(name=binding_name, namespace=binding_namespace),
         subjects=[
-            client.V1Subject(
+            client.RbacV1Subject(
                 kind="ServiceAccount",
                 name=service_account_name,
                 namespace=subject_namespace,
@@ -356,14 +366,18 @@ def run_port_forward(
             f"No available pod for port-forwarding with label selector {label_selector}"
         )
 
-    namespaces: Dict[str, Any] = {}
+    namespaces: Dict[str, List[client.V1Pod]] = {}
     ns_list = []
 
     for pod in pods.items:
-        if pod.metadata.namespace not in namespaces:
-            namespaces[pod.metadata.namespace] = []
-            ns_list.append(pod.metadata.namespace)
-        namespaces[pod.metadata.namespace].append(pod)
+        pod_ns = (
+            pod.metadata.namespace if pod.metadata and pod.metadata.namespace else None
+        )
+        if pod_ns and pod_ns not in namespaces:
+            namespaces[pod_ns] = []
+            ns_list.append(pod_ns)
+        if pod_ns and pod:
+            namespaces[pod_ns].append(pod)
 
     if len(ns_list) > 1:
         raise Exception(
@@ -371,16 +385,17 @@ def run_port_forward(
         )
 
     ns = ns_list[0]
-    pods = namespaces.get(ns)
+    target_pods = namespaces.get(ns)
 
-    if pods is None:
+    if target_pods is None:
         raise Exception(f"Error finding pods within the given namespace {ns}")
 
     pod_name = None
     pod_namespace = None
 
-    for pod in pods:
+    for pod in target_pods:
         if is_ready_pod(pod):
+            assert pod.metadata
             pod_name = pod.metadata.name
             pod_namespace = pod.metadata.namespace
             break
@@ -426,7 +441,7 @@ def run_port_forward(
             client_socket.close()
 
     def _run_forward() -> None:
-        pf = portforward(
+        pf: Any = portforward(
             v1.connect_get_namespaced_pod_portforward,
             pod_name,
             pod_namespace,
@@ -585,9 +600,9 @@ def tail_logs(namespace: str, pod_name: str, container_name: str) -> None:
 
     while True:
         pod = v1.read_namespaced_pod(name=pod_name, namespace=namespace)
-        if pod.status.phase == "Running":
+        if pod.status and pod.status.phase == "Running":
             break
-        elif pod.status.phase in ["Failed", "Succeeded"]:
+        elif pod.status and pod.status.phase in ["Failed", "Succeeded"]:
             logger.info(f"\nPod {pod_name} is in phase {pod.status.phase}")
             return
         else:
@@ -614,7 +629,7 @@ def remove_crd_finalizers(name: str) -> None:
     try:
         api = client.ApiextensionsV1Api()
         crd = api.read_custom_resource_definition(name)
-        if crd.metadata.finalizers:
+        if crd.metadata and crd.metadata.finalizers:
             body = [{"op": "remove", "path": "/metadata/finalizers"}]
             api.patch_custom_resource_definition(name, body)
     except ApiException as e:

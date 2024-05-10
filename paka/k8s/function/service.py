@@ -4,8 +4,8 @@ import shlex
 from typing import Any, Literal, Tuple
 
 from kubernetes import client
-from kubernetes.dynamic import DynamicClient
-from kubernetes.dynamic.exceptions import NotFoundError
+from kubernetes.dynamic import DynamicClient  # type: ignore
+from kubernetes.dynamic.exceptions import NotFoundError  # type: ignore
 
 
 def enable_scale_to_zero(namespace: str = "knative-serving") -> None:

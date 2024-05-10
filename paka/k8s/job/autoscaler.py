@@ -68,7 +68,7 @@ def delete_autoscaler(namespace: str, job_name: str) -> None:
         api_version="keda.sh/v1alpha1",
         kind="ScaledObject",
         plural="scaledobjects",
-        metadata=client.V1ObjectMeta(job_name, namespace=namespace),
+        metadata=client.V1ObjectMeta(name=job_name, namespace=namespace),
         spec={},
     )
     delete_namespaced_custom_object(job_name, namespace, scaled_object)
