@@ -12,6 +12,7 @@ import json
 
 from kubernetes import client
 from kubernetes import config as k8s_config
+from kubernetes.client.exceptions import ApiException
 
 from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
@@ -46,7 +47,7 @@ def ensure_priority_class(name: str, priority: int) -> None:
         api_instance.read_priority_class(name)
         api_instance.replace_priority_class(name, body=priority_class)
 
-    except client.ApiException as e:
+    except ApiException as e:
         if e.status == 404:
             api_instance.create_priority_class(body=priority_class)
         else:
@@ -87,7 +88,7 @@ def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
         policy_v1.replace_namespaced_pod_disruption_budget(
             name=pdb.metadata.name, namespace=pdb.metadata.namespace, body=pdb
         )
-    except client.ApiException as e:
+    except ApiException as e:
         if e.status == 404:
             policy_v1.create_namespaced_pod_disruption_budget(
                 namespace=pdb.metadata.namespace, body=pdb

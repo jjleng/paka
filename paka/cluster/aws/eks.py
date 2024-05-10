@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import List, Optional, cast
 
 import pulumi
@@ -79,6 +80,25 @@ def create_node_group_for_model_group(
     model_groups = cast(List[AwsModelGroup], ctx.cloud_config.modelGroups)
 
     for model_group in model_groups:
+        taints = [
+            aws.eks.NodeGroupTaintArgs(
+                effect="NO_SCHEDULE", key="app", value="model-group"
+            ),
+            aws.eks.NodeGroupTaintArgs(
+                effect="NO_SCHEDULE", key="model", value=model_group.name
+            ),
+        ]
+
+        gpu_enabled = model_group.gpu and model_group.gpu.enabled
+
+        ami_type = "AL2_x86_64_GPU" if gpu_enabled else None
+
+        disk_size = (
+            model_group.gpu.diskSize
+            if gpu_enabled and model_group.gpu
+            else model_group.diskSize
+        )
+
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
             f"{cluster_name}-{kubify_name(model_group.name)}-group",
@@ -98,25 +118,41 @@ def create_node_group_for_model_group(
             },
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
-            taints=[
-                aws.eks.NodeGroupTaintArgs(
-                    effect="NO_SCHEDULE", key="app", value="model-group"
-                ),
-                aws.eks.NodeGroupTaintArgs(
-                    effect="NO_SCHEDULE", key="model", value=model_group.name
-                ),
-            ],
+            taints=taints,
             # Supported AMI types https://docs.aws.amazon.com/eks/latest/APIReference/API_Nodegroup.html#AmazonEKS-Type-Nodegroup-amiType
-            ami_type=(
-                "AL2_x86_64_GPU"
-                if model_group.gpu and model_group.gpu.enabled
-                else None
+            ami_type=ami_type,
+            disk_size=disk_size,
+            capacity_type="ON_DEMAND",
+        )
+
+        # Check if experimental feature flag is enabled
+        if os.environ.get("ENABLE_SPOT_INSTANCES", "0") != "1":
+            return
+
+        # Create a managed node group with spot instances
+        eks.ManagedNodeGroup(
+            f"{cluster_name}-{kubify_name(model_group.name)}-spot-group",
+            node_group_name=f"{cluster_name}-{kubify_name(model_group.name)}-spot-group",
+            cluster=cluster,
+            instance_types=[model_group.nodeType],
+            scaling_config=aws.eks.NodeGroupScalingConfigArgs(
+                desired_size=0,
+                min_size=0,
+                max_size=model_group.maxInstances - model_group.minInstances,
             ),
-            disk_size=(
-                model_group.gpu.diskSize
-                if model_group.gpu and model_group.gpu.enabled
-                else model_group.diskSize
-            ),
+            labels={
+                "size": model_group.nodeType,
+                "app": "model-group",
+                "model": model_group.name,
+                "lifecycle": "Spot",
+            },
+            node_role_arn=worker_role.arn,
+            subnet_ids=vpc.private_subnet_ids,
+            taints=taints,
+            # Supported AMI types https://docs.aws.amazon.com/eks/latest/APIReference/API_Nodegroup.html#AmazonEKS-Type-Nodegroup-amiType
+            ami_type=ami_type,
+            disk_size=disk_size,
+            capacity_type="SPOT",
         )
 
 
