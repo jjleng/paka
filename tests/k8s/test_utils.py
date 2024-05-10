@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 import paka.k8s.utils
 from paka.k8s.utils import KubeconfigMerger, KubernetesResource, apply_resource
