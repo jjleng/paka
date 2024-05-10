@@ -59,7 +59,6 @@ def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
     Ensure that the PodDisruptionBudget exists for the model group.
     """
     pdb = client.V1PodDisruptionBudget(
-        api_version="policy/v1beta1",
         kind="PodDisruptionBudget",
         metadata=client.V1ObjectMeta(
             name=f"{kubify_name(model_group.name)}",
@@ -82,9 +81,11 @@ def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
     assert pdb.metadata and pdb.metadata.name and pdb.metadata.namespace
 
     try:
-        policy_v1.read_namespaced_pod_disruption_budget(
+        existing_pdb = policy_v1.read_namespaced_pod_disruption_budget(
             name=pdb.metadata.name, namespace=pdb.metadata.namespace
         )
+        assert existing_pdb.metadata
+        pdb.metadata.resource_version = existing_pdb.metadata.resource_version
         policy_v1.replace_namespaced_pod_disruption_budget(
             name=pdb.metadata.name, namespace=pdb.metadata.namespace, body=pdb
         )
