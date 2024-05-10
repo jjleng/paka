@@ -83,6 +83,9 @@ def create_cluster_autoscaler(
                 },
                 "serviceMonitor": {"interval": "2s"},
                 "image": {"tag": "v1.28.2"},
+                "extraArgs": {
+                    "expander": "priority,random",  # Use priority expander if possible
+                },
             },
         ),
         opts=pulumi.ResourceOptions(provider=ctx.k8s_provider),

@@ -94,6 +94,7 @@ def create_node_group_for_model_group(
                 "size": model_group.nodeType,
                 "app": "model-group",
                 "model": model_group.name,
+                "lifecycle": "OnDemand",
             },
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
