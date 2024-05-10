@@ -11,7 +11,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple
 
 from kubernetes import client, watch
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 from kubernetes.stream import portforward
 from ruamel.yaml import YAML
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
