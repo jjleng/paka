@@ -9,10 +9,10 @@ from paka.config import (
     AwsConfig,
     AwsModelGroup,
     CloudConfig,
+    CloudModelGroup,
     CloudVectorStore,
     ClusterConfig,
     Config,
-    ModelGroup,
     ResourceRequest,
     Runtime,
     generate_yaml,
@@ -67,10 +67,14 @@ def test_invalid_gpu_resource_request() -> None:
         ResourceRequest(cpu="500m", memory="2Gi", gpu=-1)
 
 
-def test_model_group() -> None:
+def test_cloud_model_group() -> None:
     # Test with valid minInstances and maxInstances
-    model_group = ModelGroup(
-        name="test", minInstances=1, maxInstances=2, runtime=Runtime(image="test-image")
+    model_group = CloudModelGroup(
+        name="test",
+        nodeType="c7i.xlarge",
+        minInstances=1,
+        maxInstances=2,
+        runtime=Runtime(image="test-image"),
     )
     assert model_group.name == "test"
     assert model_group.minInstances == 1
@@ -80,8 +84,9 @@ def test_model_group() -> None:
     with pytest.raises(
         ValueError, match="maxInstances must be greater than or equal to minInstances"
     ):
-        ModelGroup(
+        CloudModelGroup(
             name="test",
+            nodeType="c7i.xlarge",
             minInstances=2,
             maxInstances=1,
             runtime=Runtime(image="test-image"),
@@ -89,8 +94,9 @@ def test_model_group() -> None:
 
     # Test with minInstances less than or equal to 0
     with pytest.raises(ValueError, match="minInstances must be greater than 0"):
-        ModelGroup(
+        CloudModelGroup(
             name="test",
+            nodeType="c7i.xlarge",
             minInstances=0,
             maxInstances=2,
             runtime=Runtime(image="test-image"),

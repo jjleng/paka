@@ -12,10 +12,10 @@ aws:
     - nodeType: t2.micro
       diskSize: 20
       name: test-model-group
-      minInstances: 1
-      maxInstances: 2
       runtime:
         image: test-image
+      minInstances: 1
+      maxInstances: 2
       resourceRequest:
         cpu: 500m
         memory: 2Gi
