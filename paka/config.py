@@ -8,7 +8,7 @@ from ruamel.yaml import YAML
 
 from paka.utils import to_yaml
 
-CONFIG_VERSION = "1.0"
+CONFIG_VERSION = "1.1"
 
 
 class PakaBaseModel(BaseModel):
@@ -183,47 +183,11 @@ class ModelGroup(PakaBaseModel):
     """
 
     name: str = Field(..., description="The name of the model group.")
-    minInstances: int = Field(
-        ..., description="The minimum number of instances to provision."
-    )
-    maxInstances: int = Field(
-        ..., description="The maximum number of instances to provision."
-    )
     model: Optional[Model] = Field(
         None,
         description="The model to deploy in the model group. If None, runtime image is responsible for loading the model.",
     )
     runtime: Runtime = Field(..., description="The runtime for the model group.")
-
-    @model_validator(mode="before")
-    def check_instances_num(cls, values: Dict[str, int]) -> Dict[str, int]:
-        min_instances, max_instances = values.get("minInstances"), values.get(
-            "maxInstances"
-        )
-        if min_instances and max_instances and max_instances < min_instances:
-            raise ValueError(
-                "maxInstances must be greater than or equal to minInstances"
-            )
-        return values
-
-    @field_validator("minInstances", mode="before")
-    def validate_min_instances(cls, v: int) -> int:
-        """
-        Validates the value of the minInstances field. Spinning up 1 model group instance is heavy.
-        No scaling down to 0 for now.
-
-        Args:
-            v (int): The value of the minInstances field.
-
-        Returns:
-            int: The input value if validation is successful.
-
-        Raises:
-            ValueError: If the value of the input value is invalid.
-        """
-        if v <= 0:
-            raise ValueError("minInstances must be greater than 0")
-        return v
 
 
 class Trigger(PakaBaseModel):
@@ -242,8 +206,15 @@ class CloudModelGroup(ModelGroup, CloudNode):
     Represents a group of cloud models.
     """
 
-    resourceRequest: ResourceRequest = Field(
-        ...,
+    minInstances: int = Field(
+        ..., description="The minimum number of instances to provision."
+    )
+    maxInstances: int = Field(
+        ..., description="The maximum number of instances to provision."
+    )
+
+    resourceRequest: Optional[ResourceRequest] = Field(
+        None,
         description="The resource request for the model group, specifying the amount of CPU and memory to request.",
     )
 
@@ -275,6 +246,36 @@ class CloudModelGroup(ModelGroup, CloudNode):
     ]
     """,
     )
+
+    @model_validator(mode="before")
+    def check_instances_num(cls, values: Dict[str, int]) -> Dict[str, int]:
+        min_instances, max_instances = values.get("minInstances"), values.get(
+            "maxInstances"
+        )
+        if min_instances and max_instances and max_instances < min_instances:
+            raise ValueError(
+                "maxInstances must be greater than or equal to minInstances"
+            )
+        return values
+
+    @field_validator("minInstances", mode="before")
+    def validate_min_instances(cls, v: int) -> int:
+        """
+        Validates the value of the minInstances field. Spinning up 1 model group instance is heavy.
+        No scaling down to 0 for now.
+
+        Args:
+            v (int): The value of the minInstances field.
+
+        Returns:
+            int: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the value of the input value is invalid.
+        """
+        if v <= 0:
+            raise ValueError("minInstances must be greater than 0")
+        return v
 
 
 class AwsModelGroup(CloudModelGroup, AwsNode):
