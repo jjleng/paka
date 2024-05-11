@@ -117,7 +117,7 @@ def create_fail_safe_deployment(
                 client.V1NodeSelectorRequirement(
                     key="lifecycle",
                     operator="In",
-                    values=["OnDemand"],
+                    values=["on-demand"],
                 )
             ]
         )
@@ -168,7 +168,7 @@ def create_auto_scale_deployment(
                     client.V1NodeSelectorRequirement(
                         key="lifecycle",
                         operator="In",
-                        values=["Spot"],
+                        values=["spot"],
                     )
                 ]
             ),
@@ -184,7 +184,7 @@ def create_auto_scale_deployment(
             namespace=namespace,
         ),
         spec=client.V1DeploymentSpec(
-            replicas=0,  # Scaler will update this
+            replicas=1,  # Scaler will update this
             selector=client.V1LabelSelector(
                 match_labels={
                     "app": "model-group",

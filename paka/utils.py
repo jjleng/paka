@@ -115,7 +115,7 @@ def call_once(func: T) -> T:
     return cast(T, wrapper)
 
 
-def to_yaml(obj: Dict[str, Any]) -> str:
+def to_yaml(obj: Dict[Any, Any]) -> str:
     """
     Converts an dictionary to a YAML string.
 
