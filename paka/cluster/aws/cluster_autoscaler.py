@@ -11,7 +11,7 @@ from paka.utils import call_once, to_yaml
 
 def create_priority_expander(ctx: Context) -> ConfigMap:
     # Create a priority expander to ensure that the cluster autoscaler provisions spot instances first.
-    priority_data = {"10": [".*Spot.*"], "1": [".*OnDemand.*"]}
+    priority_data = {10: [".*spot.*"], 1: [".*on-demand.*"]}
     return ConfigMap(
         "cluster-autoscaler-priority-expander",
         metadata={

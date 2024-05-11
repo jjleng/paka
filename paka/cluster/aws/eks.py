@@ -102,7 +102,7 @@ def create_node_group_for_model_group(
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
             f"{cluster_name}-{kubify_name(model_group.name)}-group",
-            node_group_name=f"{cluster_name}-{kubify_name(model_group.name)}-group",
+            node_group_name=f"{cluster_name}-{kubify_name(model_group.name)}-on-demand",
             cluster=cluster,
             instance_types=[model_group.nodeType],
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(
@@ -114,7 +114,7 @@ def create_node_group_for_model_group(
                 "size": model_group.nodeType,
                 "app": "model-group",
                 "model": model_group.name,
-                "lifecycle": "OnDemand",
+                "lifecycle": "on-demand",
             },
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
@@ -132,19 +132,19 @@ def create_node_group_for_model_group(
         # Create a managed node group with spot instances
         eks.ManagedNodeGroup(
             f"{cluster_name}-{kubify_name(model_group.name)}-spot-group",
-            node_group_name=f"{cluster_name}-{kubify_name(model_group.name)}-spot-group",
+            node_group_name=f"{cluster_name}-{kubify_name(model_group.name)}-spot",
             cluster=cluster,
             instance_types=[model_group.nodeType],
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(
-                desired_size=0,
-                min_size=0,
+                desired_size=1,
+                min_size=1,
                 max_size=model_group.maxInstances - model_group.minInstances,
             ),
             labels={
                 "size": model_group.nodeType,
                 "app": "model-group",
                 "model": model_group.name,
-                "lifecycle": "Spot",
+                "lifecycle": "spot",
             },
             node_role_arn=worker_role.arn,
             subnet_ids=vpc.private_subnet_ids,
