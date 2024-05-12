@@ -9,12 +9,13 @@ from paka.config import (
     AwsConfig,
     AwsModelGroup,
     CloudConfig,
-    CloudModelGroup,
     CloudVectorStore,
     ClusterConfig,
     Config,
+    MixedModelGroup,
     ResourceRequest,
     Runtime,
+    ScalingConfig,
     generate_yaml,
     parse_yaml,
 )
@@ -67,9 +68,36 @@ def test_invalid_gpu_resource_request() -> None:
         ResourceRequest(cpu="500m", memory="2Gi", gpu=-1)
 
 
-def test_cloud_model_group() -> None:
+def test_mixed_model_group() -> None:
+    with pytest.raises(
+        ValueError, match="baseInstances must be greater than or equal to 0"
+    ):
+        MixedModelGroup(
+            name="test",
+            nodeType="c7i.xlarge",
+            runtime=Runtime(image="test-image"),
+            baseInstances=-1,
+            maxOnDemandInstances=0,
+            spot=ScalingConfig(minInstances=1, maxInstances=10),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="maxOnDemandInstances must be greater than or equal to baseInstances",
+    ):
+        MixedModelGroup(
+            name="test",
+            nodeType="c7i.xlarge",
+            runtime=Runtime(image="test-image"),
+            baseInstances=2,
+            maxOnDemandInstances=1,
+            spot=ScalingConfig(minInstances=1, maxInstances=10),
+        )
+
+
+def test_aws_model_group() -> None:
     # Test with valid minInstances and maxInstances
-    model_group = CloudModelGroup(
+    model_group = AwsModelGroup(
         name="test",
         nodeType="c7i.xlarge",
         minInstances=1,
@@ -84,7 +112,7 @@ def test_cloud_model_group() -> None:
     with pytest.raises(
         ValueError, match="maxInstances must be greater than or equal to minInstances"
     ):
-        CloudModelGroup(
+        AwsModelGroup(
             name="test",
             nodeType="c7i.xlarge",
             minInstances=2,
@@ -94,7 +122,7 @@ def test_cloud_model_group() -> None:
 
     # Test with minInstances less than or equal to 0
     with pytest.raises(ValueError, match="minInstances must be greater than 0"):
-        CloudModelGroup(
+        AwsModelGroup(
             name="test",
             nodeType="c7i.xlarge",
             minInstances=0,

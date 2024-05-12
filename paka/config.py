@@ -143,8 +143,6 @@ class AwsNode(CloudNode):
     Represents an AWS cloud node configuration.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     gpu: Optional[AwsGpuNodeConfig] = Field(
         None, description="The AWS GPU node configuration, if applicable."
     )
@@ -177,19 +175,6 @@ class Model(PakaBaseModel):
     )
 
 
-class ModelGroup(PakaBaseModel):
-    """
-    Represents a group of VMs that serve the inference for a specific type of model.
-    """
-
-    name: str = Field(..., description="The name of the model group.")
-    model: Optional[Model] = Field(
-        None,
-        description="The model to deploy in the model group. If None, runtime image is responsible for loading the model.",
-    )
-    runtime: Runtime = Field(..., description="The runtime for the model group.")
-
-
 class Trigger(PakaBaseModel):
     """
     Represents a trigger.
@@ -201,17 +186,17 @@ class Trigger(PakaBaseModel):
     )
 
 
-class CloudModelGroup(ModelGroup, CloudNode):
+class CloudModelGroup(CloudNode):
     """
     Represents a group of cloud models.
     """
 
-    minInstances: int = Field(
-        ..., description="The minimum number of instances to provision."
+    name: str = Field(..., description="The name of the model group.")
+    model: Optional[Model] = Field(
+        None,
+        description="The model to deploy in the model group. If None, runtime image is responsible for loading the model.",
     )
-    maxInstances: int = Field(
-        ..., description="The maximum number of instances to provision."
-    )
+    runtime: Runtime = Field(..., description="The runtime for the model group.")
 
     resourceRequest: Optional[ResourceRequest] = Field(
         None,
@@ -247,6 +232,15 @@ class CloudModelGroup(ModelGroup, CloudNode):
     """,
     )
 
+
+class ScalingConfig(PakaBaseModel):
+    minInstances: int = Field(
+        ..., description="The minimum number of instances to provision."
+    )
+    maxInstances: int = Field(
+        ..., description="The maximum number of instances to provision."
+    )
+
     @model_validator(mode="before")
     def check_instances_num(cls, values: Dict[str, int]) -> Dict[str, int]:
         min_instances, max_instances = values.get("minInstances"), values.get(
@@ -278,7 +272,61 @@ class CloudModelGroup(ModelGroup, CloudNode):
         return v
 
 
-class AwsModelGroup(CloudModelGroup, AwsNode):
+class MixedModelGroup(CloudModelGroup):
+    baseInstances: int = Field(
+        ...,
+        description=(
+            "Initial set of instances that are provisioned using on-demand "
+            "instances. These instances are always running. Their primary purpose is to guarantee the constant "
+            "availability of the model group service. If you don't require these base instances, you can set their number to 0."
+        ),
+    )
+    maxOnDemandInstances: int = Field(
+        ...,
+        description=(
+            "This sets the maximum limit for provisioning on-demand instances, including the base instances. "
+            "It should always be set to a value equal to or greater than 'baseInstances'. "
+            "These on-demand instances serve as a fallback when spot instances are unavailable. "
+            "The actual number of on-demand instances is dynamically adjusted by the autoscaler based on the workload requirements."
+        ),
+    )
+    spot: ScalingConfig = Field(
+        ...,
+        description=(
+            "This configuration sets the scaling parameters for spot instances within the node group. "
+            "It specifies the minimum and maximum number of spot instances that can be used. "
+            "Spot instances are cost-effective but may not always be available due to market conditions. "
+            "The autoscaler uses this configuration to dynamically adjust the number of spot instances based on workload demand."
+        ),
+    )
+
+    @model_validator(mode="before")
+    def check_instances_num(cls, values: Dict[str, int]) -> Dict[str, int]:
+        base_instances, max_on_demand_instances = values.get(
+            "baseInstances"
+        ), values.get("maxOnDemandInstances")
+        if (
+            base_instances is not None
+            and max_on_demand_instances is not None
+            and max_on_demand_instances < base_instances
+        ):
+            raise ValueError(
+                "maxOnDemandInstances must be greater than or equal to baseInstances"
+            )
+        return values
+
+    @field_validator("baseInstances", mode="before")
+    def validate_base_instances(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("baseInstances must be greater than or equal to 0")
+        return v
+
+
+class AwsModelGroup(CloudModelGroup, ScalingConfig, AwsNode):
+    pass
+
+
+class AwsMixedModelGroup(MixedModelGroup, AwsNode):
     pass
 
 
@@ -451,9 +499,10 @@ class Tracing(PakaBaseModel):
 
 
 T_CloudModelGroup = TypeVar("T_CloudModelGroup", bound=CloudModelGroup)
+T_MixedModelGroup = TypeVar("T_MixedModelGroup", bound=MixedModelGroup)
 
 
-class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup]):
+class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup, T_MixedModelGroup]):
     """
     Represents the configuration for the cloud environment.
     """
@@ -464,6 +513,10 @@ class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup]):
     modelGroups: Optional[List[T_CloudModelGroup]] = Field(
         None,
         description="The list of model groups to be deployed in the cloud. Default is None. If None, no model groups are deployed.",
+    )
+    mixedModelGroups: Optional[List[T_MixedModelGroup]] = Field(
+        None,
+        description="The list of mixed model groups to be deployed in the cloud. Default is None. If None, no mixed model groups are deployed.",
     )
     vectorStore: Optional[CloudVectorStore] = Field(
         None,
@@ -493,10 +546,15 @@ class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup]):
         return v
 
 
-class AwsConfig(CloudConfig[AwsModelGroup]):
+class AwsConfig(CloudConfig[AwsModelGroup, AwsMixedModelGroup]):
     modelGroups: Optional[List[AwsModelGroup]] = Field(
         None,
         description="The list of model groups to be deployed in the cloud. Default is None. If None, no model groups are deployed.",
+    )
+
+    mixedModelGroups: Optional[List[AwsMixedModelGroup]] = Field(
+        None,
+        description="The list of mixed model groups to be deployed in the cloud. Default is None. If None, no mixed model groups are deployed.",
     )
 
 

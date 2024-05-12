@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import paka.k8s.model_group.runtime.vllm
 from paka.cluster.context import Context
-from paka.config import CloudModelGroup, Model, Runtime
+from paka.config import AwsModelGroup, Model, Runtime
 from paka.k8s.model_group.runtime.vllm import get_runtime_command_vllm, is_vllm_image
 
 
@@ -23,7 +23,7 @@ def test_get_runtime_command_vllm() -> None:
         return_value=True,
     ) as mock_validate_repo_id:
         ctx = Context()
-        model_group = CloudModelGroup(
+        model_group = AwsModelGroup(
             name="test",
             minInstances=1,
             maxInstances=2,
