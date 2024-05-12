@@ -6,14 +6,14 @@ import paka.cluster
 import paka.cluster.utils
 import paka.k8s.model_group.runtime.llama_cpp
 from paka.cluster.context import Context
-from paka.config import CloudModelGroup, Model, Runtime
+from paka.config import AwsModelGroup, Model, Runtime
 from paka.constants import MODEL_MOUNT_PATH
 from paka.k8s.model_group.runtime.llama_cpp import get_runtime_command_llama_cpp
 
 
 @pytest.fixture
-def model_group() -> CloudModelGroup:
-    return CloudModelGroup(
+def model_group() -> AwsModelGroup:
+    return AwsModelGroup(
         name="test-model-group",
         minInstances=1,
         maxInstances=2,
@@ -26,7 +26,7 @@ def model_group() -> CloudModelGroup:
     )
 
 
-def test_get_runtime_command_llama_cpp(model_group: CloudModelGroup) -> None:
+def test_get_runtime_command_llama_cpp(model_group: AwsModelGroup) -> None:
     mock_store = MagicMock()
     with patch.object(
         paka.k8s.model_group.runtime.llama_cpp,
