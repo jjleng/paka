@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import Any
@@ -74,21 +73,29 @@ class ClusterManager(ABC):
         logger.info("Creating resources...")
         self._stack.up(on_output=logger.info)
 
-        if self.cloud_config.modelGroups is None:
+        if (
+            self.cloud_config.modelGroups is None
+            and self.cloud_config.mixedModelGroups is None
+        ):
             return
 
         namespace = self.cloud_config.cluster.namespace
 
         # Clean up staled model group resources before creating new ones
-        cleanup_staled_model_group_services(
-            namespace, [mg.name for mg in self.config.aws.modelGroups or []]
-        )
+        model_group_names = [mg.name for mg in self.config.aws.modelGroups or []]
+        mixed_model_group_names = [
+            mg.name for mg in self.config.aws.mixedModelGroups or []
+        ]
+        all_group_names = model_group_names + mixed_model_group_names
 
-        for model_group in self.cloud_config.modelGroups:
-            if os.environ.get("ENABLE_SPOT_INSTANCES", "0") != "1":
-                create_model_group_service(self.ctx, namespace, model_group)
-            else:
-                create_model_group_service_v1(self.ctx, namespace, model_group)
+        cleanup_staled_model_group_services(namespace, all_group_names)
+        # TODO: We should clean up deployment as well
+
+        for model_group in self.cloud_config.modelGroups or []:
+            create_model_group_service(self.ctx, namespace, model_group)
+
+        for mixed_model_group in self.cloud_config.mixedModelGroups or []:
+            create_model_group_service_v1(self.ctx, namespace, mixed_model_group)
 
     def destroy(self) -> Any:
         logger.info("Destroying resources...")

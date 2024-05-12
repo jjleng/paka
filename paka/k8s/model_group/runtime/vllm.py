@@ -8,7 +8,7 @@ from huggingface_hub.utils import validate_repo_id
 
 from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
-from paka.config import AwsModelGroup
+from paka.config import CloudModelGroup
 from paka.constants import MODEL_MOUNT_PATH
 
 
@@ -17,7 +17,7 @@ def is_vllm_image(image: str) -> bool:
     return image.lower().startswith("vllm")
 
 
-def get_runtime_command_vllm(ctx: Context, model_group: AwsModelGroup) -> List[str]:
+def get_runtime_command_vllm(ctx: Context, model_group: CloudModelGroup) -> List[str]:
     runtime = model_group.runtime
     if runtime.command:
         command_str = " ".join(runtime.command) if runtime.command else ""

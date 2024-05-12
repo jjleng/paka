@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from ruamel.yaml import YAML
@@ -272,6 +272,10 @@ class ScalingConfig(PakaBaseModel):
         return v
 
 
+class OnDemandModelGroup(CloudModelGroup, ScalingConfig):
+    pass
+
+
 class MixedModelGroup(CloudModelGroup):
     baseInstances: int = Field(
         ...,
@@ -322,7 +326,7 @@ class MixedModelGroup(CloudModelGroup):
         return v
 
 
-class AwsModelGroup(CloudModelGroup, ScalingConfig, AwsNode):
+class AwsModelGroup(OnDemandModelGroup, AwsNode):
     pass
 
 
@@ -498,11 +502,11 @@ class Tracing(PakaBaseModel):
     )
 
 
-T_CloudModelGroup = TypeVar("T_CloudModelGroup", bound=CloudModelGroup)
+T_OnDemandModelGroup = TypeVar("T_OnDemandModelGroup", bound=OnDemandModelGroup)
 T_MixedModelGroup = TypeVar("T_MixedModelGroup", bound=MixedModelGroup)
 
 
-class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup, T_MixedModelGroup]):
+class CloudConfig(PakaBaseModel, Generic[T_OnDemandModelGroup, T_MixedModelGroup]):
     """
     Represents the configuration for the cloud environment.
     """
@@ -510,7 +514,7 @@ class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup, T_MixedModelGroup]):
     cluster: ClusterConfig = Field(
         ..., description="The configuration for the Kubernetes cluster."
     )
-    modelGroups: Optional[List[T_CloudModelGroup]] = Field(
+    modelGroups: Optional[List[T_OnDemandModelGroup]] = Field(
         None,
         description="The list of model groups to be deployed in the cloud. Default is None. If None, no model groups are deployed.",
     )
@@ -535,15 +539,24 @@ class CloudConfig(PakaBaseModel, Generic[T_CloudModelGroup, T_MixedModelGroup]):
         description="The configuration for tracing. Default is None. If None, tracing is not enabled.",
     )
 
-    @field_validator("modelGroups", mode="before")
-    def check_model_group(cls, v: List[Any]) -> List[Any]:
-        if v is None or len(v) == 0:
-            return v
-        # Check if there are duplicated model group names
-        model_group_names = [dict(group)["name"] for group in v]
-        if len(set(model_group_names)) != len(model_group_names):
-            raise ValueError("Duplicate model group names are not allowed")
-        return v
+    @model_validator(mode="before")
+    def check_model_group_names(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        # No model groups should have the same name
+        model_group_names = set()
+
+        for group in values.get("modelGroups", []):
+            group_name = dict(group)["name"]
+            if group_name in model_group_names:
+                raise ValueError(f"Duplicate model group names are not allowed")
+            model_group_names.add(group_name)
+
+        for mixed_group in values.get("mixedModelGroups", []):
+            mixed_group_name = dict(mixed_group)["name"]
+            if mixed_group_name in model_group_names:
+                raise ValueError(f"Duplicate model group names are not allowed")
+            model_group_names.add(mixed_group_name)
+
+        return values
 
 
 class AwsConfig(CloudConfig[AwsModelGroup, AwsMixedModelGroup]):

@@ -23,7 +23,7 @@ from paka.cluster.prometheus import create_prometheus
 from paka.cluster.qdrant import create_qdrant
 from paka.cluster.redis import create_redis
 from paka.cluster.zipkin import create_zipkin
-from paka.config import AwsModelGroup
+from paka.config import AwsMixedModelGroup, AwsModelGroup
 from paka.utils import kubify_name
 
 
@@ -125,25 +125,84 @@ def create_node_group_for_model_group(
             capacity_type="ON_DEMAND",
         )
 
-        # Check if experimental feature flag is enabled
-        if os.environ.get("ENABLE_SPOT_INSTANCES", "0") != "1":
-            return
+
+def create_node_group_for_mixed_model_group(
+    ctx: Context,
+    cluster: eks.Cluster,
+    vpc: awsx.ec2.Vpc,
+    worker_role: aws.iam.Role,
+) -> None:
+
+    if ctx.cloud_config.mixedModelGroups is None:
+        return
+
+    cluster_name = ctx.cluster_name
+
+    mixed_model_groups = cast(
+        List[AwsMixedModelGroup], ctx.cloud_config.mixedModelGroups
+    )
+
+    for mixed_model_group in mixed_model_groups:
+        taints = [
+            aws.eks.NodeGroupTaintArgs(
+                effect="NO_SCHEDULE", key="app", value="model-group"
+            ),
+            aws.eks.NodeGroupTaintArgs(
+                effect="NO_SCHEDULE", key="model", value=mixed_model_group.name
+            ),
+        ]
+
+        gpu_enabled = mixed_model_group.gpu and mixed_model_group.gpu.enabled
+
+        ami_type = "AL2_x86_64_GPU" if gpu_enabled else None
+
+        disk_size = (
+            mixed_model_group.gpu.diskSize
+            if gpu_enabled and mixed_model_group.gpu
+            else mixed_model_group.diskSize
+        )
+
+        # Create a managed node group for our cluster
+        eks.ManagedNodeGroup(
+            f"{cluster_name}-{kubify_name(mixed_model_group.name)}-group",
+            node_group_name=f"{cluster_name}-{kubify_name(mixed_model_group.name)}-on-demand",
+            cluster=cluster,
+            instance_types=[mixed_model_group.nodeType],
+            scaling_config=aws.eks.NodeGroupScalingConfigArgs(
+                desired_size=mixed_model_group.baseInstances,
+                min_size=mixed_model_group.baseInstances,
+                max_size=mixed_model_group.maxOnDemandInstances,
+            ),
+            labels={
+                "size": mixed_model_group.nodeType,
+                "app": "model-group",
+                "model": mixed_model_group.name,
+                "lifecycle": "on-demand",
+            },
+            node_role_arn=worker_role.arn,
+            subnet_ids=vpc.private_subnet_ids,
+            taints=taints,
+            # Supported AMI types https://docs.aws.amazon.com/eks/latest/APIReference/API_Nodegroup.html#AmazonEKS-Type-Nodegroup-amiType
+            ami_type=ami_type,
+            disk_size=disk_size,
+            capacity_type="ON_DEMAND",
+        )
 
         # Create a managed node group with spot instances
         eks.ManagedNodeGroup(
-            f"{cluster_name}-{kubify_name(model_group.name)}-spot-group",
-            node_group_name=f"{cluster_name}-{kubify_name(model_group.name)}-spot",
+            f"{cluster_name}-{kubify_name(mixed_model_group.name)}-spot-group",
+            node_group_name=f"{cluster_name}-{kubify_name(mixed_model_group.name)}-spot",
             cluster=cluster,
-            instance_types=[model_group.nodeType],
+            instance_types=[mixed_model_group.nodeType],
             scaling_config=aws.eks.NodeGroupScalingConfigArgs(
-                desired_size=1,
-                min_size=1,
-                max_size=model_group.maxInstances - model_group.minInstances,
+                desired_size=mixed_model_group.spot.minInstances,
+                min_size=mixed_model_group.spot.minInstances,
+                max_size=mixed_model_group.spot.maxInstances,
             ),
             labels={
-                "size": model_group.nodeType,
+                "size": mixed_model_group.nodeType,
                 "app": "model-group",
-                "model": model_group.name,
+                "model": mixed_model_group.name,
                 "lifecycle": "spot",
             },
             node_role_arn=worker_role.arn,

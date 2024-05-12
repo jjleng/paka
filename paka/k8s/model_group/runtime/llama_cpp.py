@@ -9,7 +9,7 @@ from huggingface_hub.utils import validate_repo_id
 
 from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
-from paka.config import AwsModelGroup
+from paka.config import CloudModelGroup
 from paka.constants import MODEL_MOUNT_PATH
 
 
@@ -20,7 +20,7 @@ def is_llama_cpp_image(image: str) -> bool:
 
 def get_model_file_from_model_store(
     ctx: Context,
-    model_group: AwsModelGroup,
+    model_group: CloudModelGroup,
 ) -> Optional[str]:
     if model_group.model and model_group.model.useModelStore:
         store = get_model_store(ctx, with_progress_bar=False)
@@ -53,7 +53,7 @@ def get_model_file_from_model_store(
 
 
 def get_runtime_command_llama_cpp(
-    ctx: Context, model_group: AwsModelGroup
+    ctx: Context, model_group: CloudModelGroup
 ) -> List[str]:
     runtime = model_group.runtime
     if runtime.command:
