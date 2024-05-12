@@ -9,10 +9,10 @@ aws:
     maxNodes: 2
     logRetentionDays: 14
   modelGroups:
-    - nodeType: t2.micro
-      diskSize: 20
-      minInstances: 1
+    - minInstances: 1
       maxInstances: 2
+      nodeType: t2.micro
+      diskSize: 20
       name: test-model-group
       runtime:
         image: test-image

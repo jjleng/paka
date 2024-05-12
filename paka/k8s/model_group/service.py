@@ -8,7 +8,7 @@ from kubernetes import config as k8s_config
 
 from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
-from paka.config import T_CloudModelGroup
+from paka.config import CloudModelGroup, T_OnDemandModelGroup
 from paka.constants import ACCESS_ALL_SA, MODEL_MOUNT_PATH
 from paka.k8s.model_group.ingress import create_model_vservice
 from paka.k8s.model_group.runtime.llama_cpp import (
@@ -24,7 +24,7 @@ from paka.utils import kubify_name
 
 
 def get_runtime_command(
-    ctx: Context, model_group: T_CloudModelGroup, port: int
+    ctx: Context, model_group: CloudModelGroup, port: int
 ) -> List[str]:
     """
     Gets the runtime command for a machine learning model group.
@@ -57,7 +57,7 @@ def get_runtime_command(
     return command
 
 
-def get_health_check_paths(model_group: T_CloudModelGroup) -> Tuple[str, str]:
+def get_health_check_paths(model_group: CloudModelGroup) -> Tuple[str, str]:
     # Return a tuple for ready and live probes
     if is_llama_cpp_image(model_group.runtime.image):
         return ("/health", "/health")
@@ -67,7 +67,7 @@ def get_health_check_paths(model_group: T_CloudModelGroup) -> Tuple[str, str]:
     raise ValueError("Unsupported runtime image for health check paths.")
 
 
-def init_aws(ctx: Context, model_group: T_CloudModelGroup) -> client.V1Container:
+def init_aws(ctx: Context, model_group: CloudModelGroup) -> client.V1Container:
     """
     Initializes an AWS container for downloading a model from S3.
 
@@ -103,7 +103,7 @@ def init_aws(ctx: Context, model_group: T_CloudModelGroup) -> client.V1Container
 def create_pod(
     ctx: Context,
     namespace: str,
-    model_group: T_CloudModelGroup,
+    model_group: CloudModelGroup,
     port: int,
 ) -> client.V1PodTemplateSpec:
     """
@@ -264,7 +264,7 @@ def create_pod(
 
 
 def create_deployment(
-    namespace: str, model_group: T_CloudModelGroup, pod: client.V1PodTemplateSpec
+    namespace: str, model_group: T_OnDemandModelGroup, pod: client.V1PodTemplateSpec
 ) -> client.V1Deployment:
     """
     Creates a Kubernetes Deployment for a machine learning model group.
@@ -297,7 +297,7 @@ def create_deployment(
     )
 
 
-def create_service_monitor(namespace: str, model_group: T_CloudModelGroup) -> None:
+def create_service_monitor(namespace: str, model_group: CloudModelGroup) -> None:
     monitor = CustomResource(
         api_version="monitoring.coreos.com/v1",
         kind="ServiceMonitor",
@@ -337,7 +337,10 @@ def create_service_monitor(namespace: str, model_group: T_CloudModelGroup) -> No
 
 
 def create_service(
-    namespace: str, model_group: T_CloudModelGroup, port: int, sidecar_port: int = 15090
+    namespace: str,
+    model_group: CloudModelGroup,
+    port: int,
+    sidecar_port: int = 15090,
 ) -> client.V1Service:
     """
     Creates a Kubernetes Service for a machine learning model group.
@@ -411,7 +414,7 @@ def filter_services(namespace: str) -> List[client.V1Service]:
 
 
 def create_hpa(
-    namespace: str, model_group: T_CloudModelGroup, deployment: client.V1Deployment
+    namespace: str, model_group: T_OnDemandModelGroup, deployment: client.V1Deployment
 ) -> client.V2HorizontalPodAutoscaler:
     """
     Creates a Kubernetes Horizontal Pod Autoscaler (HPA) for a machine learning model group.
@@ -464,7 +467,7 @@ def create_hpa(
 
 def create_scaled_object(
     namespace: str,
-    model_group: T_CloudModelGroup,
+    model_group: CloudModelGroup,
     deployment: client.V1Deployment,
     min_replicas: int,
     max_replicas: int,
@@ -520,7 +523,7 @@ def create_scaled_object(
 def create_model_group_service(
     ctx: Context,
     namespace: str,
-    model_group: T_CloudModelGroup,
+    model_group: T_OnDemandModelGroup,
 ) -> None:
     """
     Creates a Kubernetes service for a machine learning model group.

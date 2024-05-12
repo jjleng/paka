@@ -16,7 +16,7 @@ from kubernetes.client.exceptions import ApiException
 
 from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
-from paka.config import T_CloudModelGroup
+from paka.config import T_MixedModelGroup
 from paka.k8s.model_group.ingress import create_model_vservice
 from paka.k8s.model_group.service import (
     create_pod,
@@ -54,7 +54,7 @@ def ensure_priority_class(name: str, priority: int) -> None:
             raise e
 
 
-def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
+def ensure_pdb(namespace: str, model_group: T_MixedModelGroup) -> None:
     """
     Ensure that the PodDisruptionBudget exists for the model group.
     """
@@ -99,7 +99,7 @@ def ensure_pdb(namespace: str, model_group: T_CloudModelGroup) -> None:
 
 
 def create_fail_safe_deployment(
-    namespace: str, model_group: T_CloudModelGroup, pod: client.V1PodTemplateSpec
+    namespace: str, model_group: T_MixedModelGroup, pod: client.V1PodTemplateSpec
 ) -> client.V1Deployment:
 
     # Lack of optional chaining support in Python makes this code a bit verbose.
@@ -138,7 +138,7 @@ def create_fail_safe_deployment(
             namespace=namespace,
         ),
         spec=client.V1DeploymentSpec(
-            replicas=model_group.minInstances,
+            replicas=model_group.baseInstances,
             selector=client.V1LabelSelector(
                 match_labels={
                     "app": "model-group",
@@ -151,7 +151,7 @@ def create_fail_safe_deployment(
 
 
 def create_auto_scale_deployment(
-    namespace: str, model_group: T_CloudModelGroup, pod: client.V1PodTemplateSpec
+    namespace: str, model_group: T_MixedModelGroup, pod: client.V1PodTemplateSpec
 ) -> client.V1Deployment:
 
     ensure_pdb(namespace, model_group)
@@ -184,7 +184,7 @@ def create_auto_scale_deployment(
             namespace=namespace,
         ),
         spec=client.V1DeploymentSpec(
-            replicas=1,  # Scaler will update this
+            replicas=model_group.spot.minInstances,  # Scaler will update this
             selector=client.V1LabelSelector(
                 match_labels={
                     "app": "model-group",
@@ -199,7 +199,7 @@ def create_auto_scale_deployment(
 def create_model_group_service(
     ctx: Context,
     namespace: str,
-    model_group: T_CloudModelGroup,
+    model_group: T_MixedModelGroup,
 ) -> None:
     """
     Creates a Kubernetes service for a machine learning model group.
@@ -265,8 +265,12 @@ def create_model_group_service(
         namespace,
         model_group,
         auto_scale_deployment,
-        0,
-        model_group.maxInstances - model_group.minInstances,
+        model_group.spot.minInstances,
+        # Might result in many pending pods if spot.maxInstances > maxOnDemandInstances when spot pool is not available
+        max(
+            model_group.maxOnDemandInstances,
+            model_group.spot.maxInstances,
+        ),
     )
     if scaled_object:
         apply_resource(scaled_object)
