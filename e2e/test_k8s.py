@@ -183,6 +183,12 @@ def create_service_account() -> None:
         )
     )
 
+    assert (
+        service_account.metadata
+        and service_account.metadata.name
+        and service_account.metadata.namespace
+    )
+
     try:
         v1.read_namespaced_service_account(
             name=service_account.metadata.name,
@@ -236,11 +242,11 @@ def test_create_model_group(kind_cluster: KindCluster) -> None:
 
     create_model_group_service(ctx, ctx.namespace, model_group)
 
-    api = client.CoreV1Api()
+    core_v1_api = client.CoreV1Api()
 
     # Make sure all model group pods are running successfully
     retry_until_successful(
-        lambda: api.list_namespaced_pod(
+        lambda: core_v1_api.list_namespaced_pod(
             namespace=cloud_config.cluster.namespace,
             label_selector="app=model-group,model=gte-base",
         ),
@@ -251,9 +257,9 @@ def test_create_model_group(kind_cluster: KindCluster) -> None:
     )
 
     # Verify that the model group resources are created
-    api = client.AppsV1Api()
+    apps_v1_api = client.AppsV1Api()
     try:
-        api.read_namespaced_deployment(
+        apps_v1_api.read_namespaced_deployment(
             name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
         )
     except ApiException as e:
@@ -262,9 +268,9 @@ def test_create_model_group(kind_cluster: KindCluster) -> None:
         else:
             raise
 
-    api = client.CoreV1Api()
+    core_v1_api = client.CoreV1Api()
     try:
-        api.read_namespaced_service(
+        core_v1_api.read_namespaced_service(
             name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
         )
     except ApiException as e:
@@ -291,10 +297,10 @@ def test_destroy_model_group() -> None:
         create_model_group_service(ctx, ctx.namespace, model_group)
 
     # Verify that the model group resources are deleted
-    api = client.AppsV1Api()
+    apps_v1_api = client.AppsV1Api()
     try:
         retry_until_successful(
-            lambda: api.read_namespaced_deployment(
+            lambda: apps_v1_api.read_namespaced_deployment(
                 name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
             ),
             lambda _: False,
@@ -306,10 +312,10 @@ def test_destroy_model_group() -> None:
         if e.status != 404:
             raise
 
-    api = client.CoreV1Api()
+    core_v1_api = client.CoreV1Api()
     try:
         retry_until_successful(
-            lambda: api.read_namespaced_service(
+            lambda: core_v1_api.read_namespaced_service(
                 name=kubify_name("gte-base"), namespace=cloud_config.cluster.namespace
             ),
             lambda _: False,
