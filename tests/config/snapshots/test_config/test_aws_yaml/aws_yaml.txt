@@ -19,3 +19,4 @@ aws:
       resourceRequest:
         cpu: 500m
         memory: 2Gi
+      isPublic: false

@@ -232,6 +232,11 @@ class CloudModelGroup(CloudNode):
     """,
     )
 
+    isPublic: bool = Field(
+        False,
+        description="Whether the model group can be accessed through a public endpoint.",
+    )
+
 
 class ScalingConfig(PakaBaseModel):
     minInstances: int = Field(

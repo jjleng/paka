@@ -276,4 +276,5 @@ def create_model_group_service(
         apply_resource(scaled_object)
 
     # Create a vservice to export the model group to the outside world
-    create_model_vservice(namespace, model_group.name)
+    if model_group.isPublic:
+        create_model_vservice(namespace, model_group.name)
