@@ -20,7 +20,7 @@ from paka.k8s.utils import CustomResource, apply_resource
 from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
 from paka.model.store import MODEL_PATH_PREFIX
-from paka.utils import kubify_name
+from paka.utils import get_instance_info, kubify_name
 
 
 def get_runtime_command(
@@ -170,12 +170,28 @@ def create_pod(
     }
 
     if model_group.resourceRequest:
-        container_args["resources"] = client.V1ResourceRequirements(
-            requests={
-                "cpu": model_group.resourceRequest.cpu,
-                "memory": model_group.resourceRequest.memory,
-            },
+        cpu_request = model_group.resourceRequest.cpu
+        memory_request = model_group.resourceRequest.memory
+    else:
+        instance_info = get_instance_info(
+            ctx.provider, ctx.region, model_group.nodeType
         )
+        if not instance_info:
+            raise ValueError(
+                f"No instance information found for instance type {model_group.nodeType} in {ctx.provider} {ctx.region}"
+            )
+        cpu_milli = cast(int, instance_info["cpu"]) * 1000
+        # Leave 400m for other processes
+        cpu_request = f"{cpu_milli - 400}m"
+        # Leave 2GB for other processes
+        memory_request = f"{cast(int, instance_info['memory']) - (2 * 1024)}Mi"
+
+    container_args["resources"] = client.V1ResourceRequirements(
+        requests={
+            "cpu": cpu_request,
+            "memory": memory_request,
+        },
+    )
 
     if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
         if "resources" not in container_args:
@@ -184,9 +200,23 @@ def create_pod(
         resources = cast(client.V1ResourceRequirements, container_args["resources"])
         if resources.limits is None:
             resources.limits = {}
-        gpu_count = 1
+
         if model_group.resourceRequest and model_group.resourceRequest.gpu:
             gpu_count = model_group.resourceRequest.gpu
+        else:
+            instance_info = get_instance_info(
+                ctx.provider, ctx.region, model_group.nodeType
+            )
+            if not instance_info:
+                raise ValueError(
+                    f"No instance information found for instance type {model_group.nodeType} in {ctx.provider} {ctx.region}"
+                )
+            elif "gpu_count" not in instance_info:
+                raise ValueError(
+                    f"Instance type {model_group.nodeType} in {ctx.provider} {ctx.region} does not have GPU information"
+                )
+            gpu_count = instance_info["gpu_count"]
+
         # Ah, we only support nvidia GPUs for now
         resources.limits["nvidia.com/gpu"] = str(gpu_count)
 

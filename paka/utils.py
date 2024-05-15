@@ -9,7 +9,7 @@ import string
 import tempfile
 from contextlib import contextmanager
 from enum import Enum
-from functools import lru_cache, wraps
+from functools import cache, lru_cache, wraps
 from io import StringIO
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Optional, TypeVar, cast
@@ -375,3 +375,31 @@ def _read_pulumi_stack_by_key(stack_json: dict, k: PulumiStackKey) -> Any:
                 return resource["outputs"]["core"]["kubeconfig"]
 
     raise Exception(f"Unsupported PulumiStackKey: {k}")
+
+
+@cache
+def get_instance_info(provider: str, region: str, instance_type: str) -> Dict[str, Any]:
+    if provider == "aws":
+        # Get the CPU, memory and GPU count for the instance type with boto3
+        ec2 = boto3.client("ec2", region_name=region)
+
+        response = ec2.describe_instance_types(InstanceTypes=[instance_type])  # type: ignore
+
+        instance_types = response.get("InstanceTypes", [])
+        if instance_types:
+            instance_type_info = instance_types[0]
+            gpu_info = instance_type_info.get("GpuInfo", {})
+            gpu, vram = gpu_info.get("Gpus", [{}])[0], gpu_info.get(
+                "TotalGpuMemoryInMiB"
+            )
+            return {
+                "cpu": instance_type_info.get("VCpuInfo", {}).get("DefaultVCpus"),
+                "memory": instance_type_info.get("MemoryInfo", {}).get("SizeInMiB"),
+                "gpu_count": gpu.get("Count"),
+                "vram": vram,
+                "gpu_manufacturer": gpu.get("Manufacturer"),
+                "gpu_name": gpu.get("Name"),
+            }
+    else:
+        raise Exception(f"Unsupported provider: {provider}")
+    raise Exception(f"Unsupported provider: {provider}")
