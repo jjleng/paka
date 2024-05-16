@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import shlex
-from typing import Any, Literal, Tuple
+from typing import Any, Literal, Optional, Tuple
 
 from kubernetes import client
 from kubernetes.dynamic import DynamicClient  # type: ignore
@@ -173,3 +173,63 @@ def delete_knative_service(service_name: str, namespace: str) -> None:
     )
 
     service_resource.delete(name=service_name, namespace=namespace)
+
+
+def list_knative_revisions(namespace: str, service_name: Optional[str] = None) -> Any:
+    """
+    List all Knative Revisions in the specified namespace.
+
+    Args:
+        namespace (str): The namespace to list revisions in.
+        service_name (str, optional): The name of the service to list revisions for. If None, list revisions for all services.
+
+    Returns:
+        None
+    """
+    k8s_client = client.ApiClient()
+    dyn_client = DynamicClient(k8s_client)
+
+    service_resource = dyn_client.resources.get(
+        api_version="serving.knative.dev/v1", kind="Service"
+    )
+
+    if not service_name:
+        services = service_resource.get(namespace=namespace).items
+    else:
+        try:
+            services = [service_resource.get(name=service_name, namespace=namespace)]
+        except client.ApiException as e:
+            if e.status == 404:
+                services = []
+
+    revision_resource = dyn_client.resources.get(
+        api_version="serving.knative.dev/v1", kind="Revision"
+    )
+
+    try:
+        revisions = revision_resource.get(namespace=namespace).items
+    except client.ApiException as e:
+        if e.status == 404:
+            revisions = []
+
+    for service in services:
+        service_revisions = [
+            rev
+            for rev in revisions
+            if rev.metadata.labels["serving.knative.dev/service"]
+            == service.metadata.name
+        ]
+
+        # Add traffic information to the revisions
+        for traffic in service.status.traffic or []:
+            for rev in service_revisions:
+                if rev.metadata.name == traffic.revisionName:
+                    rev.traffic = f"{traffic.percent}%"
+
+        return sorted(
+            service_revisions,
+            key=lambda x: int(
+                x.metadata.labels["serving.knative.dev/configurationGeneration"]
+            ),
+            reverse=True,
+        )

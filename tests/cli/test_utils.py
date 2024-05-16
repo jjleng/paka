@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from unittest.mock import MagicMock, mock_open, patch
 
 import click
@@ -7,6 +8,7 @@ import pytest
 import paka.cli.utils
 import paka.config
 from paka.cli.utils import (
+    format_timedelta,
     init_pulumi,
     load_cluster_manager,
     resolve_image,
@@ -134,3 +136,10 @@ def test_load_cluster_manager() -> None:
 
     assert isinstance(result, AWSClusterManager)
     assert result.cloud_config.model_dump(exclude_none=True) == config_data["aws"]
+
+
+def test_format_timedelta() -> None:
+    assert format_timedelta(timedelta(days=1, hours=2)) == "1d2h"
+    assert format_timedelta(timedelta(hours=2, minutes=30)) == "2h30m"
+    assert format_timedelta(timedelta(minutes=30, seconds=45)) == "30m45s"
+    assert format_timedelta(timedelta(seconds=45)) == "45s"

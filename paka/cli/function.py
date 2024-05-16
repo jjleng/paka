@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 import click
@@ -8,10 +9,16 @@ import typer
 from kubernetes.dynamic.exceptions import NotFoundError  # type: ignore
 from tabulate import tabulate
 
-from paka.cli.utils import get_cluster_namespace, load_kubeconfig, resolve_image
+from paka.cli.utils import (
+    format_timedelta,
+    get_cluster_namespace,
+    load_kubeconfig,
+    resolve_image,
+)
 from paka.k8s.function.service import (
     create_knative_service,
     delete_knative_service,
+    list_knative_revisions,
     list_knative_services,
 )
 from paka.logger import logger
@@ -172,6 +179,94 @@ def list(
                 "LatestReady",
                 "Ready",
                 "Reason",
+            ],
+        )
+    )
+
+
+@function_app.command()
+def list_revisions(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
+    service_name: Optional[str] = typer.Option(
+        None,
+        "--service",
+        "-s",
+        help="The name of the service to list revisions for. If not provided, list revisions for all services.",
+    ),
+) -> None:
+    """
+    List all deployed functions.
+
+    Returns:
+        None
+    """
+    load_kubeconfig(cluster_name)
+    revisions = list_knative_revisions(
+        get_cluster_namespace(cluster_name), service_name
+    )
+
+    if not revisions:
+        logger.info("No revisions found.")
+        return
+
+    table = []
+    for revision in revisions:
+        filtered_conditions = [
+            condition
+            for condition in revision.status.conditions
+            if condition.get("reason") != "NoTraffic"
+        ]
+
+        sorted_conditions = sorted(
+            filtered_conditions,
+            key=lambda condition: condition.get("lastTransitionTime"),
+            reverse=True,
+        )
+        latest_condition = sorted_conditions[0] if sorted_conditions else None
+
+        true_conditions = sum(
+            c.get("status") == "True" for c in revision.status.conditions
+        )
+
+        table.append(
+            (
+                revision.metadata.name,
+                revision.metadata.labels["serving.knative.dev/service"],
+                revision.traffic,
+                revision.metadata.labels.get("tags", ""),
+                revision.metadata.labels["serving.knative.dev/configurationGeneration"],
+                format_timedelta(
+                    datetime.now(timezone.utc)
+                    - datetime.strptime(
+                        revision.metadata.creationTimestamp, "%Y-%m-%dT%H:%M:%SZ"
+                    ).replace(tzinfo=timezone.utc)
+                ),
+                f"{true_conditions} OK / {len(revision.status.conditions)}",
+                latest_condition.get("status", ""),
+                latest_condition.get("reason", ""),
+                # latest_condition.get("message", ""),
+            )
+        )
+
+    logger.info(
+        tabulate(
+            table,
+            headers=[
+                "Name",
+                "Service",
+                "Traffic",
+                "Tags",
+                "Generation",
+                "Age",
+                "Conditions",
+                "Status",
+                "Reason",
+                # "Message",
             ],
         )
     )
