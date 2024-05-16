@@ -113,15 +113,15 @@ def deploy(
 
 @job_app.command()
 def delete(
-    name: str = typer.Argument(
-        ...,
-        help="The name of the job to delete.",
-    ),
     cluster_name: Optional[str] = typer.Option(
         os.getenv("PAKA_CURRENT_CLUSTER"),
         "--cluster",
         "-c",
         help="The name of the cluster.",
+    ),
+    name: str = typer.Argument(
+        ...,
+        help="The name of the job to delete.",
     ),
     wait_existing_tasks: bool = typer.Option(
         True,

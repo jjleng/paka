@@ -17,17 +17,17 @@ run_app = typer.Typer()
 
 @run_app.callback(invoke_without_command=True)
 def one_off_script(
-    entrypoint: str = typer.Option(
-        ...,
-        "--entrypoint",
-        help="The entrypoint of the application. This refers to the command "
-        "defined in the Procfile that will be executed.",
-    ),
     cluster_name: Optional[str] = typer.Option(
         os.getenv("PAKA_CURRENT_CLUSTER"),
         "--cluster",
         "-c",
         help="The name of the cluster.",
+    ),
+    entrypoint: str = typer.Option(
+        ...,
+        "--entrypoint",
+        help="The entrypoint of the application. This refers to the command "
+        "defined in the Procfile that will be executed.",
     ),
     source_dir: Optional[str] = typer.Option(
         None,

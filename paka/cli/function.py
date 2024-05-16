@@ -244,10 +244,8 @@ def list_revisions(
         "-c",
         help="The name of the cluster.",
     ),
-    name: Optional[str] = typer.Option(
-        None,
-        "--name",
-        "-n",
+    name: str = typer.Argument(
+        ...,
         help="The name of the function to list revisions for. If not provided, list revisions for all services.",
     ),
 ) -> None:
@@ -399,12 +397,15 @@ def update_traffic(
 
 @function_app.command()
 def delete(
-    name: str,
     cluster_name: Optional[str] = typer.Option(
         os.getenv("PAKA_CURRENT_CLUSTER"),
         "--cluster",
         "-c",
         help="The name of the cluster.",
+    ),
+    name: str = typer.Argument(
+        ...,
+        help="The name of the function to delete.",
     ),
     yes: bool = typer.Option(
         False,
@@ -416,14 +417,6 @@ def delete(
 ) -> None:
     """
     Delete a function.
-
-    Args:
-        name (str): The name of the function to delete.
-        yes (bool): If True, bypasses the confirmation prompt and directly
-            proceeds with the deletion.
-
-    Returns:
-        None
     """
     if yes or typer.confirm(
         f"Are you sure you want to delete the function {name}?", default=False

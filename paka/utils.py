@@ -9,7 +9,7 @@ import string
 import tempfile
 from contextlib import contextmanager
 from enum import Enum
-from functools import cache, lru_cache, wraps
+from functools import lru_cache, wraps
 from io import StringIO
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Optional, TypeVar, cast
@@ -377,7 +377,7 @@ def _read_pulumi_stack_by_key(stack_json: dict, k: PulumiStackKey) -> Any:
     raise Exception(f"Unsupported PulumiStackKey: {k}")
 
 
-@cache
+@lru_cache(maxsize=100)
 def get_instance_info(provider: str, region: str, instance_type: str) -> Dict[str, Any]:
     if provider == "aws":
         # Get the CPU, memory and GPU count for the instance type with boto3
