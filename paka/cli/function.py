@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -7,7 +8,7 @@ from typing import List, Literal, Optional, Tuple
 
 import click
 import typer
-from kubernetes.dynamic.exceptions import NotFoundError  # type: ignore
+from kubernetes.client.exceptions import ApiException
 from tabulate import tabulate
 
 from paka.cli.utils import (
@@ -149,30 +150,29 @@ def deploy(
         "This value must be a duration between 0 seconds and 1 hour, represented "
         "as a string (e.g., '0s', '1m', '1h').",
     ),
+    resource_requests: Optional[str] = typer.Option(
+        None,
+        "--resource-requests",
+        help='The resource requests for the function, in JSON format. For example: \'{"cpu": "100m", "memory": "128Mi"}\'',
+    ),
+    resource_limits: Optional[str] = typer.Option(
+        None,
+        "--resource-limits",
+        help='The resource limits for the function, in JSON format. For example: \'{"cpu": "200m", "memory": "256Mi"}\'',
+    ),
 ) -> None:
     """
     Deploy a function to a Knative service.
-
-    Args:
-        name (str): The name of the function.
-        source_dir (Optional[str]): The source directory of the application. If provided, a new Docker image
-            will be built from this directory. If not provided, the `image` parameter must be provided.
-        image (Optional[str]): The name of the Docker image to deploy. If not provided, the `source_dir`
-            parameter must be provided.
-        min_instances (int): The minimum number of instances for the Knative service.
-        max_instances (int): The maximum number of instances for the Knative service.
-        scaling_metric (Literal["concurrency", "rps"]): The metric to scale on. Must be either "concurrency" or "rps".
-        metric_target (int): The target value for the scaling metric.
-        scale_down_delay (str): The delay before scaling down after a spike in traffic. Must be a string
-            representing a duration in seconds (e.g. "0s", "1m", "1h").
-
-    Returns:
-        None
     """
     load_kubeconfig(cluster_name)
     resolved_image = resolve_image(cluster_name, image, source_dir)
 
     logger.info(f"Deploying {name}...")
+
+    resource_requests_dict = (
+        json.loads(resource_requests) if resource_requests else None
+    )
+    resource_limits_dict = json.loads(resource_limits) if resource_limits else None
 
     create_knative_service(
         service_name=kubify_name(name),
@@ -183,6 +183,8 @@ def deploy(
         max_instances=max_instances,
         scaling_metric=(scaling_metric, str(metric_target)),
         scale_down_delay=scale_down_delay,
+        resource_requests=resource_requests_dict,
+        resource_limits=resource_limits_dict,
     )
 
     logger.info(f"Successfully deployed {name}")
@@ -199,9 +201,6 @@ def list(
 ) -> None:
     """
     List all deployed functions.
-
-    Returns:
-        None
     """
     load_kubeconfig(cluster_name)
     services = list_knative_services(get_cluster_namespace(cluster_name))
@@ -251,9 +250,6 @@ def list_revisions(
 ) -> None:
     """
     List all deployed functions.
-
-    Returns:
-        None
     """
     load_kubeconfig(cluster_name)
     revisions = list_knative_revisions(get_cluster_namespace(cluster_name), name)
@@ -428,5 +424,8 @@ def delete(
                 kubify_name(name), get_cluster_namespace(cluster_name)
             )
             logger.info(f"Successfully deleted function {name}")
-        except NotFoundError:
-            logger.error(f"Function {name} not found.")
+        except ApiException as e:
+            if e.status == 404:
+                logger.error(f"Function {name} not found.")
+            else:
+                raise
