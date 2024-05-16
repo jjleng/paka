@@ -83,14 +83,6 @@ def deploy(
 ) -> None:
     """
     Deploy a job.
-
-    A job leverages a Redis queue to distribute work to a pool of autoscaling workers.
-    The job can be specified by providing a Docker image or a source directory containing the application code.
-
-    If a Docker image is provided, the cluster will run the job using this image.
-    If a source directory is provided, the cluster will build a Docker image from the source code and then run the job.
-
-    If both an image and a source directory are provided, the Docker image is used and the source directory is ignored.
     """
     load_kubeconfig(cluster_name)
     resolved_image = resolve_image(cluster_name, image, source_dir)
@@ -139,15 +131,7 @@ def delete(
     ),
 ) -> None:
     """
-    Deletes a job.
-
-    Args:
-        name (str): The unique identifier of the job to be deleted.
-        wait_existing_tasks (bool): Determines whether the system should wait for existing tasks to complete before deleting the job.
-        yes (bool): If True, bypasses the confirmation prompt and directly proceeds with the deletion.
-
-    Returns:
-        None
+    Delete a job.
     """
     if yes or typer.confirm(
         f"Are you sure you want to delete the job {name}?", default=False

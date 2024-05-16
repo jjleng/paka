@@ -1,11 +1,28 @@
 from __future__ import annotations
 
+import re
 import shlex
-from typing import Any, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from kubernetes import client
+from kubernetes.client.exceptions import ApiException
 from kubernetes.dynamic import DynamicClient  # type: ignore
-from kubernetes.dynamic.exceptions import NotFoundError  # type: ignore
+
+VALID_RESOURCES = ["cpu", "memory"]
+
+VALID_RESOURCES_GPU = ["nvidia.com/gpu"]
+
+
+def validate_resource(resource: str, value: str) -> None:
+    if resource == "cpu":
+        if not re.match(r"^\d+(m)?$", value):
+            raise ValueError("Invalid CPU value")
+    elif resource == "memory":
+        if not re.match(r"^\d+(Mi|Gi)$", value):
+            raise ValueError("Invalid memory value")
+    elif resource == "nvidia.com/gpu":
+        if not value.isdigit() or int(value) < 1:
+            raise ValueError("Invalid GPU value")
 
 
 def enable_scale_to_zero(namespace: str = "knative-serving") -> None:
@@ -43,6 +60,8 @@ def create_knative_service(
     # rps refers to requests per second a single pod can handle
     scaling_metric: Tuple[Literal["concurrency", "rps"], str],
     scale_down_delay: str = "0s",
+    resource_requests: Optional[Dict[str, str]] = None,
+    resource_limits: Optional[Dict[str, str]] = None,
 ) -> None:
     """
     Creates a Knative Service with the specified configuration.
@@ -60,6 +79,8 @@ def create_knative_service(
         max_instances (int): The maximum number of instances for the service.
         scaling_metric (Tuple[Literal["concurrency", "rps"], str]): The scaling metric and target value.
         scale_down_delay (str, optional): The delay before scaling down. Defaults to "0s".
+        resource_requests (Optional[Dict[str, str]], optional): The resource requests for the service, in the format {"cpu": "100m", "memory": "128Mi"}. Defaults to None.
+        resource_limits (Optional[Dict[str, str]], optional): The resource limits for the service, in the format {"cpu": "200m", "memory": "256Mi", "gpu": "1"}. Defaults to None.
 
     Raises:
         ValueError: If any of the input parameters are invalid.
@@ -77,6 +98,36 @@ def create_knative_service(
         raise ValueError(f"Invalid key in scaling_metric: {metric_key}")
     if not metric_value.isdigit():
         raise ValueError(f"Invalid value in scaling_metric: {metric_value}")
+
+    container: Dict[str, Any] = {
+        "image": image,
+        "imagePullPolicy": "Always",
+        "command": shlex.split(entrypoint),
+    }
+
+    if resource_limits or resource_requests:
+        container["resources"] = {}
+
+    if resource_requests:
+        if not all(key in VALID_RESOURCES for key in resource_requests.keys()):
+            raise ValueError(
+                f"Invalid resource request key. Valid keys are {VALID_RESOURCES}"
+            )
+        for resource, value in resource_requests.items():
+            validate_resource(resource, value)
+        container["resources"]["requests"] = resource_requests
+
+    if resource_limits:
+        if not all(
+            key in (VALID_RESOURCES + VALID_RESOURCES_GPU)
+            for key in resource_limits.keys()
+        ):
+            raise ValueError(
+                f"Invalid resource limit key. Valid keys are {VALID_RESOURCES + VALID_RESOURCES_GPU}"
+            )
+        for resource, value in resource_limits.items():
+            validate_resource(resource, value)
+        container["resources"]["limits"] = resource_limits
 
     metric = {
         "autoscaling.knative.dev/metric": metric_key,
@@ -102,15 +153,7 @@ def create_knative_service(
                         **metric,
                     },
                 },
-                "spec": {
-                    "containers": [
-                        {
-                            "image": image,
-                            "imagePullPolicy": "Always",
-                            "command": shlex.split(entrypoint),
-                        }
-                    ]
-                },
+                "spec": {"containers": [container]},
             }
         },
     }
@@ -130,8 +173,11 @@ def create_knative_service(
             name=service_name,
             content_type="application/merge-patch+json",
         )
-    except NotFoundError:
-        service_resource.create(body=knative_service, namespace=namespace)
+    except ApiException as e:
+        if e.status == 404:
+            service_resource.create(body=knative_service, namespace=namespace)
+        else:
+            raise
 
 
 def list_knative_services(namespace: str) -> Any:

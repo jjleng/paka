@@ -31,6 +31,7 @@ def build(
 ) -> None:
     """
     Build a Docker image from the application in the specified source directory.
+
     The source directory must contain a Procfile and a .cnignore file. The Procfile
     defines the commands to run for the application. The .cnignore file defines the
     files and directories to exclude from the image. Once the image is built,
