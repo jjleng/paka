@@ -18,6 +18,9 @@ class Context:
     # The kubeconfig str
     _kubeconfig: Optional[str]
 
+    # Need to lock the access to these fields
+    _should_save_kubeconfig: bool = False
+
     def __init__(self) -> None:
         # Ugly, ideally, we can create these locks dynamically in __getattr__.
         # However, __getattr__ is not thread safe either. We need another lock to protect the creation of locks.
@@ -109,3 +112,10 @@ class Context:
     @fasteners.read_locked(lock="_kubeconfig_lock")
     def kubeconfig(self) -> Optional[str]:
         return self._kubeconfig
+
+    def set_should_save_kubeconfig(self, should_save_kubeconfig: bool) -> None:
+        self._should_save_kubeconfig = should_save_kubeconfig
+
+    @property
+    def should_save_kubeconfig(self) -> bool:
+        return self._should_save_kubeconfig
