@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os
+import json
 from typing import List, Optional, cast
 
 import pulumi
@@ -24,6 +24,7 @@ from paka.cluster.qdrant import create_qdrant
 from paka.cluster.redis import create_redis
 from paka.cluster.zipkin import create_zipkin
 from paka.config import AwsMixedModelGroup, AwsModelGroup
+from paka.k8s.utils import update_kubeconfig
 from paka.utils import kubify_name
 
 
@@ -378,7 +379,8 @@ def create_k8s_cluster(ctx: Context) -> eks.Cluster:
         ctx.set_k8s_provider(k8s_provider)
         ctx.set_kubeconfig(kubeconfig_json)
 
-        # save_kubeconfig(ctx.cluster_name, kubeconfig_json)
+        if ctx.should_save_kubeconfig:
+            update_kubeconfig(json.loads(kubeconfig_json))
 
         # Deploy the metrics server. This is required for the Horizontal Pod Autoscaler to work.
         # HPA requires metrics to be available in order to scale the pods.

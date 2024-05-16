@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import threading
 import time
 from typing import List
@@ -8,8 +7,7 @@ from typing import List
 import typer
 
 from paka.cli.utils import load_cluster_manager, load_kubeconfig
-from paka.k8s.utils import remove_crd_finalizers, update_kubeconfig
-from paka.logger import logger
+from paka.k8s.utils import remove_crd_finalizers
 
 cluster_app = typer.Typer()
 
@@ -37,11 +35,8 @@ def up(
     Creates or updates a Kubernetes cluster based on the provided configuration.
     """
     cluster_manager = load_cluster_manager(cluster_config)
+    cluster_manager.ctx.set_should_save_kubeconfig(not no_kubeconfig)
     cluster_manager.create()
-    if not no_kubeconfig:
-        logger.info("Updating kubeconfig...")
-        update_kubeconfig(json.loads(cluster_manager.ctx.kubeconfig))
-        logger.info("Successfully updated kubeconfig.")
 
 
 @cluster_app.command()
