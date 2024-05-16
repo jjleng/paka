@@ -8,6 +8,7 @@ from typing import Any, Callable, Tuple, Type
 import pulumi_kubernetes as k8s
 import pytest
 from kubernetes import client
+from kubernetes import config as k8s_config
 from kubernetes.client.exceptions import ApiException
 from ruamel.yaml import YAML
 
@@ -15,6 +16,11 @@ from paka.cluster.context import Context
 from paka.cluster.namespace import create_namespace
 from paka.config import CloudConfig, Config, parse_yaml
 from paka.constants import ACCESS_ALL_SA
+from paka.k8s.function.service import (
+    create_knative_service,
+    list_knative_revisions,
+    list_knative_services,
+)
 from paka.k8s.model_group.service import (
     cleanup_staled_model_group_services,
     create_model_group_service,
@@ -281,6 +287,59 @@ def test_create_model_group(kind_cluster: KindCluster) -> None:
 
 
 @pytest.mark.order(3)
+def test_create_functions(kind_cluster: KindCluster) -> None:
+    kubeconfig_path = str(kind_cluster.kubeconfig_path)
+    yaml = YAML(typ="safe")
+    with open(kubeconfig_path, "r") as f:
+        kubeconfig_json = yaml.load(f)
+        k8s_config.load_kube_config_from_dict(kubeconfig_json)
+
+    (config, cloud_config) = get_config()
+
+    create_knative_service(
+        service_name="echo-server",
+        namespace=cloud_config.cluster.namespace,
+        image="jmalloc/echo-server:0.3.5",
+        entrypoint="/bin/echo-server",
+        min_instances=0,
+        max_instances=1,
+        scaling_metric=("concurrency", "10"),  # type: ignore
+    )
+
+    retry_until_successful(
+        lambda: list_knative_services(
+            namespace=cloud_config.cluster.namespace,
+        ),
+        lambda services: len(services.items) == 1,
+        max_retries=10,
+        interval=5,
+        error_message="Functions are not ready within 50 seconds",
+    )
+
+    # Update the function
+    create_knative_service(
+        service_name="echo-server",
+        namespace=cloud_config.cluster.namespace,
+        image="jmalloc/echo-server:0.3.6",
+        entrypoint="/bin/echo-server",
+        min_instances=0,
+        max_instances=1,
+        scaling_metric=("concurrency", "10"),  # type: ignore
+    )
+
+    retry_until_successful(
+        lambda: list_knative_revisions(
+            namespace=cloud_config.cluster.namespace,
+            service_name="echo-server",
+        ),
+        lambda revisions: len(revisions) == 2,
+        max_retries=10,
+        interval=5,
+        error_message="Functions are not ready within 50 seconds",
+    )
+
+
+@pytest.mark.order(4)
 def test_destroy_model_group() -> None:
     (config, cloud_config) = get_config()
     cloud_config.modelGroups = []

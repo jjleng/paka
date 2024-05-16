@@ -5,6 +5,7 @@ import os
 import platform
 import re
 import subprocess
+from datetime import timedelta
 from typing import Any, Optional
 
 import typer
@@ -308,3 +309,19 @@ def load_kubeconfig(cluster_name: Optional[str]) -> None:
     cluster_name = ensure_cluster_name(cluster_name)
     kubeconfig = read_pulumi_stack(cluster_name, "kubeconfig")
     k8s_config.load_kube_config_from_dict(kubeconfig)
+
+
+def format_timedelta(td: timedelta) -> str:
+    total_seconds = int(td.total_seconds())
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    days, hours = divmod(hours, 24)
+
+    if days > 0:
+        return f"{days}d{hours}h"
+    elif hours > 0:
+        return f"{hours}h{minutes}m"
+    elif minutes > 0:
+        return f"{minutes}m{seconds}s"
+    else:
+        return f"{seconds}s"
