@@ -5,7 +5,6 @@ import threading
 import time
 from typing import List
 
-import click
 import typer
 
 from paka.cli.utils import load_cluster_manager, load_kubeconfig
@@ -65,7 +64,7 @@ def down(
     """
     Tears down the Kubernetes cluster, removing all associated resources and data.
     """
-    if yes or click.confirm(
+    if yes or typer.confirm(
         f"Are you sure you want to proceed with the operation? Please note that "
         "all resources and data will be permanently deleted.",
         default=False,

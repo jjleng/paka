@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import shlex
-from typing import Any, Literal, Optional, Tuple
+from typing import Any, List, Literal, Optional, Tuple
 
 from kubernetes import client
 from kubernetes.dynamic import DynamicClient  # type: ignore
@@ -221,7 +221,10 @@ def list_knative_revisions(namespace: str, service_name: Optional[str] = None) -
         ]
 
         # Add traffic information to the revisions
-        for traffic in service.status.traffic or []:
+        traffic_list = (
+            service.spec.traffic if service.spec and service.spec.traffic else []
+        )
+        for traffic in traffic_list:
             for rev in service_revisions:
                 if rev.metadata.name == traffic.revisionName:
                     rev.traffic = f"{traffic.percent}%"
@@ -233,3 +236,73 @@ def list_knative_revisions(namespace: str, service_name: Optional[str] = None) -
             ),
             reverse=True,
         )
+
+
+def split_traffic_among_revisions(
+    namespace: str,
+    service_name: str,
+    traffic_splits: List[Tuple[str, int]],
+    latest_revision_traffic: int,
+) -> None:
+    """
+    Split traffic among the specified revisions of a service.
+
+    Args:
+        service_name (str): The name of the service.
+        namespace (str): The namespace of the service.
+        traffic_splits (List[Tuple[str, int]]): A list of tuples, where each tuple contains a revision name and a traffic percent.
+        latest_revision_traffic (int): The traffic percent to assign to the latest revision.
+
+    Raises:
+        ValueError: If the traffic percent is not valid.
+
+    Returns:
+        None
+    """
+    total_traffic_percent = (
+        sum(percent for _, percent in traffic_splits) + latest_revision_traffic
+    )
+
+    if not all(0 <= percent <= 100 for _, percent in traffic_splits) or not (
+        0 <= latest_revision_traffic <= 100
+    ):
+        raise ValueError("All traffic percents must be between 0 and 100")
+
+    if total_traffic_percent != 100:
+        raise ValueError("Total traffic percent should be 100%")
+
+    k8s_client = client.ApiClient()
+    dyn_client = DynamicClient(k8s_client)
+
+    service_resource = dyn_client.resources.get(
+        api_version="serving.knative.dev/v1", kind="Service"
+    )
+
+    service = service_resource.get(name=service_name, namespace=namespace)
+
+    traffic = [
+        {
+            "revisionName": revision_name,
+            "percent": percent,
+        }
+        for revision_name, percent in traffic_splits
+    ]
+
+    if latest_revision_traffic > 0:
+        traffic.append(
+            {
+                "latestRevision": True,
+                "percent": latest_revision_traffic,
+            }
+        )
+
+    service_spec = service.to_dict()
+
+    service_spec["spec"]["traffic"] = traffic
+
+    service_resource.patch(
+        body=service_spec,
+        namespace=namespace,
+        name=service_name,
+        content_type="application/merge-patch+json",
+    )
