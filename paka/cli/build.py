@@ -12,15 +12,15 @@ build_app = typer.Typer()
 
 @build_app.callback(invoke_without_command=True)
 def build(
-    source_dir: str = typer.Argument(
-        ...,
-        help="Source directory of the application.",
-    ),
     cluster_name: Optional[str] = typer.Option(
         os.getenv("PAKA_CURRENT_CLUSTER"),
         "--cluster",
         "-c",
         help="The name of the cluster.",
+    ),
+    source_dir: str = typer.Argument(
+        ...,
+        help="Source directory of the application.",
     ),
     image_name: str = typer.Option(
         "",
