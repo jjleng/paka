@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-import click
 import typer
 from kubernetes import client
 
@@ -150,7 +149,7 @@ def delete(
     Returns:
         None
     """
-    if yes or click.confirm(
+    if yes or typer.confirm(
         f"Are you sure you want to delete the job {name}?", default=False
     ):
         load_kubeconfig(cluster_name)

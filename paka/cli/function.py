@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import List, Literal, Optional, Tuple
 
 import click
 import typer
@@ -20,11 +21,62 @@ from paka.k8s.function.service import (
     delete_knative_service,
     list_knative_revisions,
     list_knative_services,
+    split_traffic_among_revisions,
 )
 from paka.logger import logger
 from paka.utils import kubify_name
 
 function_app = typer.Typer()
+
+VALID_PERCENTAGE_RANGE = (0, 100)
+
+
+def validate_traffic_split(split: str) -> Tuple[str, int]:
+    """
+    Validate a single traffic split string and return the revision and percentage.
+
+    Args:
+        split (str): The traffic split string in the format 'revision=percentage'.
+
+    Returns:
+        Tuple[str, int]: A tuple containing the revision and percentage.
+
+    Raises:
+        ValueError: If the input string is not in the expected format or the percentage is out of range.
+    """
+    if "=" not in split:
+        raise ValueError(f"Invalid format, missing '=': {split}")
+
+    revision, percent_str = split.split("=")
+    if not percent_str.strip().isdigit():
+        raise ValueError(f"Invalid format or non-numeric percentage: {split}")
+
+    percent = int(percent_str.strip())
+    if percent not in range(*VALID_PERCENTAGE_RANGE):
+        raise ValueError(
+            f"Traffic percentage out of valid range ({VALID_PERCENTAGE_RANGE[0]}-{VALID_PERCENTAGE_RANGE[1]}): {percent}"
+        )
+
+    return revision, percent
+
+
+def process_traffic_splits(
+    traffic_splits: List[str],
+) -> Tuple[List[Tuple[str, int]], int]:
+    total_traffic_percent = 0
+    splits = []
+    revisions = set()
+    for split_str in traffic_splits:
+        for split in re.split(r",\s*", split_str):
+            revision, percent = validate_traffic_split(split)
+            if revision in revisions:
+                logger.error(f"Error: Duplicate revision '{revision}' provided.")
+                raise typer.Exit(1)
+            revisions.add(revision)
+            splits.append((revision, percent))
+            total_traffic_percent += percent
+
+    return splits, total_traffic_percent
 
 
 @function_app.command()
@@ -192,11 +244,11 @@ def list_revisions(
         "-c",
         help="The name of the cluster.",
     ),
-    service_name: Optional[str] = typer.Option(
+    name: Optional[str] = typer.Option(
         None,
-        "--service",
-        "-s",
-        help="The name of the service to list revisions for. If not provided, list revisions for all services.",
+        "--name",
+        "-n",
+        help="The name of the function to list revisions for. If not provided, list revisions for all services.",
     ),
 ) -> None:
     """
@@ -206,9 +258,7 @@ def list_revisions(
         None
     """
     load_kubeconfig(cluster_name)
-    revisions = list_knative_revisions(
-        get_cluster_namespace(cluster_name), service_name
-    )
+    revisions = list_knative_revisions(get_cluster_namespace(cluster_name), name)
 
     if not revisions:
         logger.info("No revisions found.")
@@ -273,6 +323,81 @@ def list_revisions(
 
 
 @function_app.command()
+def update_traffic(
+    cluster_name: Optional[str] = typer.Option(
+        os.getenv("PAKA_CURRENT_CLUSTER"),
+        "--cluster",
+        "-c",
+        help="The name of the cluster.",
+    ),
+    name: str = typer.Argument(
+        ...,
+        help="The name of the function to update traffic for.",
+    ),
+    traffic_splits: List[str] = typer.Option(
+        [],
+        "--traffic",
+        help="Specify traffic splits for each revision in the format 'revision=percentage'. "
+        "Multiple splits can be provided.",
+        show_default=False,
+    ),
+    latest_revision_traffic: int = typer.Option(
+        0,
+        "--latest-revision-traffic",
+        help="The percentage of traffic to send to the latest revision.",
+    ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Automatic yes to prompts. Use this option to bypass the confirmation "
+        "prompt and directly proceed with the operation.",
+    ),
+) -> None:
+    """
+    Update the traffic distribution among the revisions of a function.
+
+    You can provide the traffic splits in two ways:
+
+    1. Using multiple `--traffic` options, e.g.:
+       `update_traffic --traffic revision1=50 --traffic revision2=30 --traffic revision3=20`
+
+    2. Using a comma-separated list within a single `--traffic` option, e.g.:
+       `update_traffic --traffic revision1=50,revision2=30,revision3=20`
+
+    If the total traffic percentage is less than 100% and `--latest-revision-traffic` is not provided,
+    the user will be prompted to confirm whether the remaining traffic should be assigned to the latest revision.
+    """
+    splits, total_traffic_percent = process_traffic_splits(traffic_splits)
+
+    if total_traffic_percent + latest_revision_traffic > 100:
+        logger.error("Total traffic percent should not exceed 100%")
+        raise typer.Exit(1)
+
+    if total_traffic_percent < 100 and latest_revision_traffic == 0:
+        remaining_traffic = 100 - total_traffic_percent
+        confirm = yes or typer.confirm(
+            f"Assign remaining {remaining_traffic}% traffic to the latest revision?",
+            default=True,
+        )
+        if confirm:
+            latest_revision_traffic = remaining_traffic
+        else:
+            logger.error("Traffic distribution aborted by user.")
+            raise typer.Abort()
+
+    load_kubeconfig(cluster_name)
+    logger.info(f"Updating traffic for function {name}")
+    split_traffic_among_revisions(
+        get_cluster_namespace(cluster_name),
+        name,
+        splits,
+        latest_revision_traffic,
+    )
+    logger.info(f"Successfully updated traffic for service {name}")
+
+
+@function_app.command()
 def delete(
     name: str,
     cluster_name: Optional[str] = typer.Option(
@@ -300,7 +425,7 @@ def delete(
     Returns:
         None
     """
-    if yes or click.confirm(
+    if yes or typer.confirm(
         f"Are you sure you want to delete the function {name}?", default=False
     ):
         load_kubeconfig(cluster_name)
