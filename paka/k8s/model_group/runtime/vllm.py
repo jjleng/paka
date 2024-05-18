@@ -10,6 +10,7 @@ from paka.cluster.context import Context
 from paka.cluster.utils import get_model_store
 from paka.config import CloudModelGroup
 from paka.constants import MODEL_MOUNT_PATH
+from paka.k8s.utils import get_gpu_count
 
 
 # Heuristic to determine if the image is a vLLM image
@@ -45,5 +46,10 @@ def get_runtime_command_vllm(ctx: Context, model_group: CloudModelGroup) -> List
         return attach_model_to_command(runtime.command)
 
     command = shlex.split("python3 -O -u -m vllm.entrypoints.api_server --host 0.0.0.0")
+
+    gpu_count = get_gpu_count(ctx, model_group)
+
+    if gpu_count > 1:
+        command += ["--tensor-parallel-size", str(gpu_count)]
 
     return attach_model_to_command(command)

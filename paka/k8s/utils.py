@@ -18,8 +18,10 @@ from ruamel.yaml import YAML
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 from typing_extensions import TypeAlias
 
+from paka.cluster.context import Context
+from paka.config import CloudModelGroup
 from paka.logger import logger
-from paka.utils import read_yaml_file
+from paka.utils import get_instance_info, read_yaml_file
 
 KubernetesResourceKind: TypeAlias = Literal[
     "Deployment",
@@ -637,3 +639,25 @@ def remove_crd_finalizers(name: str) -> None:
             pass
         else:
             raise
+
+
+def get_gpu_count(ctx: Context, model_group: CloudModelGroup) -> int:
+    gpu_count = 0
+    if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
+        if model_group.resourceRequest and model_group.resourceRequest.gpu:
+            gpu_count = model_group.resourceRequest.gpu
+        else:
+            instance_info = get_instance_info(
+                ctx.provider, ctx.region, model_group.nodeType
+            )
+            if not instance_info:
+                raise ValueError(
+                    f"No instance information found for instance type {model_group.nodeType} in {ctx.provider} {ctx.region}"
+                )
+            elif "gpu_count" not in instance_info:
+                raise ValueError(
+                    f"Instance type {model_group.nodeType} in {ctx.provider} {ctx.region} does not have GPU information"
+                )
+            gpu_count = instance_info["gpu_count"]
+
+    return gpu_count
