@@ -16,7 +16,7 @@ from paka.k8s.model_group.runtime.llama_cpp import (
     is_llama_cpp_image,
 )
 from paka.k8s.model_group.runtime.vllm import get_runtime_command_vllm, is_vllm_image
-from paka.k8s.utils import CustomResource, apply_resource
+from paka.k8s.utils import CustomResource, apply_resource, get_gpu_count
 from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
 from paka.model.store import MODEL_PATH_PREFIX
@@ -201,21 +201,7 @@ def create_pod(
         if resources.limits is None:
             resources.limits = {}
 
-        if model_group.resourceRequest and model_group.resourceRequest.gpu:
-            gpu_count = model_group.resourceRequest.gpu
-        else:
-            instance_info = get_instance_info(
-                ctx.provider, ctx.region, model_group.nodeType
-            )
-            if not instance_info:
-                raise ValueError(
-                    f"No instance information found for instance type {model_group.nodeType} in {ctx.provider} {ctx.region}"
-                )
-            elif "gpu_count" not in instance_info:
-                raise ValueError(
-                    f"Instance type {model_group.nodeType} in {ctx.provider} {ctx.region} does not have GPU information"
-                )
-            gpu_count = instance_info["gpu_count"]
+        gpu_count = get_gpu_count(ctx=ctx, model_group=model_group)
 
         # Ah, we only support nvidia GPUs for now
         resources.limits["nvidia.com/gpu"] = str(gpu_count)
