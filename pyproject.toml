@@ -2,6 +2,8 @@
 name = "paka"
 version = "0.1.8"
 description = "LLMOps tool designed to simplify the deployment and management of large language model (LLM) applications"
+homepage = "https://github.com/jjleng/paka"
+keywords = ["LLMOps", "RAG", "production", "Cloud"]
 authors = ["Jijun Leng"]
 readme = "README.md"
 
