@@ -55,6 +55,8 @@ def create_cluster_autoscaler(
                     "autoscaling:TerminateInstanceInAutoScalingGroup",
                     "ec2:DescribeLaunchTemplateVersions",
                     "eks:DescribeNodegroup",
+                    "ec2:GetInstanceTypesFromInstanceRequirements",
+                    "ec2:DescribeImages",
                 ],
                 resources=["*"],
             )

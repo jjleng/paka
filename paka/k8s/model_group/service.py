@@ -186,18 +186,16 @@ def create_pod(
         # Leave 2GB for other processes
         memory_request = f"{cast(int, instance_info['memory']) - (2 * 1024)}Mi"
 
-    container_args["resources"] = client.V1ResourceRequirements(
+    resources = client.V1ResourceRequirements(
         requests={
             "cpu": cpu_request,
             "memory": memory_request,
         },
     )
 
-    if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
-        if "resources" not in container_args:
-            container_args["resources"] = client.V1ResourceRequirements()
+    container_args["resources"] = resources
 
-        resources = cast(client.V1ResourceRequirements, container_args["resources"])
+    if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
         if resources.limits is None:
             resources.limits = {}
 
