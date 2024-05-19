@@ -371,6 +371,8 @@ def create_k8s_cluster(ctx: Context) -> eks.Cluster:
     # Create a managed node group for each model group
     create_node_group_for_model_group(ctx, cluster, vpc, worker_role)
 
+    create_node_group_for_mixed_model_group(ctx, cluster, vpc, worker_role)
+
     # Create a managed node group for Qdrant
     create_node_group_for_qdrant(ctx, cluster, vpc, worker_role)
 
