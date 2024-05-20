@@ -39,7 +39,7 @@ def create_prometheus(ctx: Context) -> Optional[Chart]:
         "kube-prometheus-stack",
         ChartOpts(
             chart="kube-prometheus-stack",
-            version="56.3.0",
+            version="58.6.0",
             namespace="prometheus",
             fetch_opts=FetchOpts(
                 repo="https://prometheus-community.github.io/helm-charts"
