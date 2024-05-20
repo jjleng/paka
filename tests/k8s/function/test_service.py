@@ -21,66 +21,84 @@ def test_create_knative_service() -> None:
             ValueError, match="min_replicas cannot be greater than max_replicas"
         ):
             create_knative_service(
-                "test-service",
-                "test-namespace",
-                "test-image",
-                "test-entrypoint",
-                3,
-                1,
-                ("concurrency", "10"),
-                "0s",
+                service_name="test-service",
+                namespace="test-namespace",
+                image="test-image",
+                entrypoint="test-entrypoint",
+                min_instances=3,
+                max_instances=1,
+                scaling_metric=("concurrency", "10"),
+                scale_down_delay="0s",
             )
 
         with pytest.raises(ValueError, match="Invalid key in scaling_metric"):
             create_knative_service(
-                "test-service",
-                "test-namespace",
-                "test-image",
-                "test-entrypoint",
-                1,
-                3,
-                ("invalid", "10"),  # type: ignore
-                "0s",
+                service_name="test-service",
+                namespace="test-namespace",
+                image="test-image",
+                entrypoint="test-entrypoint",
+                min_instances=1,
+                max_instances=3,
+                scaling_metric=("invalid", "10"),  # type: ignore
+                scale_down_delay="0s",
             )
 
         with pytest.raises(ValueError, match="Invalid value in scaling_metric"):
             create_knative_service(
-                "test-service",
-                "test-namespace",
-                "test-image",
-                "test-entrypoint",
-                1,
-                3,
-                ("concurrency", "invalid"),
-                "0s",
+                service_name="test-service",
+                namespace="test-namespace",
+                image="test-image",
+                entrypoint="test-entrypoint",
+                min_instances=1,
+                max_instances=3,
+                scaling_metric=("concurrency", "invalid"),
+                scale_down_delay="0s",
             )
 
         with pytest.raises(ValueError, match="Invalid resource request key"):
             create_knative_service(
-                "test-service",
-                "test-namespace",
-                "test-image",
-                "test-entrypoint",
-                1,
-                3,
-                ("concurrency", "10"),
-                "0s",
-                {"invalid": "100m"},
+                service_name="test-service",
+                namespace="test-namespace",
+                image="test-image",
+                entrypoint="test-entrypoint",
+                min_instances=1,
+                max_instances=3,
+                scaling_metric=("concurrency", "10"),
+                scale_down_delay="0s",
+                resource_requests={"invalid": "100m"},
             )
 
         with pytest.raises(ValueError, match="Invalid resource limit key"):
             create_knative_service(
-                "test-service",
-                "test-namespace",
-                "test-image",
-                "test-entrypoint",
-                1,
-                3,
-                ("concurrency", "10"),
-                "0s",
-                None,
-                {"invalid": "100m"},
+                service_name="test-service",
+                namespace="test-namespace",
+                image="test-image",
+                entrypoint="test-entrypoint",
+                min_instances=1,
+                max_instances=3,
+                scaling_metric=("concurrency", "10"),
+                scale_down_delay="0s",
+                resource_limits={"invalid": "100m"},
             )
+        service = create_knative_service(
+            service_name="test-service",
+            namespace="test-namespace",
+            image="test-image",
+            entrypoint="test-entrypoint",
+            min_instances=1,
+            max_instances=3,
+            scaling_metric=("concurrency", "10"),
+            scale_down_delay="0s",
+            envs={
+                "ENV_VAR_NAME_1": "ENV_VAR_VALUE_1",
+                "ENV_VAR_NAME_2": "ENV_VAR_VALUE_2",
+            },
+        )
+
+        envs = service["spec"]["template"]["spec"]["containers"][0]["env"]
+        assert len(envs) == 2
+        assert {"name": "ENV_VAR_NAME_1", "value": "ENV_VAR_VALUE_1"} in envs
+        assert {"name": "ENV_VAR_NAME_2", "value": "ENV_VAR_VALUE_2"} in envs
 
 
 def test_validate_resource_cpu() -> None:

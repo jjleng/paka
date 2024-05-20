@@ -60,9 +60,10 @@ def create_knative_service(
     # rps refers to requests per second a single pod can handle
     scaling_metric: Tuple[Literal["concurrency", "rps"], str],
     scale_down_delay: str = "0s",
+    envs: Optional[Dict[str, str]] = None,
     resource_requests: Optional[Dict[str, str]] = None,
     resource_limits: Optional[Dict[str, str]] = None,
-) -> None:
+) -> Dict[str, Any]:
     """
     Creates a Knative Service with the specified configuration.
 
@@ -104,6 +105,10 @@ def create_knative_service(
         "imagePullPolicy": "Always",
         "command": shlex.split(entrypoint),
     }
+    if envs:
+        container["env"] = [
+            {"name": key, "value": value} for key, value in envs.items()
+        ]
 
     if resource_limits or resource_requests:
         container["resources"] = {}
@@ -178,6 +183,7 @@ def create_knative_service(
             service_resource.create(body=knative_service, namespace=namespace)
         else:
             raise
+    return knative_service
 
 
 def list_knative_services(namespace: str) -> Any:

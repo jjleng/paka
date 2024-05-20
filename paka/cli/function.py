@@ -4,7 +4,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
-from typing import List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple
 
 import click
 import typer
@@ -80,6 +80,15 @@ def process_traffic_splits(
     return splits, total_traffic_percent
 
 
+def process_envs(envs: List[str]) -> Dict[str, str]:
+    env_dict = {}
+    for env in envs:
+        for pair in env.split(","):
+            key, value = pair.split("=", 1)
+            env_dict[key] = value
+    return env_dict
+
+
 @function_app.command()
 def deploy(
     cluster_name: Optional[str] = typer.Option(
@@ -150,6 +159,12 @@ def deploy(
         "This value must be a duration between 0 seconds and 1 hour, represented "
         "as a string (e.g., '0s', '1m', '1h').",
     ),
+    env_vars: List[str] = typer.Option(
+        [],
+        "--env",
+        help="Specify environment variables for the function in the format 'key=value'",
+        show_default=False,
+    ),
     resource_requests: Optional[str] = typer.Option(
         None,
         "--resource-requests",
@@ -174,6 +189,8 @@ def deploy(
     )
     resource_limits_dict = json.loads(resource_limits) if resource_limits else None
 
+    envs = process_envs(env_vars)
+
     create_knative_service(
         service_name=kubify_name(name),
         namespace=get_cluster_namespace(cluster_name),
@@ -183,6 +200,7 @@ def deploy(
         max_instances=max_instances,
         scaling_metric=(scaling_metric, str(metric_target)),
         scale_down_delay=scale_down_delay,
+        envs=envs,
         resource_requests=resource_requests_dict,
         resource_limits=resource_limits_dict,
     )
