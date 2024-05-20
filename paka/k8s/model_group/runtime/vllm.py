@@ -45,7 +45,9 @@ def get_runtime_command_vllm(ctx: Context, model_group: CloudModelGroup) -> List
     if runtime.command:
         return attach_model_to_command(runtime.command)
 
-    command = shlex.split("python3 -O -u -m vllm.entrypoints.api_server --host 0.0.0.0")
+    command = shlex.split(
+        "python3 -O -u -m vllm.entrypoints.openai.api_server --host 0.0.0.0"
+    )
 
     gpu_count = get_gpu_count(ctx, model_group)
 

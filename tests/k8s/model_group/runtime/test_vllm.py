@@ -43,7 +43,7 @@ def test_get_runtime_command_vllm() -> None:
             "-O",
             "-u",
             "-m",
-            "vllm.entrypoints.api_server",
+            "vllm.entrypoints.openai.api_server",
             "--host",
             "0.0.0.0",
             "--model",
