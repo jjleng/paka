@@ -8,7 +8,7 @@ from ruamel.yaml import YAML
 
 from paka.utils import to_yaml
 
-CONFIG_VERSION = "1.1"
+CONFIG_VERSION = "1.2"
 
 
 class PakaBaseModel(BaseModel):
@@ -157,6 +157,10 @@ class Runtime(PakaBaseModel):
     command: Optional[List[str]] = Field(
         None, description="The command to run in the Docker container."
     )
+    env: Optional[List[Dict[str, Any]]] = None
+    readinessProbe: Optional[Dict[str, Any]] = None
+    livenessProbe: Optional[Dict[str, Any]] = None
+    volumeMounts: Optional[List[Dict[str, Any]]] = None
 
 
 class Model(PakaBaseModel):

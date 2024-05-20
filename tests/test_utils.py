@@ -7,6 +7,7 @@ from paka.constants import HOME_ENV_VAR, PROJECT_NAME
 from paka.utils import (
     call_once,
     camel_to_kebab,
+    camel_to_snake,
     get_cluster_data_dir,
     get_project_data_dir,
     kubify_name,
@@ -87,3 +88,11 @@ def test_get_project_data_dir() -> None:
         assert result == os.path.join(
             str(Path.home()), f".{camel_to_kebab(PROJECT_NAME)}"
         )
+
+
+def test_camel_to_snake() -> None:
+    assert camel_to_snake("camelCase") == "camel_case"
+    assert camel_to_snake("HTTPRequest") == "http_request"
+    assert camel_to_snake("IPV6Address") == "ipv6_address"
+    assert camel_to_snake("noChange") == "no_change"
+    assert camel_to_snake("") == ""

@@ -259,6 +259,29 @@ def test_parse_yaml() -> None:
               name: llama2-7b
               runtime:
                 image: test-image
+                env:
+                    - name: ENV_VAR
+                      value: test
+                    - name: ANOTHER_ENV_VAR
+                      valueFrom:
+                        configMapKeyRef:
+                            name: my-config-map
+                            key: my-key
+                readinessProbe:
+                    httpGet:
+                        path: /ready
+                        port: 8080
+                    initialDelaySeconds: 5
+                    periodSeconds: 5
+                livenessProbe:
+                    httpGet:
+                        path: /live
+                        port: 8080
+                    initialDelaySeconds: 15
+                    periodSeconds: 20
+                volumeMounts:
+                    - name: my-volume
+                      mountPath: /path/to/mount
               gpu:
               resourceRequest:
                 cpu: 500m
@@ -288,6 +311,33 @@ def test_parse_yaml() -> None:
     assert config.aws.vectorStore is not None
     assert config.aws.vectorStore.nodeType == "t2.small"
     assert config.aws.vectorStore.replicas == 2
+
+    assert model_group.runtime.env is not None
+    assert len(model_group.runtime.env) == 2
+    env_var = model_group.runtime.env[0]
+    assert env_var["name"] == "ENV_VAR"
+    assert env_var["value"] == "test"
+    another_env_var = model_group.runtime.env[1]
+    assert another_env_var["name"] == "ANOTHER_ENV_VAR"
+    assert another_env_var["valueFrom"]["configMapKeyRef"]["name"] == "my-config-map"
+    assert another_env_var["valueFrom"]["configMapKeyRef"]["key"] == "my-key"
+    assert model_group.runtime.readinessProbe is not None
+    assert model_group.runtime.readinessProbe["httpGet"]["path"] == "/ready"
+    assert model_group.runtime.readinessProbe["httpGet"]["port"] == 8080
+    assert model_group.runtime.readinessProbe["initialDelaySeconds"] == 5
+    assert model_group.runtime.readinessProbe["periodSeconds"] == 5
+
+    assert model_group.runtime.livenessProbe is not None
+    assert model_group.runtime.livenessProbe["httpGet"]["path"] == "/live"
+    assert model_group.runtime.livenessProbe["httpGet"]["port"] == 8080
+    assert model_group.runtime.livenessProbe["initialDelaySeconds"] == 15
+    assert model_group.runtime.livenessProbe["periodSeconds"] == 20
+
+    assert model_group.runtime.volumeMounts is not None
+    assert len(model_group.runtime.volumeMounts) == 1
+    volume_mount = model_group.runtime.volumeMounts[0]
+    assert volume_mount["name"] == "my-volume"
+    assert volume_mount["mountPath"] == "/path/to/mount"
 
     yaml_str = """
     version: "1.0"
