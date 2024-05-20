@@ -68,11 +68,32 @@ def list(
     """
     load_kubeconfig(cluster_name)
     services = filter_services(get_cluster_namespace(cluster_name))
-    model_groups = [
+
+    # Get public model groups
+    public_model_groups = [
         service.spec.selector.get("model", "")
         for service in services
-        if service.spec and service.spec.selector and "model" in service.spec.selector
+        if service.spec
+        and service.spec.selector
+        and "model" in service.spec.selector
+        and service.metadata
+        and service.metadata.labels
+        and (service.metadata.labels.get("is-public", "false") == "true")
     ]
+
+    # Get private model groups
+    private_model_groups = [
+        service.spec.selector.get("model", "")
+        for service in services
+        if service.spec
+        and service.spec.selector
+        and "model" in service.spec.selector
+        and service.metadata
+        and service.metadata.labels
+        and (service.metadata.labels.get("is-public", "false") == "false")
+    ]
+
+    model_groups = public_model_groups + private_model_groups
 
     v1 = client.CoreV1Api()
     cfg = v1.read_namespaced_config_map("config-domain", "knative-serving")
@@ -86,5 +107,6 @@ def list(
         return
     domain = filtered_keys[0]
 
-    table = [(group, f"http://{group}.{domain}") for group in model_groups]
+    table = [(group, f"http://{group}.{domain}") for group in public_model_groups]
+    table.extend([(group, f"private") for group in private_model_groups])
     logger.info(tabulate(table, headers=["Model Group", "Endpoint"]))

@@ -432,6 +432,7 @@ def create_service(
             labels={
                 "app": "model-group",
                 "model": model_group.name,
+                "is-public": "true" if model_group.isPublic else "false",
             },
         ),
         spec=client.V1ServiceSpec(
