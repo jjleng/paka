@@ -23,12 +23,12 @@ from paka.constants import HOME_ENV_VAR, PROJECT_NAME, PULUMI_STACK_NAME
 T = TypeVar("T", bound=Callable[..., Any])
 
 
-def camel_to_kebab(name: str) -> str:
+def camel_to_kebab(camel_str: str) -> str:
     """
     Converts a camel case string to kebab case.
 
     Args:
-        name (str): The camel case string to be converted.
+        camel_str (str): The camel case string to be converted.
 
     Returns:
         str: The kebab case string.
@@ -37,8 +37,8 @@ def camel_to_kebab(name: str) -> str:
         >>> camel_to_kebab("camelCaseString")
         'camel-case-string'
     """
-    name = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", name)
-    return re.sub("([a-z0-9])([A-Z])", r"\1-\2", name).lower()
+    camel_str = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", camel_str)
+    return re.sub("([a-z0-9])([A-Z])", r"\1-\2", camel_str).lower()
 
 
 def kubify_name(old: str) -> str:
@@ -403,3 +403,8 @@ def get_instance_info(provider: str, region: str, instance_type: str) -> Dict[st
     else:
         raise Exception(f"Unsupported provider: {provider}")
     raise Exception(f"Unsupported provider: {provider}")
+
+
+def camel_to_snake(camel_str: str) -> str:
+    kebab_case = camel_to_kebab(camel_str)
+    return kebab_case.replace("-", "_")

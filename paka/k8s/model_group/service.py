@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from kubernetes import client
 from kubernetes import config as k8s_config
@@ -20,7 +20,7 @@ from paka.k8s.utils import CustomResource, apply_resource, get_gpu_count
 from paka.logger import logger
 from paka.model.hf_model import HuggingFaceModel
 from paka.model.store import MODEL_PATH_PREFIX
-from paka.utils import get_instance_info, kubify_name
+from paka.utils import camel_to_snake, get_instance_info, kubify_name
 
 
 def get_runtime_command(
@@ -65,6 +65,79 @@ def get_health_check_paths(model_group: CloudModelGroup) -> Tuple[str, str]:
         return ("/health", "/health")
 
     raise ValueError("Unsupported runtime image for health check paths.")
+
+
+def create_volume_mounts(
+    volumeMounts: Optional[List[Dict[str, Any]]]
+) -> List[client.V1VolumeMount]:
+    default_volume_mount = [
+        client.V1VolumeMount(name="model-data", mount_path=MODEL_MOUNT_PATH)
+    ]
+
+    if volumeMounts:
+        volume_mounts = [
+            client.V1VolumeMount(
+                name=vm["name"], mount_path=vm["mountPath"], sub_path=vm.get("subPath")
+            )
+            for vm in volumeMounts
+        ]
+
+        if any(vm.name == "model-data" for vm in volume_mounts):
+            return volume_mounts
+        else:
+            return default_volume_mount + volume_mounts
+    return default_volume_mount
+
+
+def create_env_vars(
+    env: Optional[List[Dict[str, Any]]], port: int
+) -> List[client.V1EnvVar]:
+    if not env:
+        return [client.V1EnvVar(name="PORT", value=str(port))]
+
+    env_vars = [client.V1EnvVar(name=var["name"], value=var["value"]) for var in env]
+
+    # Replace the PORT env var if it exists
+    for var in env_vars:
+        if var.name == "PORT":
+            var.value = str(port)
+
+    # If PORT env var does not exist, add it
+    if not any(var.name == "PORT" for var in env_vars):
+        env_vars.append(client.V1EnvVar(name="PORT", value=str(port)))
+
+    return env_vars
+
+
+def create_probe(
+    pod_spec_probe: Optional[Union[client.V1Probe, Dict[str, Any]]],
+    path: str,
+    port: int,
+    initial_delay_seconds: int,
+) -> client.V1Probe:
+    if pod_spec_probe:
+        if isinstance(pod_spec_probe, dict):
+            http_get = client.V1HTTPGetAction(
+                **{
+                    camel_to_snake(k): v
+                    for k, v in pod_spec_probe.pop("httpGet").items()
+                }
+            )
+            return client.V1Probe(
+                http_get=http_get,
+                **{camel_to_snake(k): v for k, v in pod_spec_probe.items()},
+            )
+        return pod_spec_probe
+
+    # Return a default probe
+    return client.V1Probe(
+        http_get=client.V1HTTPGetAction(path=path, port=port),
+        initial_delay_seconds=initial_delay_seconds,
+        period_seconds=5,
+        timeout_seconds=30,
+        success_threshold=1,
+        failure_threshold=5,
+    )
 
 
 def init_aws(ctx: Context, model_group: CloudModelGroup) -> client.V1Container:
@@ -128,44 +201,25 @@ def create_pod(
     """
     ready_probe_path, live_probe_path = get_health_check_paths(model_group)
 
+    env, volume_mounts, readiness_probe, liveness_probe = (
+        model_group.runtime.env,
+        model_group.runtime.volumeMounts,
+        model_group.runtime.readinessProbe,
+        model_group.runtime.livenessProbe,
+    )
+
     container_args = {
         "name": f"{kubify_name(model_group.name)}",
         "image": model_group.runtime.image,
         "command": get_runtime_command(ctx, model_group, port),
-        "volume_mounts": [
-            client.V1VolumeMount(
-                name="model-data",
-                mount_path=MODEL_MOUNT_PATH,
-            )
-        ],
-        "env": [
-            client.V1EnvVar(
-                name="PORT",
-                value=str(port),
-            ),
-        ],
+        "volume_mounts": create_volume_mounts(volume_mounts),
+        "env": create_env_vars(env, port),
         "ports": [client.V1ContainerPort(container_port=port)],
-        "readiness_probe": client.V1Probe(
-            http_get=client.V1HTTPGetAction(
-                path=ready_probe_path,
-                port=port,
-            ),
-            initial_delay_seconds=60,
-            period_seconds=5,
-            timeout_seconds=30,
-            success_threshold=1,
-            failure_threshold=5,
+        "readiness_probe": create_probe(
+            readiness_probe if readiness_probe else None, ready_probe_path, port, 60
         ),
-        "liveness_probe": client.V1Probe(
-            http_get=client.V1HTTPGetAction(
-                path=live_probe_path,
-                port=port,
-            ),
-            initial_delay_seconds=240,
-            period_seconds=30,
-            timeout_seconds=30,
-            success_threshold=1,
-            failure_threshold=5,
+        "liveness_probe": create_probe(
+            liveness_probe if liveness_probe else None, live_probe_path, port, 240
         ),
     }
 
