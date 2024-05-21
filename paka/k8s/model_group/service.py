@@ -396,7 +396,7 @@ def create_service_monitor(namespace: str, model_group: CloudModelGroup) -> None
     ):
         monitor.spec["endpoints"].append(
             {
-                "port": "http",
+                "port": "http-app",
                 "path": "/metrics",
                 "interval": "15s",
             }
