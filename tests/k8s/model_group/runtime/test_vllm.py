@@ -46,6 +46,8 @@ def test_get_runtime_command_vllm() -> None:
             "vllm.entrypoints.openai.api_server",
             "--host",
             "0.0.0.0",
+            "--served-model-name",
+            "test",
             "--model",
             "/data",
         ]
