@@ -110,6 +110,12 @@ def create_knative_service(
             {"name": key, "value": value} for key, value in envs.items()
         ]
 
+    # Set a default value for resources if not provided
+    container["resources"] = {
+        "requests": {"cpu": "100m", "memory": "128Mi"},
+        "limits": {"cpu": "200m", "memory": "256Mi"},
+    }
+
     if resource_limits or resource_requests:
         container["resources"] = {}
 

@@ -147,7 +147,7 @@ def deploy(
         click_type=click.Choice(["rps", "concurrency"]),
     ),
     metric_target: int = typer.Option(
-        10,
+        1,
         "--metric-target",
         help="The desired value for the chosen scaling metric. The system will "
         "adjust the number of active instances to attempt to reach this target.",
