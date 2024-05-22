@@ -46,7 +46,7 @@ def create_prometheus(ctx: Context) -> Optional[Chart]:
             ),
             values={
                 "nodeExporter": {
-                    "enabled": config.prometheus.node_exporter,
+                    "enabled": config.prometheus.nodeExporter,
                 },
                 "alertmanager": {
                     "enabled": config.prometheus.alertmanager,
@@ -55,31 +55,31 @@ def create_prometheus(ctx: Context) -> Optional[Chart]:
                     "enabled": config.prometheus.grafana,
                 },
                 "kubeApiServer": {
-                    "enabled": config.prometheus.kube_api_server,
+                    "enabled": config.prometheus.kubeApiServer,
                 },
                 "kubelet": {
                     "enabled": config.prometheus.kubelet,
                 },
                 "kubeControllerManager": {
-                    "enabled": config.prometheus.kube_controller_manager,
+                    "enabled": config.prometheus.kubeControllerManager,
                 },
                 "coreDns": {
-                    "enabled": config.prometheus.core_dns,
+                    "enabled": config.prometheus.coreDns,
                 },
                 "kubeEtcd": {
-                    "enabled": config.prometheus.kube_etcd,
+                    "enabled": config.prometheus.kubeEtcd,
                 },
                 "kubeScheduler": {
-                    "enabled": config.prometheus.kube_scheduler,
+                    "enabled": config.prometheus.kubeScheduler,
                 },
                 "kubeProxy": {
-                    "enabled": config.prometheus.kube_proxy,
+                    "enabled": config.prometheus.kubeProxy,
                 },
                 "kubeStateMetrics": {
-                    "enabled": config.prometheus.kube_state_metrics,
+                    "enabled": config.prometheus.kubeStateMetrics,
                 },
                 "thanosRuler": {
-                    "enabled": config.prometheus.thanos_ruler,
+                    "enabled": config.prometheus.thanosRuler,
                 },
                 # Disable the Prometheus Operator's admission webhooks, since they don't work with Pulumi.
                 # This means ill-formatted Prometheus rules may make their way into Prometheus. :(
@@ -103,7 +103,7 @@ def create_prometheus(ctx: Context) -> Optional[Chart]:
                                     "accessModes": ["ReadWriteOnce"],
                                     "resources": {
                                         "requests": {
-                                            "storage": config.prometheus.storage_size,
+                                            "storage": config.prometheus.storageSize,
                                         }
                                     },
                                 }

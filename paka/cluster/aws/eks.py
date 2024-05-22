@@ -268,6 +268,7 @@ def create_node_group_for_qdrant(
         taints=[
             aws.eks.NodeGroupTaintArgs(effect="NO_SCHEDULE", key="app", value="qdrant"),
         ],
+        disk_size=vectorStore.diskSize,
     )
 
 

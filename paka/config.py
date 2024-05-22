@@ -392,7 +392,7 @@ class CloudVectorStore(CloudNode):
     """
 
     replicas: int = Field(1, description="The number of replicas for the vector store.")
-    storage_size: str = Field(
+    storageSize: str = Field(
         "10Gi", description="The size of the storage of one node for the vector store."
     )
     resourceRequest: Optional[ResourceRequest] = Field(
@@ -400,7 +400,7 @@ class CloudVectorStore(CloudNode):
         description="The resource request for the vector store, specifying the amount of CPU and memory to request.",
     )
 
-    @field_validator("storage_size", mode="before")
+    @field_validator("storageSize", mode="before")
     def validate_storage_size(cls, v: str) -> str:
         """
         Validates the format of the storage_size field.
@@ -414,7 +414,7 @@ class CloudVectorStore(CloudNode):
         Raises:
             ValueError: If the format of the input value is invalid.
         """
-        return validate_size(v, "Invalid storage size format")
+        return validate_size(v, "Invalid size format")
 
     @field_validator("replicas", mode="before")
     def validate_replicas(cls, v: int) -> int:
@@ -451,7 +451,7 @@ class Job(PakaBaseModel):
     """
 
     enabled: bool = Field(False, description="Whether the job cluster is enabled.")
-    broker_storage_size: str = Field(
+    brokerStorageSize: str = Field(
         "10Gi", description="The size of the storage for the broker."
     )
 
@@ -460,13 +460,13 @@ class Job(PakaBaseModel):
         description="The node groups for job workers. If None, default node groups are used.",
     )
 
-    @field_validator("broker_storage_size", mode="before")
+    @field_validator("brokerStorageSize", mode="before")
     def validate_broker_storage_size(cls, v: str) -> str:
         """
-        Validates the format of the broker_storage_size field.
+        Validates the format of the brokerStorageSize field.
 
         Args:
-            v (str): The value of the storage_size field.
+            v (str): The value of the brokerStorageSize field.
 
         Returns:
             str: The input value if validation is successful.
@@ -474,7 +474,7 @@ class Job(PakaBaseModel):
         Raises:
             ValueError: If the format of the input value is invalid.
         """
-        return validate_size(v, "Invalid storage size format")
+        return validate_size(v, "Invalid size format")
 
 
 class Function(PakaBaseModel):
@@ -494,45 +494,41 @@ class Prometheus(PakaBaseModel):
     """
 
     enabled: bool = Field(False, description="Whether Prometheus is enabled.")
-    storage_size: str = Field(
+    storageSize: str = Field(
         "10Gi", description="The size of the storage for Prometheus."
     )
     grafana: bool = Field(False, description="Whether Grafana is enabled.")
     alertmanager: bool = Field(False, description="Whether Alertmanager is enabled.")
-    kube_api_server: bool = Field(
+    kubeApiServer: bool = Field(
         False, description="Whether the Kubernetes API server is enabled."
     )
     kubelet: bool = Field(False, description="Whether the Kubelet is enabled.")
-    kube_controller_manager: bool = Field(
+    kubeControllerManager: bool = Field(
         False, description="Whether the Kubernetes controller manager is enabled."
     )
-    core_dns: bool = Field(False, description="Whether CoreDNS is enabled.")
-    kube_etcd: bool = Field(
-        False, description="Whether the Kubernetes etcd is enabled."
-    )
-    kube_scheduler: bool = Field(
+    coreDns: bool = Field(False, description="Whether CoreDNS is enabled.")
+    kubeEtcd: bool = Field(False, description="Whether the Kubernetes etcd is enabled.")
+    kubeScheduler: bool = Field(
         False, description="Whether the Kubernetes scheduler is enabled."
     )
-    kube_proxy: bool = Field(
+    kubeProxy: bool = Field(
         False, description="Whether the Kubernetes proxy is enabled."
     )
-    kube_state_metrics: bool = Field(
+    kubeStateMetrics: bool = Field(
         False, description="Whether the Kubernetes state metrics are enabled."
     )
-    node_exporter: bool = Field(
+    nodeExporter: bool = Field(
         False, description="Whether the Node Exporter is enabled."
     )
-    thanos_ruler: bool = Field(
-        False, description="Whether the Thanos Ruler is enabled."
-    )
+    thanosRuler: bool = Field(False, description="Whether the Thanos Ruler is enabled.")
 
-    @field_validator("storage_size", mode="before")
+    @field_validator("storageSize", mode="before")
     def validate_storage_size(cls, v: str) -> str:
         """
-        Validates the format of the storage_size field.
+        Validates the format of the storageSize field.
 
         Args:
-            v (str): The value of the storage_size field.
+            v (str): The value of the storageSize field.
 
         Returns:
             str: The input value if validation is successful.
@@ -540,7 +536,7 @@ class Prometheus(PakaBaseModel):
         Raises:
             ValueError: If the format of the input value is invalid.
         """
-        return validate_size(v, "Invalid storage size format")
+        return validate_size(v, "Invalid size format")
 
 
 class Tracing(PakaBaseModel):

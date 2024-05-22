@@ -35,7 +35,7 @@ def create_redis(ctx: Context) -> None:
                 "master": {
                     "persistence": {
                         "enabled": True,
-                        "size": config.job.broker_storage_size,
+                        "size": config.job.brokerStorageSize,
                     },
                 },
                 "metrics": {"enabled": True},  # For enabling metrics

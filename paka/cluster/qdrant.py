@@ -54,7 +54,7 @@ def create_qdrant(ctx: Context) -> None:
                 },
                 "replicaCount": config.vectorStore.replicas,
                 "persistence": {
-                    "size": config.vectorStore.storage_size,
+                    "size": config.vectorStore.storageSize,
                 },
                 "livenessProbe": {
                     "enabled": True,
