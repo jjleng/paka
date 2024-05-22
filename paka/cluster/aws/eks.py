@@ -23,7 +23,7 @@ from paka.cluster.prometheus import create_prometheus
 from paka.cluster.qdrant import create_qdrant
 from paka.cluster.redis import create_redis
 from paka.cluster.zipkin import create_zipkin
-from paka.config import AwsMixedModelGroup, AwsModelGroup
+from paka.config import AwsMixedModelGroup, AwsModelGroup, NodeGroup
 from paka.k8s.utils import update_kubeconfig
 from paka.utils import kubify_name
 
@@ -276,6 +276,79 @@ def create_node_group_for_qdrant(
     )
 
 
+def _create_node_groups(
+    ctx: Context,
+    cluster: eks.Cluster,
+    vpc: awsx.ec2.Vpc,
+    worker_role: aws.iam.Role,
+    app: str,
+    node_groups: Optional[List[NodeGroup]],
+) -> None:
+    if node_groups is None:
+        return
+
+    cluster_name = ctx.cluster_name
+    for i, node_group in enumerate(node_groups):
+        lifecycle = node_group.isSpot and "spot" or "on-demand"
+        # Create a managed node group for our cluster
+        eks.ManagedNodeGroup(
+            f"{cluster_name}-{app}-group-{i}",
+            node_group_name=f"{cluster_name}-{app}-group-{i}-{lifecycle}",
+            cluster=cluster,
+            instance_types=node_group.nodeTypes,
+            scaling_config=aws.eks.NodeGroupScalingConfigArgs(
+                desired_size=node_group.minInstances,
+                min_size=node_group.minInstances,
+                max_size=node_group.maxInstances,
+            ),
+            labels={
+                "app": app,
+                "lifecycle": lifecycle,
+            },
+            node_role_arn=worker_role.arn,
+            subnet_ids=vpc.private_subnet_ids,
+            taints=[
+                aws.eks.NodeGroupTaintArgs(effect="NO_SCHEDULE", key="app", value=app),
+            ],
+            disk_size=node_group.diskSize,
+            capacity_type="SPOT" if node_group.isSpot else "ON_DEMAND",
+        )
+
+
+def create_node_groups_for_functions(
+    ctx: Context,
+    cluster: eks.Cluster,
+    vpc: awsx.ec2.Vpc,
+    worker_role: aws.iam.Role,
+) -> None:
+    """
+    Creates a managed node group for functions
+    """
+    if ctx.cloud_config.function is None:
+        return
+
+    _create_node_groups(
+        ctx, cluster, vpc, worker_role, "function", ctx.cloud_config.function.nodeGroups
+    )
+
+
+def create_node_groups_for_job(
+    ctx: Context,
+    cluster: eks.Cluster,
+    vpc: awsx.ec2.Vpc,
+    worker_role: aws.iam.Role,
+) -> None:
+    """
+    Creates a managed node group for functions
+    """
+    if ctx.cloud_config.job is None:
+        return
+
+    _create_node_groups(
+        ctx, cluster, vpc, worker_role, "job", ctx.cloud_config.job.nodeGroups
+    )
+
+
 def create_k8s_cluster(ctx: Context) -> eks.Cluster:
     """
     Provisions an AWS EKS cluster with the necessary resources.
@@ -375,6 +448,9 @@ def create_k8s_cluster(ctx: Context) -> eks.Cluster:
 
     # Create a managed node group for Qdrant
     create_node_group_for_qdrant(ctx, cluster, vpc, worker_role)
+
+    create_node_groups_for_functions(ctx, cluster, vpc, worker_role)
+    create_node_groups_for_job(ctx, cluster, vpc, worker_role)
 
     def create_eks_resources(kubeconfig_json: str) -> None:
         k8s_provider = k8s.Provider("k8s-provider", kubeconfig=cluster.kubeconfig)

@@ -8,6 +8,8 @@ from kubernetes import client
 from kubernetes.client.exceptions import ApiException
 from kubernetes.dynamic import DynamicClient  # type: ignore
 
+from paka.k8s.utils import apply_resource
+
 VALID_RESOURCES = ["cpu", "memory"]
 
 VALID_RESOURCES_GPU = ["nvidia.com/gpu"]
@@ -100,6 +102,19 @@ def create_knative_service(
     if not metric_value.isdigit():
         raise ValueError(f"Invalid value in scaling_metric: {metric_value}")
 
+    config_map = client.V1ConfigMap(
+        kind="ConfigMap",
+        metadata=client.V1ObjectMeta(
+            name="config-features", namespace="knative-serving"
+        ),
+        data={
+            "kubernetes.podspec-tolerations": "enabled",
+            "kubernetes.podspec-affinity": "enabled",
+        },
+    )
+
+    apply_resource(config_map)
+
     container: Dict[str, Any] = {
         "image": image,
         "imagePullPolicy": "Always",
@@ -164,7 +179,47 @@ def create_knative_service(
                         **metric,
                     },
                 },
-                "spec": {"containers": [container]},
+                "spec": {
+                    "containers": [container],
+                    "tolerations": [
+                        {
+                            "key": "app",
+                            "operator": "Equal",
+                            "value": "function",
+                            "effect": "NoSchedule",
+                        }
+                    ],
+                    "affinity": {
+                        "nodeAffinity": {
+                            "preferredDuringSchedulingIgnoredDuringExecution": [
+                                {
+                                    "weight": 100,
+                                    "preference": {
+                                        "matchExpressions": [
+                                            {
+                                                "key": "lifecycle",
+                                                "operator": "In",
+                                                "values": ["spot"],
+                                            }
+                                        ]
+                                    },
+                                },
+                                {
+                                    "weight": 50,
+                                    "preference": {
+                                        "matchExpressions": [
+                                            {
+                                                "key": "lifecycle",
+                                                "operator": "In",
+                                                "values": ["on-demand"],
+                                            }
+                                        ]
+                                    },
+                                },
+                            ]
+                        },
+                    },
+                },
             }
         },
     }

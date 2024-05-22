@@ -15,7 +15,7 @@ from paka.config import (
     MixedModelGroup,
     ResourceRequest,
     Runtime,
-    ScalingConfig,
+    ScalingConfigNonZero,
     generate_yaml,
     parse_yaml,
 )
@@ -78,7 +78,7 @@ def test_mixed_model_group() -> None:
             runtime=Runtime(image="test-image"),
             baseInstances=-1,
             maxOnDemandInstances=0,
-            spot=ScalingConfig(minInstances=1, maxInstances=10),
+            spot=ScalingConfigNonZero(minInstances=1, maxInstances=10),
         )
 
     with pytest.raises(
@@ -91,7 +91,7 @@ def test_mixed_model_group() -> None:
             runtime=Runtime(image="test-image"),
             baseInstances=2,
             maxOnDemandInstances=1,
-            spot=ScalingConfig(minInstances=1, maxInstances=10),
+            spot=ScalingConfigNonZero(minInstances=1, maxInstances=10),
         )
 
 

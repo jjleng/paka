@@ -55,6 +55,46 @@ def create_deployment(
         ),
     ]
 
+    tolerations = [
+        client.V1Toleration(
+            key="app",
+            operator="Equal",
+            value="job",
+            effect="NoSchedule",
+        )
+    ]
+
+    affinity = client.V1Affinity(
+        node_affinity=client.V1NodeAffinity(
+            preferred_during_scheduling_ignored_during_execution=[
+                client.V1PreferredSchedulingTerm(
+                    weight=100,
+                    preference=client.V1NodeSelectorTerm(
+                        match_expressions=[
+                            client.V1NodeSelectorRequirement(
+                                key="lifecycle",
+                                operator="In",
+                                values=["spot"],
+                            )
+                        ]
+                    ),
+                ),
+                client.V1PreferredSchedulingTerm(
+                    weight=50,
+                    preference=client.V1NodeSelectorTerm(
+                        match_expressions=[
+                            client.V1NodeSelectorRequirement(
+                                key="lifecycle",
+                                operator="In",
+                                values=["on-demand"],
+                            )
+                        ]
+                    ),
+                ),
+            ]
+        ),
+    )
+
     deployment = client.V1Deployment(
         kind="Deployment",
         metadata=client.V1ObjectMeta(
@@ -82,6 +122,8 @@ def create_deployment(
                 spec=client.V1PodSpec(
                     service_account_name=service_account_name,
                     containers=containers,
+                    tolerations=tolerations,
+                    affinity=affinity,
                 ),
             ),
         ),
