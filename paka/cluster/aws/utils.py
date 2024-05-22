@@ -3,6 +3,7 @@ import pulumi_aws as aws
 import pulumi_eks as eks
 
 from paka.cluster.context import Context
+from paka.utils import get_instance_info
 
 
 def odic_role_for_sa(
@@ -56,3 +57,19 @@ def odic_role_for_sa(
     )
 
     return role
+
+
+def get_ami_for_instance(ctx: Context, instance_type: str) -> str:
+    instance_info = get_instance_info(ctx.provider, ctx.region, instance_type)
+    gpu_count = instance_info.get("gpu_count", 0)
+    arch = instance_info.get("arch", "x86_64")
+
+    if gpu_count > 0:
+        if arch == "x86_64":
+            return "AL2_x86_64_GPU"
+        else:
+            return "BOTTLEROCKET_ARM_64_NVIDIA"
+    else:
+        if arch == "arm64":
+            return "AL2_ARM_64"
+    return "AL2_x86_64"

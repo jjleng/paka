@@ -14,6 +14,7 @@ from paka.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from paka.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from paka.cluster.aws.elb import update_elb_idle_timeout
 from paka.cluster.aws.service_account import create_service_accounts
+from paka.cluster.aws.utils import get_ami_for_instance
 from paka.cluster.context import Context
 from paka.cluster.keda import create_keda
 from paka.cluster.knative import create_knative_and_istio
@@ -90,14 +91,10 @@ def create_node_group_for_model_group(
             ),
         ]
 
-        gpu_enabled = model_group.gpu and model_group.gpu.enabled
-
-        ami_type = "AL2_x86_64_GPU" if gpu_enabled else None
+        ami_type = get_ami_for_instance(ctx, model_group.nodeType)
 
         disk_size = (
-            model_group.gpu.diskSize
-            if gpu_enabled and model_group.gpu
-            else model_group.diskSize
+            model_group.gpu.diskSize if model_group.gpu else model_group.diskSize
         )
 
         # Create a managed node group for our cluster
@@ -153,13 +150,11 @@ def create_node_group_for_mixed_model_group(
             ),
         ]
 
-        gpu_enabled = mixed_model_group.gpu and mixed_model_group.gpu.enabled
-
-        ami_type = "AL2_x86_64_GPU" if gpu_enabled else None
+        ami_type = get_ami_for_instance(ctx, mixed_model_group.nodeType)
 
         disk_size = (
             mixed_model_group.gpu.diskSize
-            if gpu_enabled and mixed_model_group.gpu
+            if mixed_model_group.gpu
             else mixed_model_group.diskSize
         )
 
@@ -289,6 +284,8 @@ def _create_node_groups(
 
     cluster_name = ctx.cluster_name
     for i, node_group in enumerate(node_groups):
+        ami_type = get_ami_for_instance(ctx, node_group.nodeTypes[0])
+
         lifecycle = node_group.isSpot and "spot" or "on-demand"
         # Create a managed node group for our cluster
         eks.ManagedNodeGroup(
@@ -312,6 +309,7 @@ def _create_node_groups(
             ],
             disk_size=node_group.diskSize,
             capacity_type="SPOT" if node_group.isSpot else "ON_DEMAND",
+            ami_type=ami_type,
         )
 
 
