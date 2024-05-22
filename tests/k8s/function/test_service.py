@@ -11,7 +11,9 @@ def test_create_knative_service() -> None:
         paka.k8s.function.service.client, "ApiClient"
     ) as mock_api_client, patch.object(
         paka.k8s.function.service, "DynamicClient"
-    ) as mock_dynamic_client:
+    ) as mock_dynamic_client, patch.object(
+        paka.k8s.function.service, "apply_resource"
+    ):
 
         mock_service_resource = MagicMock()
         mock_dynamic_client.resources.get.return_value = mock_service_resource

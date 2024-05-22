@@ -8,7 +8,7 @@ from ruamel.yaml import YAML
 
 from paka.utils import to_yaml
 
-CONFIG_VERSION = "1.2"
+CONFIG_VERSION = "1.3"
 
 
 class PakaBaseModel(BaseModel):
@@ -276,12 +276,33 @@ class ScalingConfig(PakaBaseModel):
         Raises:
             ValueError: If the value of the input value is invalid.
         """
+        if v < 0:
+            raise ValueError("minInstances cannot be negative")
+        return v
+
+
+class ScalingConfigNonZero(ScalingConfig):
+    @field_validator("minInstances", mode="before")
+    def validate_min_instances(cls, v: int) -> int:
+        """
+        Validates the value of the minInstances field. Spinning up 1 model group instance is heavy.
+        No scaling down to 0 for now.
+
+        Args:
+            v (int): The value of the minInstances field.
+
+        Returns:
+            int: The input value if validation is successful.
+
+        Raises:
+            ValueError: If the value of the input value is invalid.
+        """
         if v <= 0:
             raise ValueError("minInstances must be greater than 0")
         return v
 
 
-class OnDemandModelGroup(CloudModelGroup, ScalingConfig):
+class OnDemandModelGroup(CloudModelGroup, ScalingConfigNonZero):
     pass
 
 
@@ -303,7 +324,7 @@ class MixedModelGroup(CloudModelGroup):
             "The actual number of on-demand instances is dynamically adjusted by the autoscaler based on the workload requirements."
         ),
     )
-    spot: ScalingConfig = Field(
+    spot: ScalingConfigNonZero = Field(
         ...,
         description=(
             "This configuration sets the scaling parameters for spot instances within the node group. "
@@ -414,6 +435,16 @@ class CloudVectorStore(CloudNode):
         return v
 
 
+class NodeGroup(ScalingConfig):
+    nodeTypes: List[str] = Field(
+        ..., description="The types of nodes in the node group."
+    )
+    diskSize: Optional[int] = Field(
+        None, description="The size of the disk for the node in GB."
+    )
+    isSpot: bool = Field(..., description="Whether the node group uses spot instances.")
+
+
 class Job(PakaBaseModel):
     """
     Represents a job cluster configuration.
@@ -422,6 +453,11 @@ class Job(PakaBaseModel):
     enabled: bool = Field(False, description="Whether the job cluster is enabled.")
     broker_storage_size: str = Field(
         "10Gi", description="The size of the storage for the broker."
+    )
+
+    nodeGroups: Optional[List[NodeGroup]] = Field(
+        None,
+        description="The node groups for job workers. If None, default node groups are used.",
     )
 
     @field_validator("broker_storage_size", mode="before")
@@ -439,6 +475,17 @@ class Job(PakaBaseModel):
             ValueError: If the format of the input value is invalid.
         """
         return validate_size(v, "Invalid storage size format")
+
+
+class Function(PakaBaseModel):
+    """
+    Configuration for function.
+    """
+
+    nodeGroups: Optional[List[NodeGroup]] = Field(
+        None,
+        description="The node groups for functions. If None, default node groups are used.",
+    )
 
 
 class Prometheus(PakaBaseModel):
@@ -534,6 +581,9 @@ class CloudConfig(PakaBaseModel, Generic[T_OnDemandModelGroup, T_MixedModelGroup
     vectorStore: Optional[CloudVectorStore] = Field(
         None,
         description="The configuration for the vector store in the cloud. Default is None. If None, no vector store is deployed",
+    )
+    function: Optional[Function] = Field(
+        None, description="The configuration for functions. Default is None."
     )
     job: Optional[Job] = Field(
         None,
