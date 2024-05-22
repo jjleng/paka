@@ -4,7 +4,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 
 import click
 import typer
@@ -15,6 +15,7 @@ from paka.cli.utils import (
     format_timedelta,
     get_cluster_namespace,
     load_kubeconfig,
+    process_envs,
     resolve_image,
 )
 from paka.k8s.function.service import (
@@ -78,15 +79,6 @@ def process_traffic_splits(
             total_traffic_percent += percent
 
     return splits, total_traffic_percent
-
-
-def process_envs(envs: List[str]) -> Dict[str, str]:
-    env_dict = {}
-    for env in envs:
-        for pair in env.split(","):
-            key, value = pair.split("=", 1)
-            env_dict[key] = value
-    return env_dict
 
 
 @function_app.command()

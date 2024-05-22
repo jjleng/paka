@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import shlex
 import time
+from typing import Dict, Optional
 
 from kubernetes import client
 
@@ -45,6 +48,9 @@ def create_deployment(
     deployment_name: str,
     service_account_name: str,
     image_name: str,
+    envs: Optional[Dict[str, str]],
+    resource_requests: Optional[Dict[str, str]],
+    resource_limits: Optional[Dict[str, str]],
 ) -> None:
     containers = [
         client.V1Container(
@@ -52,6 +58,14 @@ def create_deployment(
             image=image_name,
             command=shlex.split(entrypoint),
             image_pull_policy="Always",
+            env=[
+                client.V1EnvVar(name=key, value=value)
+                for key, value in (envs or {}).items()
+            ],
+            resources=client.V1ResourceRequirements(
+                requests=resource_requests or {},
+                limits=resource_limits or {},
+            ),
         ),
     ]
 
@@ -139,6 +153,9 @@ def create_workers(
     tasks_per_worker: int = 5,
     max_replicas: int = 5,
     drain_existing_job: bool = True,
+    envs: Optional[Dict[str, str]] = None,
+    resource_requests: Optional[Dict[str, str]] = None,
+    resource_limits: Optional[Dict[str, str]] = None,
 ) -> None:
     create_namespace(namespace)
 
@@ -156,6 +173,9 @@ def create_workers(
         deployment_name,
         ACCESS_ALL_SA,
         image,
+        envs,
+        resource_requests,
+        resource_limits,
     )
 
     create_autoscaler(
