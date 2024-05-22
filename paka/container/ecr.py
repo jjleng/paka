@@ -35,7 +35,7 @@ def authenticate_docker_to_ecr(aws_region: str) -> str:
 
 
 def push_to_ecr(
-    image_name: str, repository_uri: str, aws_region: str, app_name: str
+    local_image_name: str, repository_uri: str, aws_region: str, app_name: str
 ) -> str:
     """
     Pushes a Docker image to an Amazon ECR repository.
@@ -50,7 +50,7 @@ def push_to_ecr(
     This ensures that even tagged applications have a unique identifier in the shared repository.
 
     Args:
-        image_name (str): The name of the Docker image to push.
+        local_image_name (str): The name of the Docker image to push.
         repository_uri (str): The URI of the ECR repository to push the image to.
         aws_region (str): The AWS region where the ECR repository is located.
         app_name (str): The name of the application. Used to generate the image tags.
@@ -68,12 +68,18 @@ def push_to_ecr(
         # Tag the image with the repository URI and the version tag
         version_tag = f"{app_name}-v{version}"
 
+        local_image_tagged = (
+            f"{local_image_name}:latest"
+            if ":" not in local_image_name
+            else local_image_name
+        )
+
         # Tag the image with the repository URI
         subprocess.run(
             [
                 "docker",
                 "tag",
-                f"{image_name}:latest",
+                local_image_tagged,
                 f"{repository_uri}:{version_tag}",
             ],
             check=True,
@@ -85,7 +91,7 @@ def push_to_ecr(
             [
                 "docker",
                 "tag",
-                f"{image_name}:latest",
+                local_image_tagged,
                 f"{repository_uri}:{latest_tag}",
             ],
             check=True,
@@ -100,7 +106,7 @@ def push_to_ecr(
         )
         subprocess.run(["docker", "push", f"{repository_uri}:{latest_tag}"], check=True)
 
-        logger.info(f"Successfully pushed {image_name} to {repository_uri}")
+        logger.info(f"Successfully pushed {local_image_name} to {repository_uri}")
         return version_tag
     except subprocess.CalledProcessError as e:
         logger.error(f"An error occurred: {e}")
