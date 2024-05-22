@@ -137,21 +137,21 @@ def test_cloud_vector_store() -> None:
     vector_store = CloudVectorStore(
         nodeType="t2.small",
         replicas=2,
-        storage_size="20Gi",
+        storageSize="20Gi",
         resourceRequest=resource_request,
     )
     assert vector_store.nodeType == "t2.small"
     assert vector_store.replicas == 2
-    assert vector_store.storage_size == "20Gi"
+    assert vector_store.storageSize == "20Gi"
     assert vector_store.resourceRequest == resource_request
 
     # Test with replicas less than or equal to 0
     with pytest.raises(ValueError, match="replicas must be greater than 0"):
-        CloudVectorStore(nodeType="t2.small", replicas=0, storage_size="10Gi")
+        CloudVectorStore(nodeType="t2.small", replicas=0, storageSize="10Gi")
 
-    # Test with invalid storage_size format
-    with pytest.raises(ValueError, match="Invalid storage size format"):
-        CloudVectorStore(nodeType="t2.small", replicas=1, storage_size="10Gib")
+    # Test with invalid storageSize format
+    with pytest.raises(ValueError, match="Invalid size format"):
+        CloudVectorStore(nodeType="t2.small", replicas=1, storageSize="10Gib")
 
 
 def test_cloud_config() -> None:
@@ -185,7 +185,7 @@ def test_cloud_config() -> None:
     vector_store = CloudVectorStore(
         nodeType="t2.small",
         replicas=2,
-        storage_size="20Gi",
+        storageSize="20Gi",
         resourceRequest=resource_request,
     )
     cloud_config = AwsConfig(
