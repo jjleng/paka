@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import json
 import os
-from typing import Optional
+from typing import List, Optional
 
 import typer
 from kubernetes import client
 
-from paka.cli.utils import get_cluster_namespace, load_kubeconfig, resolve_image
+from paka.cli.utils import (
+    get_cluster_namespace,
+    load_kubeconfig,
+    process_envs,
+    resolve_image,
+)
 from paka.k8s.job.worker import create_workers, delete_workers
 from paka.logger import logger
 from paka.utils import kubify_name
@@ -80,6 +86,22 @@ def deploy(
         "complete before deploying the new job. If set to true, the deployment "
         "will wait until all current tasks have finished.",
     ),
+    env_vars: List[str] = typer.Option(
+        [],
+        "--env",
+        help="Specify environment variables for the function in the format 'key=value'",
+        show_default=False,
+    ),
+    resource_requests: Optional[str] = typer.Option(
+        None,
+        "--resource-requests",
+        help='The resource requests for the function, in JSON format. For example: \'{"cpu": "100m", "memory": "128Mi"}\'',
+    ),
+    resource_limits: Optional[str] = typer.Option(
+        None,
+        "--resource-limits",
+        help='The resource limits for the function, in JSON format. For example: \'{"cpu": "200m", "memory": "256Mi"}\'',
+    ),
 ) -> None:
     """
     Deploy a job.
@@ -92,6 +114,12 @@ def deploy(
     elif source_dir:
         job_name = os.path.basename(source_dir)
 
+    envs = process_envs(env_vars)
+    resource_requests_dict = (
+        json.loads(resource_requests) if resource_requests else None
+    )
+    resource_limits_dict = json.loads(resource_limits) if resource_limits else None
+
     create_workers(
         namespace=get_cluster_namespace(cluster_name),
         job_name=kubify_name(prefixed_job_name(name or job_name)),
@@ -100,6 +128,9 @@ def deploy(
         tasks_per_worker=tasks_per_worker,
         max_replicas=max_workers,
         drain_existing_job=wait_existing_tasks,
+        envs=envs,
+        resource_requests=resource_requests_dict,
+        resource_limits=resource_limits_dict,
     )
 
 

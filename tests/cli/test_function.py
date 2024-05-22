@@ -1,11 +1,7 @@
 import pytest
 import typer
 
-from paka.cli.function import (
-    process_envs,
-    process_traffic_splits,
-    validate_traffic_split,
-)
+from paka.cli.function import process_traffic_splits, validate_traffic_split
 
 
 def test_validate_traffic_split() -> None:
@@ -38,10 +34,3 @@ def test_process_traffic_splits() -> None:
     # Test invalid split
     with pytest.raises(ValueError):
         process_traffic_splits(["rev1=20", "rev2=thirty"])
-
-
-def test_process_envs() -> None:
-    assert process_envs(["A=B", "C=D"]) == {"A": "B", "C": "D"}
-    assert process_envs(["A=B,C=D"]) == {"A": "B", "C": "D"}
-    assert process_envs(["A=B,C=D", "E=F"]) == {"A": "B", "C": "D", "E": "F"}
-    assert process_envs([]) == {}

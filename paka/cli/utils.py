@@ -6,7 +6,7 @@ import platform
 import re
 import subprocess
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import typer
 from kubernetes import config as k8s_config
@@ -325,3 +325,12 @@ def format_timedelta(td: timedelta) -> str:
         return f"{minutes}m{seconds}s"
     else:
         return f"{seconds}s"
+
+
+def process_envs(envs: List[str]) -> Dict[str, str]:
+    env_dict = {}
+    for env in envs:
+        for pair in env.split(","):
+            key, value = pair.split("=", 1)
+            env_dict[key] = value
+    return env_dict

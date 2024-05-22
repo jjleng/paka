@@ -11,6 +11,7 @@ from paka.cli.utils import (
     format_timedelta,
     init_pulumi,
     load_cluster_manager,
+    process_envs,
     resolve_image,
     validate_name,
 )
@@ -143,3 +144,10 @@ def test_format_timedelta() -> None:
     assert format_timedelta(timedelta(hours=2, minutes=30)) == "2h30m"
     assert format_timedelta(timedelta(minutes=30, seconds=45)) == "30m45s"
     assert format_timedelta(timedelta(seconds=45)) == "45s"
+
+
+def test_process_envs() -> None:
+    assert process_envs(["A=B", "C=D"]) == {"A": "B", "C": "D"}
+    assert process_envs(["A=B,C=D"]) == {"A": "B", "C": "D"}
+    assert process_envs(["A=B,C=D", "E=F"]) == {"A": "B", "C": "D", "E": "F"}
+    assert process_envs([]) == {}
