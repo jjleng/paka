@@ -392,6 +392,10 @@ def get_instance_info(provider: str, region: str, instance_type: str) -> Dict[st
             gpu, vram = gpu_info.get("Gpus", [{}])[0], gpu_info.get(
                 "TotalGpuMemoryInMiB"
             )
+            architectures = instance_type_info.get("ProcessorInfo", {}).get(
+                "SupportedArchitectures", []
+            )
+            arch = architectures[0] if architectures else None
             return {
                 "cpu": instance_type_info.get("VCpuInfo", {}).get("DefaultVCpus"),
                 "memory": instance_type_info.get("MemoryInfo", {}).get("SizeInMiB"),
@@ -399,6 +403,7 @@ def get_instance_info(provider: str, region: str, instance_type: str) -> Dict[st
                 "vram": vram,
                 "gpu_manufacturer": gpu.get("Manufacturer"),
                 "gpu_name": gpu.get("Name"),
+                "arch": arch,
             }
     else:
         raise Exception(f"Unsupported provider: {provider}")
