@@ -227,18 +227,10 @@ def create_pod(
         cpu_request = model_group.resourceRequest.cpu
         memory_request = model_group.resourceRequest.memory
     else:
-        instance_info = get_instance_info(
-            ctx.provider, ctx.region, model_group.nodeType
-        )
-        if not instance_info:
-            raise ValueError(
-                f"No instance information found for instance type {model_group.nodeType} in {ctx.provider} {ctx.region}"
-            )
-        cpu_milli = cast(int, instance_info["cpu"]) * 1000
-        # Leave 400m for other processes
-        cpu_request = f"{cpu_milli - 400}m"
-        # Leave 2GB for other processes
-        memory_request = f"{cast(int, instance_info['memory']) - (2 * 1024)}Mi"
+        # Set low resource requests to guarantee that the pod is scheduled.
+        # This is fine as the pod will be able to use up to the node limit.
+        cpu_request = f"1000m"
+        memory_request = f"1024Mi"
 
     resources = client.V1ResourceRequirements(
         requests={
@@ -249,6 +241,8 @@ def create_pod(
 
     container_args["resources"] = resources
 
+    enable_host_ipc = False
+
     if hasattr(model_group, "gpu") and model_group.gpu and model_group.gpu.enabled:
         if resources.limits is None:
             resources.limits = {}
@@ -257,6 +251,9 @@ def create_pod(
 
         # Ah, we only support nvidia GPUs for now
         resources.limits["nvidia.com/gpu"] = str(gpu_count)
+
+        if gpu_count > 1 and is_vllm_image(model_group.runtime.image):
+            enable_host_ipc = True
 
     return client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(
@@ -268,6 +265,7 @@ def create_pod(
             },
         ),
         spec=client.V1PodSpec(
+            host_ipc=enable_host_ipc,
             service_account_name=ACCESS_ALL_SA,
             volumes=[
                 client.V1Volume(
