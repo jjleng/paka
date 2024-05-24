@@ -1,112 +1,132 @@
 # Welcome to Paka
 
-<img src="https://raw.githubusercontent.com/jjleng/paka/main/docs/img/paka.svg" alt="paka.svg" width="200" height="200">
-
-**paka** is a versatile LLMOps tool that simplifies the deployment and management of large language model (LLM) apps with a single command.
-
-## Paka Highlights
-
-- **Cloud-Agnostic Resource Provisioning**: paka starts by breaking down the barriers of cloud vendor lock-in, currently supporting EKS with plans to expand to more cloud services.
-- **Optimized Model Execution**: Designed for efficiency, paka runs LLM models on CPUs and Nvidia GPUs, ensuring optimal performance. Auto-scaling of model replicas based on CPU usage, request rate, and latency.
-- **Scalable Batch Job Management**: paka excels in managing batch jobs that dynamically scale out and in, catering to varying workload demands without manual intervention.
-- **Seamless Application Deployment**: With support for running Langchain and LlamaIndex applications as functions, paka offers scalability to zero and back up, along with rolling updates to ensure no downtime.
-- **Comprehensive Monitoring and Tracing**: Embedded with built-in support for metrics collection via Prometheus and Grafana, along with tracing through Zipkin.
+<img src="https://raw.githubusercontent.com/jjleng/paka/main/docs/img/paka.svg" alt="paka.png" width="100" height="100">
 
 
+Get your LLM applications to the cloud with ease. Paka handles failure recovery, autoscaling, and monitoring, freeing you to concentrate on crafting your applications.
+
+## 🚀 Bring LLM models to the cloud in minutes
+💰 Cut 50% cost with spot instances, backed by on-demand instances for reliable service quality.
+
+| Model      | Parameters | Quantization | GPU          | On-Demand | Spot    | Aws Instance (us-west-2) |
+| ---------- | ---------- | ------------ | ------------ | --------- | ------- | ------------------------ |
+| Llama 3    | 70B        | BF16         | A10G x 8     | $16.2880  | $4.8169 | g5.48xlarge              |
+| Llama 3    | 70B        | GPTQ 4bit    | T4 x 4       | $3.9120   | $1.6790 | g4dn.12xlarge            |
+| Llama 3    | 8B         | BF16         | L4 x 1       | $0.8048   | $0.1100 | g6.xlarge                |
+| Llama 2    | 7B         | GPTQ 4bit    | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge              |
+| Mistral    | 7B         | BF16         | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge              |
+| Phi3 Mini  | 3.8B       | BF16         | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge              |
+
+> Note: Prices are based on us-west-2 region and are in USD per hour. Spot prices change frequently.
+
+## 🏃 Effortlessly Launch RAG Applications
+You only need to take care of the application code. Build the RAG application with your favorite languages (python, TS) and frameworks (Langchain, LlamaIndex) and let Paka handles the rest.
+
+### Support for Vector Store
+- A fast vector store (qdrant) for storing embeddings.
+- Tunable for performance and cost.
+
+### Serverless Deployment
+- Deploy your application as a serverless container.
+- Autoscaling and monitoring built-in.
 
 
-### Runtime Inference
-Current runtime inference is done through the awesome [llama.cpp](https://github.com/ggerganov/llama.cpp) and [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) projects.
+## 📈 Monitoring
+Paka comes with built-in support for monitoring and tracing. Metrics are collected via Prometheus. Users can also enable Prometheus Alertmanager for alerting.
 
-vLLM support is coming soon.
+<div align="center" style="margin-top:20px;margin-bottom:20px;">
+<img src="docs/img/tokens_per_sec.png" max-width="1000"/>
+</div>
 
-Each model is ran in a separate model group. Each model group can have its own node type, replicas and autoscaling policies.
+## ⚙️ Architecture
 
-### Serverless Containers
-Applications are deployed as serverless containers using [knative](https://knative.dev). However, users can deploy their applications to the native cloud offerings as well, such as Lambda, Cloud Run, etc.
+<div align="center" style="margin-top:20px;margin-bottom:20px;">
+<img src="docs/img/architecture.png" max-width="1000"/>
+</div>
 
-### Batch Jobs
-Optional redis broker can be provisioned for celery jobs. Job workers are automatically scaled based on the queue length.
+## 📜 Roadmap
+- [x] (Multi-cloud) AWS support
+- [x] (Backend) vLLM
+- [x] (Backend) llama.cpp
+- [x] (Platform) Windows support
+- [x] (Accelerator) Nvidia GPU support
+- [ ] (Multi-cloud) GCP support
+- [ ] (Backend) TGI
+- [ ] (Accelerator) AMD GPU support
+- [ ] (Accelerator) Inferentia support
 
-### Vector Store
-Vector store is a key-value store for storing embeddings. Paka supports provisioning [qdrant](https://github.com/qdrant/qdrant).
-
-### Monitoring
-Paka comes with built-in support for monitoring and tracing. Metrics are collected via Prometheus and Grafana, and tracing is done through Zipkin. Users can also enable Prometheus Alertmanager for alerting.
-
-### Continuous Deployment
-Paka supports continuous deployment with rolling updates to ensure no downtime. Application can be built, pushed to container registry and deployed with a single command.
-
-### Building
-Application, job code is built using [buildpacks](https://buildpacks.io/). No need to write Dockerfile. However, user still needs to have docker runtime installed.
-
-
-## Paka CLI Reference
-
-Install the paka CLI
-```bash
-pip install paka
-```
-
-### Provision a cluster
-
-Create a cluster.yaml
-```yaml
-aws:
-  cluster:
-    name: example
-    region: us-west-2
-    nodeType: t2.medium
-    minNodes: 2
-    maxNodes: 4
-  modelGroups:
-    - nodeType: c7a.xlarge
-      minInstances: 1
-      maxInstances: 3
-      name: llama2-7b
-      resourceRequest:
-        cpu: 3600m
-        memory: 6Gi
-      autoScaleTriggers:
-        - type: cpu
-          metadata:
-            type: Utilization
-            value: "50"
-```
-
-Provision the cluster
-```bash
-paka cluster up -f cluster.yaml
-```
-
-### Deploy an application
-Change to the application directory and add a `Procfile` and a .cnignore file.
-In `Procfile`, add the command to start the application. For example, for a flask app, it would be `web: gunicorn app:app`. In `.cnignore`, add the files to ignore during build.
-
-To pin the version of the language runtime, add a `runtime.txt` file with the version number. For example, for python, it could be `python-3.11.*`.
-
-For a python application, a requirements.txt file is required.
-
-To deploy the application, run `paka function deploy --name <function_name> --source <source_path> --entrypoint <Procfile_command>. For example:
-
-```bash
-paka function deploy --name langchain-server --source . --entrypoint serve
-```
-
-### Destroy a cluster
-```bash
-paka cluster down -f cluster.yaml
-```
-
-## Contributing
-- code changes
-- `make check-all`
-- Open a PR
-
-## Dependencies
+## 🎬 Getting Started
+### Dependencies
 - docker daemon and CLI
 - AWS CLI
 ```bash
 # Ensure your AWS credentials are correctly configured.
 aws configure
 ```
+
+### Install Paka
+```bash
+pip install paka
+```
+
+### Provisioning the cluster
+
+Create a `cluster.yaml` file with the following content:
+
+```yaml
+version: "1.2"
+aws:
+  cluster:
+    name: my-awesome-cluster
+    region: us-west-2
+    namespace: default
+    nodeType: t3a.medium
+    minNodes: 2
+    maxNodes: 4
+  prometheus:
+    enabled: true
+  modelGroups:
+    - name: llama2-7b-chat
+      nodeType: g4dn.xlarge
+      isPublic: true
+      minInstances: 1
+      maxInstances: 1
+      name: llama3-70b-instruct
+      runtime:
+        image: vllm/vllm-openai:v0.4.2
+      model:
+        hfRepoId: TheBloke/Llama-2-7B-Chat-GPTQ
+        useModelStore: false
+      gpu:
+        enabled: true
+        diskSize: 50
+```
+
+Bring up the cluster with the following command:
+
+```bash
+paka cluster up -f cluster.yaml
+```
+
+### Code up the application
+Use your favorite language and framework to build the application. Here is an example of a Python application using Langchain:
+
+[invoice_extraction](https://github.com/jjleng/paka/tree/main/examples/invoice_extraction)
+
+With Paka, you can effortlessly build your source code and deploy it as a serverless function, no Dockerfile needed. Just ensure the following:
+
+- **Procfile**: Defines the entrypoint for your application. See [Procfile](https://github.com/jjleng/paka/blob/main/examples/invoice_extraction/Procfile).
+- **.cnignore file**: Excludes any files that shouldn't be included in the build. See [.cnignore](https://github.com/jjleng/paka/blob/main/examples/invoice_extraction/.cnignore).
+- **runtime.txt**: Pins the version of the runtime your application uses. See [runtime.txt](https://github.com/jjleng/paka/blob/main/examples/invoice_extraction/runtime.txt).
+- **requirements.txt**: Lists all necessary packages for your application.
+
+
+### Deploy the App
+```bash
+paka function deploy --name invoice-extraction --source . --entrypoint serve
+```
+
+## Contributing
+- code changes
+- `make check-all`
+- Open a PR
