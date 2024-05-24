@@ -12,7 +12,7 @@ examples_path = Path(__file__).parent.parent / "examples"
     [
         examples_path / "website_rag" / "cluster.yaml",
         examples_path / "invoice_extraction" / "cluster.yaml",
-        examples_path / "invoice_extraction" / "gpu_cluster.yaml",
+        examples_path / "invoice_extraction" / "cluster_cpu.yaml",
     ],
 )
 def test_example_configs(cluster_config: Path) -> None:

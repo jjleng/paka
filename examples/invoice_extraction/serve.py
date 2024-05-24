@@ -9,8 +9,8 @@ from fastapi import FastAPI, File, UploadFile
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.prompts import PromptTemplate
-from llama_cpp_llm import LlamaCpp
 from output_parser import invoice_parser
+from vllm import Vllm
 
 LLM_URL = "http://llama2-7b-chat"
 
@@ -47,9 +47,9 @@ def extract(pdf_path: str) -> str:
      {format_instructions}
 
      Only returns the extracted JSON object, don't say anything else.
+     Don't say "Sure, here is the extracted JSON object based" or anything similar.
     """
 
-    # Future paka code will be able to handle this
     chat_template = f"[INST] <<SYS>><</SYS>>\n\n{template} [/INST]\n"
 
     prompt = PromptTemplate(
@@ -60,7 +60,8 @@ def extract(pdf_path: str) -> str:
         },
     )
 
-    llm = LlamaCpp(
+    llm = Vllm(
+        model="llama2-7b-chat",
         model_url=LLM_URL,
         temperature=0,
         streaming=False,
