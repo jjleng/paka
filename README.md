@@ -8,16 +8,18 @@ Get your LLM applications to the cloud with ease. Paka handles failure recovery,
 ## 🚀 Bring LLM models to the cloud in minutes
 💰 Cut 50% cost with spot instances, backed by on-demand instances for reliable service quality.
 
-| Model      | Parameters | Quantization | GPU          | On-Demand | Spot    | Aws Instance (us-west-2) |
-| ---------- | ---------- | ------------ | ------------ | --------- | ------- | ------------------------ |
-| Llama 3    | 70B        | BF16         | A10G x 8     | $16.2880  | $4.8169 | g5.48xlarge              |
-| Llama 3    | 70B        | GPTQ 4bit    | T4 x 4       | $3.9120   | $1.6790 | g4dn.12xlarge            |
-| Llama 3    | 8B         | BF16         | L4 x 1       | $0.8048   | $0.1100 | g6.xlarge                |
-| Llama 2    | 7B         | GPTQ 4bit    | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge              |
-| Mistral    | 7B         | BF16         | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge              |
-| Phi3 Mini  | 3.8B       | BF16         | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge              |
+| Model      | Parameters | Quantization | GPU          | On-Demand | Spot    | AWS Node (us-west-2) |
+| ---------- | ---------- | ------------ | ------------ | --------- | ------- | ---------------------|
+| Llama 3    | 70B        | BF16         | A10G x 8     | $16.2880  | $4.8169 | g5.48xlarge          |
+| Llama 3    | 70B        | GPTQ 4bit    | T4 x 4       | $3.9120   | $1.6790 | g4dn.12xlarge        |
+| Llama 3    | 8B         | BF16         | L4 x 1       | $0.8048   | $0.1100 | g6.xlarge            |
+| Llama 2    | 7B         | GPTQ 4bit    | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge          |
+| Mistral    | 7B         | BF16         | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge          |
+| Phi3 Mini  | 3.8B       | BF16         | T4 x 1       | $0.526    | $0.2584 | g4dn.xlarge          |
 
 > Note: Prices are based on us-west-2 region and are in USD per hour. Spot prices change frequently.
+> See [Launch Templates](https://github.com/jjleng/paka/tree/main/examples/templates) for more details.
+
 
 ## 🏃 Effortlessly Launch RAG Applications
 You only need to take care of the application code. Build the RAG application with your favorite languages (python, TS) and frameworks (Langchain, LlamaIndex) and let Paka handles the rest.
@@ -35,13 +37,13 @@ You only need to take care of the application code. Build the RAG application wi
 Paka comes with built-in support for monitoring and tracing. Metrics are collected via Prometheus. Users can also enable Prometheus Alertmanager for alerting.
 
 <div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img src="docs/img/tokens_per_sec.png" max-width="1000"/>
+<img src="https://raw.githubusercontent.com/jjleng/paka/main/docs/img/tokens_per_sec.png" max-width="1000"/>
 </div>
 
 ## ⚙️ Architecture
 
 <div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img src="docs/img/architecture.png" max-width="1000"/>
+<img src="https://raw.githubusercontent.com/jjleng/paka/main/docs/img/architecture.png" max-width="1000"/>
 </div>
 
 ## 📜 Roadmap
