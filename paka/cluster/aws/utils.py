@@ -61,7 +61,7 @@ def odic_role_for_sa(
 
 def get_ami_for_instance(ctx: Context, instance_type: str) -> str:
     instance_info = get_instance_info(ctx.provider, ctx.region, instance_type)
-    gpu_count = instance_info.get("gpu_count", 0)
+    gpu_count = instance_info.get("gpu_count", 0) or 0
     arch = instance_info.get("arch", "x86_64")
 
     if gpu_count > 0:
