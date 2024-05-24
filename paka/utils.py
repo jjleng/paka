@@ -390,7 +390,7 @@ def get_instance_info(provider: str, region: str, instance_type: str) -> Dict[st
             instance_type_info = instance_types[0]
             gpu_info = instance_type_info.get("GpuInfo", {})
             gpu, vram = gpu_info.get("Gpus", [{}])[0], gpu_info.get(
-                "TotalGpuMemoryInMiB"
+                "TotalGpuMemoryInMiB", 0
             )
             architectures = instance_type_info.get("ProcessorInfo", {}).get(
                 "SupportedArchitectures", []
@@ -399,7 +399,7 @@ def get_instance_info(provider: str, region: str, instance_type: str) -> Dict[st
             return {
                 "cpu": instance_type_info.get("VCpuInfo", {}).get("DefaultVCpus"),
                 "memory": instance_type_info.get("MemoryInfo", {}).get("SizeInMiB"),
-                "gpu_count": gpu.get("Count"),
+                "gpu_count": gpu.get("Count", 0),
                 "vram": vram,
                 "gpu_manufacturer": gpu.get("Manufacturer"),
                 "gpu_name": gpu.get("Name"),

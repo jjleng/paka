@@ -10,8 +10,8 @@ from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import Qdrant
 from langchain_core.runnables import RunnableLambda
 from langserve import APIHandler, add_routes  # type: ignore
-from llama_cpp_llm import LlamaCpp
 from qdrant_client import QdrantClient
+from vllm import Vllm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,7 +47,8 @@ add_routes(app, retriever)
 def run_llm(query: str) -> Any:
     start_time = time.time()
     logging.info(f"Running LLM with query: {query}")
-    llm = LlamaCpp(
+    llm = Vllm(
+        model="llama2-7b-chat",
         model_url=LLM_URL,
         temperature=0,
         max_tokens=2500,
@@ -58,6 +59,7 @@ def run_llm(query: str) -> Any:
         llm=llm, retriever=retriever, chain_type="stuff", return_source_documents=True
     )
 
+    query = f"[INST] <<SYS>><</SYS>>\n\n{query} [/INST]\n"
     result = qa.invoke({"query": query})
     logging.info(f"LLM result: {result}")
 

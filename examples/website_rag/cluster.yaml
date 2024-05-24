@@ -1,58 +1,53 @@
-version: "1.0"
+version: "1.2"
 aws:
   cluster:
     name: website-rag
     region: us-west-2
     namespace: default
-    nodeType: t2.medium
+    nodeType: t3a.medium
     minNodes: 2
     maxNodes: 4
   vectorStore:
-     nodeType: t2.small
+     nodeType: t3a.small
      replicas: 1
   prometheus:
     enabled: true
-  tracing:
-    enabled: true
-  modelGroups:
-    - nodeType: c7a.xlarge
-      minInstances: 1
-      maxInstances: 3
-      name: gte-base
+  mixedModelGroups:
+    - name: gte-base
+      nodeType: c7a.xlarge
+      baseInstances: 0
+      maxOnDemandInstances: 1
+      spot:
+        minInstances: 1
+        maxInstances: 3
       runtime:
         image: ghcr.io/ggerganov/llama.cpp:server
       model:
         hfRepoId: jjleng/gte-base-gguf
         files: ["*.q4_0.gguf"]
-      resourceRequest:
-        cpu: 3600m
-        memory: 6Gi
       autoScaleTriggers:
         - type: cpu
           metadata:
             type: Utilization
             value: "50"
-    - nodeType: c7a.xlarge
-      minInstances: 1
-      maxInstances: 3
-      name: llama2-7b
+    - name: llama2-7b-chat
+      nodeType: g4dn.xlarge
+      gpu:
+        enabled: true # This model group runs on GPU-enabled instances
+      baseInstances: 0
+      maxOnDemandInstances: 1
+      spot:
+        minInstances: 1
+        maxInstances: 2
       runtime:
-        image: ghcr.io/ggerganov/llama.cpp:server
+        image: vllm/vllm-openai:v0.4.2
       model:
-        hfRepoId: TheBloke/Llama-2-7B-GGUF
-        files: ["*.Q4_0.gguf"]
-      resourceRequest:
-        cpu: 3600m
-        memory: 6Gi
+        hfRepoId: TheBloke/Llama-2-7B-Chat-GPTQ
       autoScaleTriggers:
-        - type: cpu
-          metadata:
-            type: Utilization
-            value: "50"
         - type: prometheus
           metadata:
-            serverAddress: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
-            metricName: request_duration_90percentile
-            threshold: '220000'
-            query: |
-              histogram_quantile(0.90, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_name="llama2-7b", response_code="200"}[1m])) by (le))
+            serverAddress: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090 # Prometheus endpoint
+            metricName: latency_p95
+            threshold: '20000' # Set to 20s, tune as needed
+            query: | # Trigger scaling if p95 latency exceeds 20s
+              histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service="llama2-7b-chat.default.svc.cluster.local"}[5m])) by (le))
