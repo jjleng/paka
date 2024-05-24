@@ -1,0 +1,31 @@
+version: "1.2"
+aws:
+  cluster:
+    name: invoice-extraction
+    region: us-west-2
+    namespace: default
+    nodeType: t3a.medium
+    minNodes: 2
+    maxNodes: 4
+  prometheus:
+    enabled: false
+  tracing:
+    enabled: false
+  mixedModelGroups:
+    - nodeType: c7i.large
+      baseInstances: 0
+      maxOnDemandInstances: 1
+      spot:
+        minInstances: 1
+        maxInstances: 3
+      name: llama2-7b-chat
+      runtime:
+        image: ghcr.io/ggerganov/llama.cpp:server
+      model:
+        hfRepoId: TheBloke/Llama-2-7B-Chat-GGUF
+        files: ["*.Q4_0.gguf"] # Use the q4 quantization
+      autoScaleTriggers:
+        - type: cpu
+          metadata:
+            type: Utilization
+            value: "50"
