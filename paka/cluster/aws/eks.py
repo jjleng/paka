@@ -14,7 +14,7 @@ from paka.cluster.aws.cluster_autoscaler import create_cluster_autoscaler
 from paka.cluster.aws.ebs_csi_driver import create_ebs_csi_driver
 from paka.cluster.aws.elb import update_elb_idle_timeout
 from paka.cluster.aws.service_account import create_service_accounts
-from paka.cluster.aws.utils import get_ami_for_instance
+from paka.cluster.aws.utils import create_vpc_endpoint_for_s3, get_ami_for_instance
 from paka.cluster.context import Context
 from paka.cluster.keda import create_keda
 from paka.cluster.knative import create_knative_and_istio
@@ -411,6 +411,11 @@ def create_k8s_cluster(ctx: Context) -> eks.Cluster:
         ],
         opts=pulumi.ResourceOptions(transformations=[_ignore_tags_transformation]),
     )
+
+    route_table_ids = vpc.route_tables.apply(
+        lambda route_tables: [rt.id for rt in route_tables]
+    )
+    create_vpc_endpoint_for_s3(vpc.vpc_id, route_table_ids, ctx.region)
 
     cluster = eks.Cluster(
         cluster_name,

@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+from typing import Sequence
+
 import pulumi
 import pulumi_aws as aws
 import pulumi_eks as eks
+from pulumi import Input
 
 from paka.cluster.context import Context
 from paka.utils import get_instance_info
@@ -73,3 +78,17 @@ def get_ami_for_instance(ctx: Context, instance_type: str) -> str:
         if arch == "arm64":
             return "AL2_ARM_64"
     return "AL2_x86_64"
+
+
+def create_vpc_endpoint_for_s3(
+    vpc_id: str, route_table_ids: Input[Sequence[Input[str]]], region: str
+) -> aws.ec2.VpcEndpoint:
+    s3_service_name = f"com.amazonaws.{region}.s3"
+
+    vpc_endpoint = aws.ec2.VpcEndpoint(
+        "s3-vpc-endpoint",
+        vpc_id=vpc_id,
+        service_name=s3_service_name,
+        route_table_ids=route_table_ids,
+    )
+    return vpc_endpoint
