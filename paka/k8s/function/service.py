@@ -93,7 +93,7 @@ def create_knative_service(
     """
     if not isinstance(min_instances, int) or not isinstance(max_instances, int):
         raise ValueError("min_replicas and max_replicas must be integers")
-    if min_instances > max_instances:
+    if min_instances > max_instances and not max_instances == 0:
         raise ValueError("min_replicas cannot be greater than max_replicas")
 
     metric_key, metric_value = scaling_metric
