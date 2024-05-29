@@ -117,11 +117,10 @@ def deploy(
         "directory will be ignored.",
     ),
     min_instances: int = typer.Option(
-        0,
+        1,
         "--min-replicas",
         help="The minimum number of instances to be maintained at all times to "
-        "handle incoming requests. The default value is 0, indicating that the "
-        "system can scale down to zero instances when no requests are being processed.",
+        "handle incoming requests. The default value is 0.",
     ),
     max_instances: int = typer.Option(
         0,
