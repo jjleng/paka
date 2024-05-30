@@ -131,6 +131,7 @@ paka function deploy --name invoice-extraction --source . --entrypoint serve
 ## 📖 Documentation
 
 - [FAQ](./docs/faq.md)
+- [cluster_config.yaml](./docs/cluster_config.md)
 
 ## Contributing
 - code changes

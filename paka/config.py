@@ -435,7 +435,7 @@ class CloudVectorStore(CloudNode):
         return v
 
 
-class NodeGroup(ScalingConfig):
+class NodeGroup(ScalingConfigNonZero):
     nodeTypes: List[str] = Field(
         ..., description="The types of nodes in the node group."
     )
