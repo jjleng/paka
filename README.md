@@ -128,6 +128,10 @@ With Paka, you can effortlessly build your source code and deploy it as a server
 paka function deploy --name invoice-extraction --source . --entrypoint serve
 ```
 
+## 📖 Documentation
+
+- [FAQ](./docs/faq.md)
+
 ## Contributing
 - code changes
 - `make check-all`
