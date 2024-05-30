@@ -120,7 +120,7 @@ With Paka, you can effortlessly build your source code and deploy it as a server
 - **Procfile**: Defines the entrypoint for your application. See [Procfile](https://github.com/jjleng/paka/blob/main/examples/invoice_extraction/Procfile).
 - **.cnignore file**: Excludes any files that shouldn't be included in the build. See [.cnignore](https://github.com/jjleng/paka/blob/main/examples/invoice_extraction/.cnignore).
 - **runtime.txt**: Pins the version of the runtime your application uses. See [runtime.txt](https://github.com/jjleng/paka/blob/main/examples/invoice_extraction/runtime.txt).
-- **requirements.txt**: Lists all necessary packages for your application.
+- **requirements.txt or package.json**: Lists all necessary packages for your application.
 
 
 ### Deploy the App
@@ -130,6 +130,7 @@ paka function deploy --name invoice-extraction --source . --entrypoint serve
 
 ## 📖 Documentation
 
+- [Quick Start](./docs/quick_start.md)
 - [FAQ](./docs/faq.md)
 - [cluster_config.yaml](./docs/cluster_config.md)
 
