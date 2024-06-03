@@ -117,7 +117,7 @@ def create_knative_service(
 
     container: Dict[str, Any] = {
         "image": image,
-        "imagePullPolicy": "Always",
+        # "imagePullPolicy": "Always",
         "command": shlex.split(entrypoint),
     }
     if envs:
