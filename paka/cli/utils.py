@@ -6,6 +6,7 @@ import platform
 import re
 import subprocess
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import typer
@@ -87,6 +88,12 @@ def build_and_push(
             "--builder",
             builder,
         ]
+
+        # Default buildpacks environment file
+        bp_env_file = Path(source_dir) / ".buildpacks.env"
+        if bp_env_file.exists():
+            pack_command.extend(["--env-file", str(bp_env_file)])
+
         if bp_cpython_version:
             pack_command.extend(["--env", f"BP_CPYTHON_VERSION={bp_cpython_version}"])
         elif bp_node_version:
