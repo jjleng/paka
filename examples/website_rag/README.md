@@ -31,10 +31,10 @@ paka cluster up -f cluster.yaml
 
 
 ```bash
-# Default BP_BUILDER is "paketobuildpacks/builder:base".
-# Here we use "paketobuildpacks/builder:full" to install sqlite
+# Default BP_BUILDER is "paketobuildpacks/builder-jammy-base".
+# Here we use "paketobuildpacks/builder-jammy-full" to install sqlite
 # `ingest` is the entrypoint for the container, which is defined in the Procfile.
-BP_BUILDER="paketobuildpacks/builder:full" paka run --entrypoint ingest --source .
+BP_BUILDER="paketobuildpacks/builder-jammy-full" paka run --entrypoint ingest --source .
 ```
 
 The command above will scrape https://python.langchain.com/docs, chunk the text, and create embeddings through langchain. Embeddings are created by a light Bert model that is managed by paka model group. The embeddings are then stored in a Qdrant cluster provisioned by paka.
@@ -43,7 +43,7 @@ The command above will scrape https://python.langchain.com/docs, chunk the text,
 
 ```bash
 # Below command will build the source and deploy it as a serverless function.
-BP_BUILDER="paketobuildpacks/builder:full" paka function deploy --name langchain-docs --source . --entrypoint serve
+BP_BUILDER="paketobuildpacks/builder-jammy-full" paka function deploy --name langchain-docs --source . --entrypoint serve
 
 # Or, without building from the source, you can deploy the pre-built image
 paka function deploy --name langchain-docs --image website_rag-latest --entrypoint serve
