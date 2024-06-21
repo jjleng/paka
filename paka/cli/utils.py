@@ -79,7 +79,9 @@ def build_and_push(
             logger.error(f"Source directory {source_dir} does not exist.")
             raise typer.Exit(1)
 
-        builder = os.environ.get(BP_BUILDER_ENV_VAR, "paketobuildpacks/builder:base")
+        builder = os.environ.get(
+            BP_BUILDER_ENV_VAR, "paketobuildpacks/builder-jammy-base"
+        )
 
         pack_command = [
             pack_bin,
